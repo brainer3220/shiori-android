@@ -6,6 +6,46 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-07 00:57:35 KST] - US-004: Align bulk and single-link updates to documented PATCH behavior
+Thread: 
+Run: 20260307-001840-72835 (iteration 4)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-4.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-4.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 46e16f7 fix: align link patch updates with API docs
+- Post-commit status: `.ralph/activity.log`, `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+  - Command: `adb devices` -> PASS
+- Files changed:
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiClient.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiService.kt`
+  - `core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt`
+- What was implemented
+  - Changed single-link PATCH handling to parse the documented mutation response shape (`success`, `message`, `linkId`) instead of assuming the server returns a hydrated link body.
+  - Reloaded the active list after successful single-link read or metadata PATCH operations so the visible card refreshes from documented server data, while bulk read updates continue using `PATCH /api/links` with string ids and boolean `read`.
+  - Treated an emptied summary field as a documented clear operation by sending `summary=null`, and kept conflict failures non-optimistic so cards stay unchanged while the user sees retry guidance.
+  - Expanded core-network, repository, and instrumentation coverage for documented single-link PATCH serialization, list refresh after successful edits/toggles, and unchanged-card behavior on `409 Conflict`.
+  - Reviewed the final changes for security, performance, and regression risk: outbound PATCH payloads stay constrained to documented fields, single-link success paths perform one bounded list reload instead of unsafe optimistic mutation, and the full unit, lint, and connected-test suite passes in this environment.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Documented mutation endpoints that return only `linkId` should trigger a scoped list refresh in the UI instead of pretending the response already contains the updated card data.
+  - Gotchas encountered
+    - The edit dialog previously treated an empty summary field as "keep the old summary"; explicit empty-input handling is required to serialize `summary=null` for the documented clear behavior.
+  - Useful context
+    - `connectedDebugAndroidTest` runs successfully against the already-booted `Wear_OS_Large_Round_API_33` emulator in this environment.
+---
+
 ## [2026-03-07 00:49:18 KST] - US-003: Align manual link creation to the documented POST flow
 Thread: 
 Run: 20260307-001840-72835 (iteration 3)
