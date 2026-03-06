@@ -6,6 +6,41 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-07 00:49:18 KST] - US-003: Align manual link creation to the documented POST flow
+Thread: 
+Run: 20260307-001840-72835 (iteration 3)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-3.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-3.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 8bd593f fix: align create-link flow with API docs
+- Post-commit status: `.ralph/activity.log`, `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+  - Command: `"$HOME/Library/Android/sdk/platform-tools/adb" devices` -> PASS
+- Files changed:
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt`
+- What was implemented
+  - Updated manual save request normalization so unchecked saves omit the optional `read` field while still sending only the documented `url`, optional `title`, and optional `read` payload keys.
+  - Kept create-link handling based on the documented `CreateLinkResponse` only, then refreshed the destination list immediately after success or duplicate without assuming the POST response contained hydrated link details.
+  - Added instrumentation coverage for archive refresh after create success, duplicate inbox refresh, rate-limited manual save failures, and invalid manual input that must not call the repository.
+  - Added a core-network regression test that verifies `POST /api/links` omits absent optional fields instead of serializing undocumented data.
+  - Reviewed the final changes for security, performance, and regression risk: save requests stay trimmed to documented fields only, the flow still performs a single follow-up GET refresh instead of optimistic local insertion, and the full unit, lint, and connected-test suite passes in this environment.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Treating unchecked create options as absent request fields keeps the UI aligned with optional API contract fields without changing destination mapping logic.
+  - Gotchas encountered
+    - This repo's Android/Gradle tasks are safer when run sequentially; running `test` and `lintDebug` in parallel can corrupt intermediates and force a rerun.
+  - Useful context
+    - `lintDebug` still passes here even though AndroidX lint jars print Java class-version warnings during analysis.
+---
+
 ## [2026-03-07 00:40:56 KST] - US-002: Align browse queries with documented list semantics
 Thread: 
 Run: 20260307-001840-72835 (iteration 2)
