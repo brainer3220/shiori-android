@@ -6,6 +6,42 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-06 17:30:35 KST] - US-004: Save links from inside the app
+Thread: 
+Run: 20260306-160314-32261 (iteration 7)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-7.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-7.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 7f3f603 feat: add in-app link saving flow
+- Post-commit status: `.ralph/activity.log`, `.ralph/progress.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+  - Command: `adb shell am start -W -n dev.shiori.android/.MainActivity` -> PASS
+- Files changed:
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/main/res/layout/activity_main.xml`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+- What was implemented
+  - Added an in-app save form to the browser screen with URL entry, optional custom title, and an initial read toggle sized for the Wear emulator layout.
+  - Validated manual URL submissions locally before calling `POST /api/links`, disabled the save action while a request is running, and surfaced distinct success, duplicate, and API failure messages.
+  - Routed successful saves to the matching inbox or archive destination and refreshed that list so newly saved or bumped links appear where the user expects.
+  - Extended repository coverage for link creation plus emulator coverage for duplicate-save feedback, saved request payloads, and archive refresh behavior.
+  - Reviewed the final changes for security, performance, and regression risk: link input is trimmed and validated before network use, saves reuse the existing authenticated repository without added background polling, and prior browsing/access flows remain covered by unit and instrumentation tests.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Reusing the shared repository plus destination mapping keeps in-app saves aligned with later share-intent work instead of creating a separate link-ingest code path.
+  - Gotchas encountered
+    - Running multiple Gradle tasks in parallel can race on Android resource intermediates; `lintDebug` is more reliable when rerun sequentially after `test` in this repo.
+  - Useful context
+    - Direct activity field updates are more reliable than Espresso clicks for the new add-link controls on the round Wear emulator when verifying the end-to-end save flow.
+---
+
 ## [2026-03-06 17:20:33 KST] - US-003: Browse inbox, archive, and trash links
 Thread: 
 Run: 20260306-160314-32261 (iteration 6)
