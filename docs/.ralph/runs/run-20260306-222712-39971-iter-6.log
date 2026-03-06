@@ -1901,3 +1901,19 @@ index 96e4130..be0d548 100644
 +[0m
 +<promise>COMPLETE</promise>
 [0m
+[0m$ [0mgit add .ralph/activity.log docs/.ralph/activity.log docs/.ralph/errors.log docs/.ralph/progress.md docs/.ralph/runs/run-20260306-222712-39971-iter-5.log docs/.ralph/.tmp/prompt-20260306-222712-39971-6.md docs/.ralph/.tmp/story-20260306-222712-39971-6.json docs/.ralph/.tmp/story-20260306-222712-39971-6.md docs/.ralph/runs/run-20260306-222712-39971-iter-5.md docs/.ralph/runs/run-20260306-222712-39971-iter-6.log && git commit -m "docs: record US-004 progress" && git status --short && git show -s --format="%h %s" HEAD
+[main 7be114a] docs: record US-004 progress
+ 10 files changed, 2164 insertions(+)
+ create mode 100644 docs/.ralph/.tmp/prompt-20260306-222712-39971-6.md
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-6.json
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-6.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-5.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-6.log
+7be114a docs: record US-004 progress
+[0m
+[0m$ [0mgit show -s --format="%h %s" HEAD
+7be114a docs: record US-004 progress
+[0m
+[0m$ [0mgit status --porcelain
+M docs/.ralph/runs/run-20260306-222712-39971-iter-6.log
+[0m
