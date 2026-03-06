@@ -6,6 +6,45 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-07 01:05:28 KST] - US-005: Align trash, restore, and empty-trash flows to documented endpoints
+Thread: 
+Run: 20260307-001840-72835 (iteration 5)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-5.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-5.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 3173d8c fix: align trash flows with API docs
+- Post-commit status: `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `"${ANDROID_HOME:-$HOME/Library/Android/sdk}"/platform-tools/adb devices` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+- Files changed:
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiClient.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiService.kt`
+  - `core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt`
+- What was implemented
+  - Switched trash restore handling to the documented mutation response contract so the app no longer assumes `PATCH /api/links/:id` with `restore=true` returns a hydrated link body.
+  - Derived the restored destination from the trashed card's saved read state, then refreshed both the destination list and the trash list after restore so read items return to archive and unread items return to inbox from server-backed data.
+  - Kept the documented 7-day trash retention copy and explicit empty-trash confirmation in place, while making the negative cases non-optimistic so canceled, `404`, and `429` trash actions leave the visible trash list intact.
+  - Expanded instrumentation and repository coverage for delete, trash browsing, restore-to-archive refresh, restore `404`, empty-trash cancellation, and empty-trash rate-limit handling.
+  - Reviewed the final changes for security, performance, and regression risk: restore and delete requests still send only documented trash endpoints and payload fields, successful restore paths perform two scoped list refreshes instead of unsafe optimistic mutation, and the full unit, lint, and connected-test suite passes in this environment.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Trash restore flows can recover the correct post-restore destination from the trashed item's read state even when the documented API returns only mutation metadata.
+  - Gotchas encountered
+    - The repo currently carries unrelated dirty `docs/.ralph/*` files, so story commits should stay scoped to the run's own files and progress notes.
+  - Useful context
+    - `connectedDebugAndroidTest` passed against the already-running `Wear_OS_Large_Round_API_33` emulator, and `lintDebug` still succeeds despite noisy AndroidX lint class-version warnings on stdout.
+---
+
 ## [2026-03-07 00:57:35 KST] - US-004: Align bulk and single-link updates to documented PATCH behavior
 Thread: 
 Run: 20260307-001840-72835 (iteration 4)
