@@ -9,6 +9,15 @@
     <string name="action_validate_access">Validate connection</string>
     <string name="action_open_links">Open links</string>
     <string name="action_clear_key">Clear API key</string>
+    <string name="action_edit_access">API access</string>
+    <string name="action_load_more">Load more links</string>
+    <string name="action_loading_more">Loading more…</string>
+    <string name="action_retry_links">Retry loading</string>
+    <string name="title_links_browser">Your links</string>
+    <string name="subtitle_links_browser">Browse unread inbox items, archived links, and trash without losing your place.</string>
+    <string name="filter_inbox">Inbox</string>
+    <string name="filter_archive">Archive</string>
+    <string name="filter_trash">Trash</string>
     <string name="message_missing_access">Enter your Shiori server URL and a valid-looking API key to unlock link actions.</string>
     <string name="message_unsaved_changes">Save your changes before you validate the connection or open links.</string>
     <string name="message_saved_access">API access is saved securely. Validate it before your first sync.</string>
@@ -16,7 +25,10 @@
     <string name="message_validation_success">Connection confirmed. Link actions are unlocked.</string>
     <string name="message_validation_unauthorized">Shiori rejected this API key. Replace it and try validation again.</string>
     <string name="message_validation_failure">Could not reach your Shiori server. Check the URL or network and try again.</string>
-    <string name="message_links_locked">Link browsing ships in US-003. This button stays locked until API access is configured.</string>
+    <string name="message_links_loading">Loading links…</string>
+    <string name="message_links_empty">No links match this filter yet.</string>
+    <string name="message_links_count">Loaded %1$d links.</string>
+    <string name="message_links_count_with_total">Loaded %1$d of %2$d links.</string>
     <string name="error_server_url">Enter an HTTPS URL, or use localhost over HTTP for emulator testing.</string>
     <string name="error_api_key">Enter a valid-looking API key with no spaces.</string>
 </resources>

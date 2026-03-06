@@ -132,10 +132,15 @@ object AppDependencies {
     @Volatile
     private var checkerOverride: ApiConnectionChecker? = null
 
+    @Volatile
+    private var linksRepositoryOverride: LinksRepository? = null
+
     fun apiAccessStore(context: Context): ApiAccessStore =
         storeOverride ?: EncryptedApiAccessStore(context.applicationContext)
 
     fun connectionChecker(): ApiConnectionChecker = checkerOverride ?: DefaultApiConnectionChecker()
+
+    fun linksRepository(): LinksRepository = linksRepositoryOverride ?: DefaultLinksRepository()
 
     @VisibleForTesting
     fun overrideStoreForTests(store: ApiAccessStore?) {
@@ -148,8 +153,14 @@ object AppDependencies {
     }
 
     @VisibleForTesting
+    fun overrideLinksRepositoryForTests(repository: LinksRepository?) {
+        linksRepositoryOverride = repository
+    }
+
+    @VisibleForTesting
     fun resetForTests() {
         storeOverride = null
         checkerOverride = null
+        linksRepositoryOverride = null
     }
 }
