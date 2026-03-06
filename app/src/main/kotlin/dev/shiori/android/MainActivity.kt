@@ -22,6 +22,7 @@ import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import dev.shiori.android.corenetwork.CreateLinkRequest
+import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.UpdateLinkRequest
@@ -366,7 +367,7 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             when (val result = linksRepository.saveLink(savedConfig, request)) {
-                is ShioriApiResult.Success -> handleLinkSaved(result.value.link, result.value.duplicate)
+                is ShioriApiResult.Success -> handleLinkSaved(result.value, request)
                 is ShioriApiResult.Failure -> {
                     isSavingLink = false
                     addLinkStatusMessage = result.error.toSaveMessage()
@@ -376,14 +377,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleLinkSaved(link: LinkResponse, duplicate: Boolean) {
-        val destination = link.toBrowseDestination()
+    private fun handleLinkSaved(response: CreateLinkResponse, request: CreateLinkRequest) {
+        val destination = response.toBrowseDestination(request)
         addLinkUrlInput.setText("")
         addLinkTitleInput.setText("")
         addLinkReadCheckbox.isChecked = false
         addLinkStatusMessage = when {
-            duplicate && destination == LinkBrowseDestination.Archive -> getString(R.string.message_link_duplicate_archive)
-            duplicate -> getString(R.string.message_link_duplicate_inbox)
+            response.duplicate -> getString(R.string.message_link_duplicate_inbox)
             destination == LinkBrowseDestination.Archive -> getString(R.string.message_link_saved_archive)
             else -> getString(R.string.message_link_saved_inbox)
         }

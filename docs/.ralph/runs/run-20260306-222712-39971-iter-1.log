@@ -1,0 +1,1593 @@
+[0m
+> build · gpt-5.4
+[0m
+[0m# [0mTodos
+[ ] Read guardrails, errors, PRD, and AGENTS context
+[ ] Audit existing Android app files for US-001 scope
+[ ] Implement US-001 credential storage and gating flow
+[ ] Run required verification commands and review changes
+[ ] Commit changes and append progress/activity logs
+[0m
+[0m✗ [0mread failed
+[91m[1mError: [0mFile not found: /Users/brainer/Programming/shiori-android/docs/AGENTS.md
+[0m→ [0mRead .ralph/guardrails.md
+[0m→ [0mRead .ralph/errors.log
+[0m→ [0mRead .agents/tasks/prd-share-intent.json
+[0m
+[0m$ [0m./ralph log "Start work on US-001 Store API access"
+zsh:1: no such file or directory: ./ralph
+[0m
+[0m→ [0mRead ..
+[0m→ [0mRead .
+[0m✱ [0mGlob "**/MainActivity.kt"[90m in .. · 1 match[0m
+[0m✱ [0mGlob "**/activity_main.xml"[90m in .. · 1 match[0m
+[0m✱ [0mGlob "**/ralph*"[90m in . · 0 matches[0m
+[0m
+[0m$ [0m./ralph log "Start work on US-001 Store API access"
+[0m
+[0m# [0mTodos
+[x] Read guardrails, errors, PRD, and AGENTS context
+[ ] Audit existing Android app files for US-001 scope
+[ ] Implement US-001 credential storage and gating flow
+[ ] Run required verification commands and review changes
+[ ] Commit changes and append progress/activity logs
+[0m
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m→ [0mRead ../app/src/main/res/layout/activity_main.xml
+[0m→ [0mRead ../app/src/main/AndroidManifest.xml
+[0m✱ [0mGlob "**/*Test.kt"[90m in ../app/src · 4 matches[0m
+[0m✱ [0mGlob "**/*.kt"[90m in ../core-network/src · 4 matches[0m
+[0m✱ [0mGrep "EncryptedSharedPreferences|SharedPreferences|DataStore|api key|server url|base url|auth"[90m in .. · 24 matches[0m
+[0m→ [0mRead ../app/src/main/res/values/strings.xml
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/ApiAccess.kt
+[0m→ [0mRead ../app/src/test/kotlin/dev/shiori/android/DefaultApiConnectionCheckerTest.kt
+[0m→ [0mRead ../app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt
+[0m→ [0mRead ../app/build.gradle.kts
+[0m→ [0mRead ../app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+[0m→ [0mRead api-reference.md
+[0m✱ [0mGrep "www\.shiori\.sh|10\.0\.2\.2|localhost|server URL|API key"[90m in .. · 47 matches[0m
+[0m
+[0m$ [0mgit log -5 --oneline
+b7df9bb docs: record US-006 progress
+ad54cff feat: support link read-state and metadata updates
+43e82b3 docs: record US-005 progress
+9e4a466 feat: accept shared URLs from Android intents
+3a6755c docs: record US-004 progress
+[0m
+[0m$ [0mgit status --short
+M .ralph/activity.log
+ M app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+ M app/src/main/kotlin/dev/shiori/android/LinkListAdapter.kt
+ M app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt
+ M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+ M app/src/main/res/layout/activity_main.xml
+ M app/src/main/res/layout/item_link.xml
+ M app/src/main/res/values/strings.xml
+ M app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt
+?? docs/
+[0m
+[0m→ [0mRead ../.ralph/progress.md[90m [offset=140, limit=80][0m
+[0m
+[0m$ [0mgit diff -- app/src/main/kotlin/dev/shiori/android/MainActivity.kt app/src/main/kotlin/dev/shiori/android/ApiAccess.kt app/src/main/res/layout/activity_main.xml app/src/main/res/values/strings.xml app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt app/src/test/kotlin/dev/shiori/android/DefaultApiConnectionCheckerTest.kt
+diff --git a/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt b/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+index 652e093..ac3476f 100644
+--- a/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
++++ b/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+@@ -19,6 +19,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
+ import androidx.test.platform.app.InstrumentationRegistry
+ import dev.shiori.android.corenetwork.CreateLinkRequest
+ import dev.shiori.android.corenetwork.CreateLinkResponse
++import dev.shiori.android.corenetwork.DeleteLinkResponse
++import dev.shiori.android.corenetwork.EmptyTrashResponse
+ import dev.shiori.android.corenetwork.LinkListResponse
+ import dev.shiori.android.corenetwork.LinkResponse
+ import dev.shiori.android.corenetwork.ShioriApiError
+@@ -322,6 +324,105 @@ class MainActivityTest {
+         }
+     }
+ 
++    @Test
++    fun deleteActionMovesLinkOutOfActiveList() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        linksRepository.enqueue(
++            LinkBrowseDestination.Inbox,
++            0,
++            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 11, title = "Delete me", read = false))),
++        )
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForRecyclerCount(scenario, 1)
++
++            invokePrivateMethod(scenario, "deleteLink", cardAt(scenario, 0))
++
++            waitForText(scenario, R.id.add_link_status_text, "Link moved to trash.")
++            waitForRecyclerCount(scenario, 0)
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            assertEquals(listOf(11L), linksRepository.deleteRequests)
++        }
++    }
++
++    @Test
++    fun restoreActionReturnsTrashedLinkToInbox() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        linksRepository.enqueue(
++            LinkBrowseDestination.Inbox,
++            0,
++            page(limit = 20, offset = 0, total = 0, links = emptyList()),
++        )
++        linksRepository.enqueue(
++            LinkBrowseDestination.Trash,
++            0,
++            page(
++                limit = 20,
++                offset = 0,
++                total = 1,
++                links = listOf(link(id = 12, title = "Restore me", read = false, status = "trashed")),
++            ),
++        )
++        linksRepository.restoreLinkResult = ShioriApiResult.Success(
++            link(id = 12, title = "Restore me", read = false, status = "ready"),
++        )
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            clickButton(scenario, R.id.filter_trash_button)
++            waitForRecyclerCount(scenario, 1)
++            waitForText(
++                scenario,
++                R.id.trash_retention_text,
++                "Items stay in trash for 7 days before Shiori deletes them automatically.",
++            )
++
++            invokePrivateMethod(scenario, "restoreLink", cardAt(scenario, 0))
++
++            waitForText(scenario, R.id.add_link_status_text, "Link restored. Showing it in your inbox.")
++            waitForRecyclerCount(scenario, 1)
++            assertLoadedTitles(scenario, "Restore me")
++            assertEquals(listOf(12L), linksRepository.restoreRequests)
++        }
++    }
++
++    @Test
++    fun emptyTrashRequiresConfirmationAndClearsItems() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        linksRepository.enqueue(
++            LinkBrowseDestination.Inbox,
++            0,
++            page(limit = 20, offset = 0, total = 0, links = emptyList()),
++        )
++        linksRepository.enqueue(
++            LinkBrowseDestination.Trash,
++            0,
++            page(
++                limit = 20,
++                offset = 0,
++                total = 1,
++                links = listOf(link(id = 13, title = "Trash item", read = true, status = "trashed")),
++            ),
++        )
++        linksRepository.emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(removedCount = 1, message = "Trash emptied"))
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            clickButton(scenario, R.id.filter_trash_button)
++            waitForRecyclerCount(scenario, 1)
++
++            onView(withId(R.id.empty_trash_button)).perform(click())
++            onView(withText("This permanently deletes every trashed link right away. This action cannot be undone."))
++                .check(matches(isDisplayed()))
++            onView(withText(R.string.action_empty_trash)).perform(click())
++
++            waitForText(scenario, R.id.add_link_status_text, "Trash emptied. Removed 1 links.")
++            waitForRecyclerCount(scenario, 0)
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            assertEquals(1, linksRepository.emptyTrashCalls)
++        }
++    }
++
+     @Test
+     fun saveLinkShowsDuplicateFeedbackAndRefreshesArchive() {
+         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+@@ -718,6 +819,8 @@ class MainActivityTest {
+         val savedRequests = CopyOnWriteArrayList<CreateLinkRequest>()
+         val bulkUpdateRequests = CopyOnWriteArrayList<BulkUpdateRequest>()
+         val updateRequests = CopyOnWriteArrayList<Pair<Long, UpdateLinkRequest>>()
++        val restoreRequests = CopyOnWriteArrayList<Long>()
++        val deleteRequests = CopyOnWriteArrayList<Long>()
+         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
+         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
+             CreateLinkResponse(link = LinkResponse(id = 99, url = "https://example.com/99", read = false)),
+@@ -726,6 +829,16 @@ class MainActivityTest {
+         var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
+             LinkResponse(id = 99, url = "https://example.com/99", read = false),
+         )
++        var restoreLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
++            LinkResponse(id = 99, url = "https://example.com/99", read = false),
++        )
++        var deleteLinkResult: ShioriApiResult<DeleteLinkResponse> = ShioriApiResult.Success(
++            DeleteLinkResponse(deleted = true, message = "Link deleted"),
++        )
++        var emptyTrashResult: ShioriApiResult<EmptyTrashResponse> = ShioriApiResult.Success(
++            EmptyTrashResponse(removedCount = 0, message = "Trash emptied"),
++        )
++        var emptyTrashCalls: Int = 0
+ 
+         fun enqueue(
+             destination: LinkBrowseDestination,
+@@ -785,6 +898,27 @@ class MainActivityTest {
+             updateRequests += id to request
+             return updateLinkResult
+         }
++
++        override suspend fun restoreLink(
++            config: ApiAccessConfig,
++            id: Long,
++        ): ShioriApiResult<LinkResponse> {
++            restoreRequests += id
++            return restoreLinkResult
++        }
++
++        override suspend fun deleteLink(
++            config: ApiAccessConfig,
++            id: Long,
++        ): ShioriApiResult<DeleteLinkResponse> {
++            deleteRequests += id
++            return deleteLinkResult
++        }
++
++        override suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse> {
++            emptyTrashCalls += 1
++            return emptyTrashResult
++        }
+     }
+ 
+     private data class Request(
+diff --git a/app/src/main/kotlin/dev/shiori/android/MainActivity.kt b/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+index a5dd88d..8c6ff66 100644
+--- a/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
++++ b/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+@@ -57,6 +57,8 @@ class MainActivity : AppCompatActivity() {
+     private lateinit var addLinkButton: MaterialButton
+     private lateinit var linksList: RecyclerView
+     private lateinit var loadMoreButton: MaterialButton
++    private lateinit var trashRetentionText: TextView
++    private lateinit var emptyTrashButton: MaterialButton
+     private lateinit var linkSelectionStatusText: TextView
+     private lateinit var markSelectedReadButton: MaterialButton
+     private lateinit var markSelectedUnreadButton: MaterialButton
+@@ -66,6 +68,8 @@ class MainActivity : AppCompatActivity() {
+         onSelectionChanged = ::onLinkSelectionChanged,
+         onReadToggleClicked = ::toggleLinkReadState,
+         onEditClicked = ::showEditLinkDialog,
++        onDeleteClicked = ::confirmDeleteLink,
++        onRestoreClicked = ::restoreLink,
+     )
+ 
+     private var savedConfig = ApiAccessConfig()
+@@ -154,6 +158,8 @@ class MainActivity : AppCompatActivity() {
+         addLinkButton = findViewById(R.id.add_link_button)
+         linksList = findViewById(R.id.links_list)
+         loadMoreButton = findViewById(R.id.load_more_button)
++        trashRetentionText = findViewById(R.id.trash_retention_text)
++        emptyTrashButton = findViewById(R.id.empty_trash_button)
+         linkSelectionStatusText = findViewById(R.id.link_selection_status_text)
+         markSelectedReadButton = findViewById(R.id.mark_selected_read_button)
+         markSelectedUnreadButton = findViewById(R.id.mark_selected_unread_button)
+@@ -255,6 +261,10 @@ class MainActivity : AppCompatActivity() {
+                 fetchLinks(currentDestination, reset = false)
+             }
+         }
++
++        emptyTrashButton.setOnClickListener {
++            confirmEmptyTrash()
++        }
+     }
+ 
+     private fun setupLinksList() {
+@@ -487,6 +497,133 @@ class MainActivity : AppCompatActivity() {
+         }
+     }
+ 
++    private fun confirmDeleteLink(item: LinkCardModel) {
++        if (!isLinkActionAvailable() || isUpdatingLinks) {
++            return
++        }
++
++        AlertDialog.Builder(this)
++            .setTitle(R.string.title_move_to_trash)
++            .setMessage(getString(R.string.message_confirm_move_to_trash, item.title))
++            .setNegativeButton(android.R.string.cancel, null)
++            .setPositiveButton(R.string.action_move_to_trash) { _, _ ->
++                deleteLink(item)
++            }
++            .show()
++    }
++
++    private fun deleteLink(item: LinkCardModel) {
++        isUpdatingLinks = true
++        addLinkStatusMessage = getString(R.string.message_link_deleting)
++        renderBrowserState()
++
++        lifecycleScope.launch {
++            when (val result = linksRepository.deleteLink(savedConfig, item.id)) {
++                is ShioriApiResult.Success -> {
++                    removeLinkFromActiveLists(item.id)
++                    resetLinkState(LinkBrowseDestination.Trash)
++                    clearSelectedLinks(renderAfterClear = false)
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = getString(R.string.message_link_moved_to_trash)
++                    renderBrowserState()
++                }
++
++                is ShioriApiResult.Failure -> {
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = result.error.toDeleteMessage()
++                    renderBrowserState()
++                }
++            }
++        }
++    }
++
++    private fun restoreLink(item: LinkCardModel) {
++        if (currentDestination != LinkBrowseDestination.Trash || isUpdatingLinks) {
++            return
++        }
++
++        isUpdatingLinks = true
++        addLinkStatusMessage = getString(R.string.message_link_restoring)
++        renderBrowserState()
++
++        lifecycleScope.launch {
++            when (val result = linksRepository.restoreLink(savedConfig, item.id)) {
++                is ShioriApiResult.Success -> {
++                    val restoredDestination = result.value.toBrowseDestination()
++                    applyUpdatedLink(result.value)
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = getString(
++                        if (restoredDestination == LinkBrowseDestination.Archive) {
++                            R.string.message_link_restored_archive
++                        } else {
++                            R.string.message_link_restored_inbox
++                        },
++                    )
++                    currentDestination = restoredDestination
++                    renderBrowserState()
++                    ensureCurrentDestinationLoaded()
++                }
++
++                is ShioriApiResult.Failure -> {
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = result.error.toDeleteMessage()
++                    renderBrowserState()
++                }
++            }
++        }
++    }
++
++    private fun confirmEmptyTrash() {
++        if (currentDestination != LinkBrowseDestination.Trash || isUpdatingLinks) {
++            return
++        }
++
++        AlertDialog.Builder(this)
++            .setTitle(R.string.title_empty_trash)
++            .setMessage(R.string.message_confirm_empty_trash)
++            .setNegativeButton(android.R.string.cancel, null)
++            .setPositiveButton(R.string.action_empty_trash) { _, _ ->
++                emptyTrash()
++            }
++            .show()
++    }
++
++    private fun emptyTrash() {
++        isUpdatingLinks = true
++        addLinkStatusMessage = getString(R.string.message_trash_emptying)
++        renderBrowserState()
++
++        lifecycleScope.launch {
++            when (val result = linksRepository.emptyTrash(savedConfig)) {
++                is ShioriApiResult.Success -> {
++                    val removedCount = result.value.removedCount ?: currentLinkState().items.size
++                    updateLinkState(LinkBrowseDestination.Trash) {
++                        it.copy(
++                            items = emptyList(),
++                            isInitialLoading = false,
++                            isLoadingMore = false,
++                            hasLoadedOnce = true,
++                            endReached = true,
++                            nextOffset = 0,
++                            total = 0,
++                            message = getString(R.string.message_links_empty),
++                        )
++                    }
++                    clearSelectedLinks(renderAfterClear = false)
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = getString(R.string.message_trash_emptied, removedCount)
++                    renderBrowserState()
++                }
++
++                is ShioriApiResult.Failure -> {
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = result.error.toDeleteMessage()
++                    renderBrowserState()
++                }
++            }
++        }
++    }
++
+     private fun showEditLinkDialog(item: LinkCardModel) {
+         if (!isLinkActionAvailable() || isUpdatingLinks) {
+             return
+@@ -603,6 +740,30 @@ class MainActivity : AppCompatActivity() {
+         pruneSelectedLinks()
+     }
+ 
++    private fun removeLinkFromActiveLists(id: Long) {
++        listOf(LinkBrowseDestination.Inbox, LinkBrowseDestination.Archive).forEach { destination ->
++            val state = linkStates.getValue(destination)
++            val updatedItems = state.items.filterNot { it.id == id }
++            if (updatedItems != state.items) {
++                linkStates[destination] = state.copy(
++                    items = updatedItems,
++                    message = if (updatedItems.isEmpty() && state.hasLoadedOnce) {
++                        getString(R.string.message_links_empty)
++                    } else {
++                        null
++                    },
++                    total = state.total?.let { (it - 1).coerceAtLeast(0) },
++                )
++            }
++        }
++
++        pruneSelectedLinks()
++    }
++
++    private fun resetLinkState(destination: LinkBrowseDestination) {
++        linkStates[destination] = LinkListUiState()
++    }
++
+     private fun applyLocalReadState(ids: List<Long>, read: Boolean) {
+         val idSet = ids.toSet()
+         LinkBrowseDestination.values().forEach { destination ->
+@@ -917,6 +1078,11 @@ class MainActivity : AppCompatActivity() {
+             selectedLinkIds.isNotEmpty() -> getString(R.string.message_selection_count, selectedLinkIds.size)
+             else -> getString(R.string.message_selection_idle)
+         }
++        trashRetentionText.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.GONE
++        emptyTrashButton.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.GONE
++        emptyTrashButton.isEnabled = currentDestination == LinkBrowseDestination.Trash &&
++            !isUpdatingLinks &&
++            state.items.isNotEmpty()
+         markSelectedReadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
+         markSelectedUnreadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
+         clearSelectionButton.isEnabled = selectedLinkIds.isNotEmpty()
+@@ -924,8 +1090,9 @@ class MainActivity : AppCompatActivity() {
+         linksAdapter.submitItems(
+             newItems = state.items,
+             selectedIds = selectedLinkIds,
+-            itemActionsEnabled = linkActionsAvailable && !isUpdatingLinks,
++            itemActionsEnabled = !isUpdatingLinks,
+             selectionEnabled = linkActionsAvailable,
++            destination = currentDestination,
+         )
+ 
+         browserProgress.visibility = if (state.isInitialLoading) View.VISIBLE else View.GONE
+diff --git a/app/src/main/res/layout/activity_main.xml b/app/src/main/res/layout/activity_main.xml
+index 6e97953..b3408b6 100644
+--- a/app/src/main/res/layout/activity_main.xml
++++ b/app/src/main/res/layout/activity_main.xml
+@@ -248,6 +248,24 @@
+                 android:text="@string/filter_trash" />
+         </com.google.android.material.button.MaterialButtonToggleGroup>
+ 
++        <TextView
++            android:id="@+id/trash_retention_text"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:layout_marginTop="12dp"
++            android:text="@string/message_trash_retention"
++            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
++            android:visibility="gone" />
++
++        <com.google.android.material.button.MaterialButton
++            android:id="@+id/empty_trash_button"
++            style="@style/Widget.Material3.Button.OutlinedButton"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:layout_marginTop="8dp"
++            android:text="@string/action_empty_trash"
++            android:visibility="gone" />
++
+         <TextView
+             android:id="@+id/link_selection_status_text"
+             android:layout_width="match_parent"
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index dcc7085..22e9108 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -12,6 +12,9 @@
+     <string name="action_edit_access">API access</string>
+     <string name="action_save_link">Save link</string>
+     <string name="action_edit_link">Edit</string>
++    <string name="action_restore_link">Restore</string>
++    <string name="action_move_to_trash">Move to trash</string>
++    <string name="action_empty_trash">Empty trash</string>
+     <string name="action_mark_read">Mark read</string>
+     <string name="action_mark_unread">Mark unread</string>
+     <string name="action_mark_selected_read">Mark selected read</string>
+@@ -26,6 +29,8 @@
+     <string name="subtitle_links_browser">Browse unread inbox items, archived links, and trash without losing your place.</string>
+     <string name="title_add_link">Save a link</string>
+     <string name="title_edit_link">Edit link details</string>
++    <string name="title_move_to_trash">Move link to trash?</string>
++    <string name="title_empty_trash">Empty trash permanently?</string>
+     <string name="subtitle_add_link">Paste a URL, add an optional title, and choose whether it should start in your archive.</string>
+     <string name="hint_link_url">Link URL</string>
+     <string name="hint_link_title">Custom title (optional)</string>
+@@ -49,10 +54,17 @@
+     <string name="message_links_count_with_total">Loaded %1$d of %2$d links.</string>
+     <string name="message_link_saving">Saving link…</string>
+     <string name="message_link_updating">Updating link…</string>
++    <string name="message_link_deleting">Moving link to trash…</string>
++    <string name="message_link_restoring">Restoring link…</string>
++    <string name="message_trash_emptying">Emptying trash…</string>
+     <string name="message_link_saved_inbox">Link saved. Showing it in your inbox.</string>
+     <string name="message_link_saved_archive">Link saved. Showing it in your archive.</string>
+     <string name="message_link_duplicate_inbox">That link already exists. Showing the saved copy in your inbox.</string>
+     <string name="message_link_duplicate_archive">That link already exists. Showing the saved copy in your archive.</string>
++    <string name="message_link_moved_to_trash">Link moved to trash.</string>
++    <string name="message_link_restored_inbox">Link restored. Showing it in your inbox.</string>
++    <string name="message_link_restored_archive">Link restored. Showing it in your archive.</string>
++    <string name="message_trash_emptied">Trash emptied. Removed %1$d links.</string>
+     <string name="message_link_read_updated">Link marked as read.</string>
+     <string name="message_link_unread_updated">Link marked as unread.</string>
+     <string name="message_links_marked_read">Selected links marked as read.</string>
+@@ -62,6 +74,9 @@
+     <string name="message_selection_disabled_in_trash">Read state and metadata edits are only available for inbox and archive links.</string>
+     <string name="message_selection_count">%1$d selected for bulk updates.</string>
+     <string name="message_selection_idle">Select links to update read state in bulk, or use actions on an individual item.</string>
++    <string name="message_trash_retention">Items stay in trash for 7 days before Shiori deletes them automatically.</string>
++    <string name="message_confirm_move_to_trash">Move "%1$s" to trash? You can restore it from trash for up to 7 days.</string>
++    <string name="message_confirm_empty_trash">This permanently deletes every trashed link right away. This action cannot be undone.</string>
+     <string name="message_shared_link_received">Saving the shared URL to Shiori…</string>
+     <string name="message_shared_link_requires_access">Save valid API access before importing the shared URL.</string>
+     <string name="message_shared_link_unsupported">This share did not include a supported HTTP or HTTPS URL.</string>
+[0m
+[0m✗ [0mapply_patch failed
+[91m[1mError: [0mapply_patch verification failed: Error: Failed to find expected lines in /Users/brainer/Programming/shiori-android/app/src/main/kotlin/dev/shiori/android/MainActivity.kt:
+        pendingSharedUrl = savedInstanceState?.getString(KEY_PENDING_SHARED_URL)
+        accessStatusOverrideMessage = savedInstanceState?.getString(KEY_ACCESS_STATUS_OVERRIDE)
+        lastHandledIntentKey = savedInstanceState?.getString(KEY_LAST_HANDLED_INTENT)
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/MainActivity.kt[90m [offset=80, limit=60][0m
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/MainActivity.kt[90m [offset=270, limit=70][0m
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/MainActivity.kt[90m [offset=1138, limit=20][0m
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/MainActivity.kt[90m [offset=800, limit=110][0m
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m→ [0mRead ../app/src/debug/AndroidManifest.xml
+[0m✱ [0mGrep "cleartext|networkSecurityConfig"[90m in ../app/src · 0 matches[0m
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/ApiAccess.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/res/values/strings.xml
+[0m
+[0m$ [0m./ralph log "Implemented US-001 validation gating for saved API access and expanded local URL validation coverage"
+[0m
+[0m# [0mTodos
+[x] Read guardrails, errors, PRD, and AGENTS context
+[x] Audit existing Android app files for US-001 scope
+[x] Implement US-001 credential storage and gating flow
+[ ] Run required verification commands and review changes
+[ ] Commit changes and append progress/activity logs
+[0m
+[0m$ [0mgit diff -- app/src/main/kotlin/dev/shiori/android/MainActivity.kt app/src/main/kotlin/dev/shiori/android/ApiAccess.kt app/src/main/res/values/strings.xml app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt
+diff --git a/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt b/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+index 652e093..981f5a8 100644
+--- a/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
++++ b/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+@@ -19,6 +19,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
+ import androidx.test.platform.app.InstrumentationRegistry
+ import dev.shiori.android.corenetwork.CreateLinkRequest
+ import dev.shiori.android.corenetwork.CreateLinkResponse
++import dev.shiori.android.corenetwork.DeleteLinkResponse
++import dev.shiori.android.corenetwork.EmptyTrashResponse
+ import dev.shiori.android.corenetwork.LinkListResponse
+ import dev.shiori.android.corenetwork.LinkResponse
+ import dev.shiori.android.corenetwork.ShioriApiError
+@@ -39,13 +41,16 @@ import org.junit.runner.RunWith
+ class MainActivityTest {
+     private lateinit var store: FakeApiAccessStore
+     private lateinit var linksRepository: FakeLinksRepository
++    private lateinit var checker: RecordingApiConnectionChecker
+ 
+     @Before
+     fun setUp() {
+         store = FakeApiAccessStore()
+         linksRepository = FakeLinksRepository()
++        checker = RecordingApiConnectionChecker(ApiValidationStatus.Success)
+         AppDependencies.resetForTests()
+         AppDependencies.overrideStoreForTests(store)
++        AppDependencies.overrideCheckerForTests(checker)
+         AppDependencies.overrideLinksRepositoryForTests(linksRepository)
+     }
+ 
+@@ -81,7 +86,7 @@ class MainActivityTest {
+ 
+     @Test
+     fun validationSurfacesUnauthorizedResponses() {
+-        AppDependencies.overrideCheckerForTests(FakeApiConnectionChecker(ApiValidationStatus.Unauthorized))
++        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Unauthorized))
+ 
+         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+             enterAccess(scenario, "https://shiori.example.com", "test-api-key")
+@@ -93,7 +98,7 @@ class MainActivityTest {
+ 
+     @Test
+     fun validationSurfacesGenericFailures() {
+-        AppDependencies.overrideCheckerForTests(FakeApiConnectionChecker(ApiValidationStatus.Failure))
++        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Failure))
+ 
+         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+             enterAccess(scenario, "https://shiori.example.com", "test-api-key")
+@@ -103,6 +108,33 @@ class MainActivityTest {
+         }
+     }
+ 
++    @Test
++    fun savedAccessIsValidatedBeforeBrowserOpensOnLaunch() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        linksRepository.enqueue(
++            LinkBrowseDestination.Inbox,
++            0,
++            page(limit = 20, offset = 0, total = 0, links = emptyList()),
++        )
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            assertEquals(1, checker.calls.size)
++            assertEquals(ApiAccessConfig("https://shiori.example.com", "test-api-key"), checker.calls.single())
++        }
++    }
++
++    @Test
++    fun savedAccessStaysOnAccessScreenWhenLaunchValidationFails() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Unauthorized))
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_unauthorized))
++            onView(withId(R.id.access_screen)).check(matches(isDisplayed()))
++        }
++    }
++
+     @Test
+     fun browseFiltersAndPaginationWithoutDuplicates() {
+         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+@@ -322,6 +354,105 @@ class MainActivityTest {
+         }
+     }
+ 
++    @Test
++    fun deleteActionMovesLinkOutOfActiveList() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        linksRepository.enqueue(
++            LinkBrowseDestination.Inbox,
++            0,
++            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 11, title = "Delete me", read = false))),
++        )
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForRecyclerCount(scenario, 1)
++
++            invokePrivateMethod(scenario, "deleteLink", cardAt(scenario, 0))
++
++            waitForText(scenario, R.id.add_link_status_text, "Link moved to trash.")
++            waitForRecyclerCount(scenario, 0)
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            assertEquals(listOf(11L), linksRepository.deleteRequests)
++        }
++    }
++
++    @Test
++    fun restoreActionReturnsTrashedLinkToInbox() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        linksRepository.enqueue(
++            LinkBrowseDestination.Inbox,
++            0,
++            page(limit = 20, offset = 0, total = 0, links = emptyList()),
++        )
++        linksRepository.enqueue(
++            LinkBrowseDestination.Trash,
++            0,
++            page(
++                limit = 20,
++                offset = 0,
++                total = 1,
++                links = listOf(link(id = 12, title = "Restore me", read = false, status = "trashed")),
++            ),
++        )
++        linksRepository.restoreLinkResult = ShioriApiResult.Success(
++            link(id = 12, title = "Restore me", read = false, status = "ready"),
++        )
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            clickButton(scenario, R.id.filter_trash_button)
++            waitForRecyclerCount(scenario, 1)
++            waitForText(
++                scenario,
++                R.id.trash_retention_text,
++                "Items stay in trash for 7 days before Shiori deletes them automatically.",
++            )
++
++            invokePrivateMethod(scenario, "restoreLink", cardAt(scenario, 0))
++
++            waitForText(scenario, R.id.add_link_status_text, "Link restored. Showing it in your inbox.")
++            waitForRecyclerCount(scenario, 1)
++            assertLoadedTitles(scenario, "Restore me")
++            assertEquals(listOf(12L), linksRepository.restoreRequests)
++        }
++    }
++
++    @Test
++    fun emptyTrashRequiresConfirmationAndClearsItems() {
++        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
++        linksRepository.enqueue(
++            LinkBrowseDestination.Inbox,
++            0,
++            page(limit = 20, offset = 0, total = 0, links = emptyList()),
++        )
++        linksRepository.enqueue(
++            LinkBrowseDestination.Trash,
++            0,
++            page(
++                limit = 20,
++                offset = 0,
++                total = 1,
++                links = listOf(link(id = 13, title = "Trash item", read = true, status = "trashed")),
++            ),
++        )
++        linksRepository.emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(removedCount = 1, message = "Trash emptied"))
++
++        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            clickButton(scenario, R.id.filter_trash_button)
++            waitForRecyclerCount(scenario, 1)
++
++            onView(withId(R.id.empty_trash_button)).perform(click())
++            onView(withText("This permanently deletes every trashed link right away. This action cannot be undone."))
++                .check(matches(isDisplayed()))
++            onView(withText(R.string.action_empty_trash)).perform(click())
++
++            waitForText(scenario, R.id.add_link_status_text, "Trash emptied. Removed 1 links.")
++            waitForRecyclerCount(scenario, 0)
++            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
++            assertEquals(1, linksRepository.emptyTrashCalls)
++        }
++    }
++
+     @Test
+     fun saveLinkShowsDuplicateFeedbackAndRefreshesArchive() {
+         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+@@ -689,10 +820,15 @@ class MainActivityTest {
+         updatedAt = "2026-03-06T11:00:00Z",
+     )
+ 
+-    private class FakeApiConnectionChecker(
++    private class RecordingApiConnectionChecker(
+         private val result: ApiValidationStatus,
+     ) : ApiConnectionChecker {
+-        override suspend fun validate(serverUrl: String, apiKey: String): ApiValidationStatus = result
++        val calls = CopyOnWriteArrayList<ApiAccessConfig>()
++
++        override suspend fun validate(serverUrl: String, apiKey: String): ApiValidationStatus {
++            calls += ApiAccessConfig(serverUrl, apiKey)
++            return result
++        }
+     }
+ 
+     private class FakeApiAccessStore(
+@@ -718,6 +854,8 @@ class MainActivityTest {
+         val savedRequests = CopyOnWriteArrayList<CreateLinkRequest>()
+         val bulkUpdateRequests = CopyOnWriteArrayList<BulkUpdateRequest>()
+         val updateRequests = CopyOnWriteArrayList<Pair<Long, UpdateLinkRequest>>()
++        val restoreRequests = CopyOnWriteArrayList<Long>()
++        val deleteRequests = CopyOnWriteArrayList<Long>()
+         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
+         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
+             CreateLinkResponse(link = LinkResponse(id = 99, url = "https://example.com/99", read = false)),
+@@ -726,6 +864,16 @@ class MainActivityTest {
+         var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
+             LinkResponse(id = 99, url = "https://example.com/99", read = false),
+         )
++        var restoreLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
++            LinkResponse(id = 99, url = "https://example.com/99", read = false),
++        )
++        var deleteLinkResult: ShioriApiResult<DeleteLinkResponse> = ShioriApiResult.Success(
++            DeleteLinkResponse(deleted = true, message = "Link deleted"),
++        )
++        var emptyTrashResult: ShioriApiResult<EmptyTrashResponse> = ShioriApiResult.Success(
++            EmptyTrashResponse(removedCount = 0, message = "Trash emptied"),
++        )
++        var emptyTrashCalls: Int = 0
+ 
+         fun enqueue(
+             destination: LinkBrowseDestination,
+@@ -785,6 +933,27 @@ class MainActivityTest {
+             updateRequests += id to request
+             return updateLinkResult
+         }
++
++        override suspend fun restoreLink(
++            config: ApiAccessConfig,
++            id: Long,
++        ): ShioriApiResult<LinkResponse> {
++            restoreRequests += id
++            return restoreLinkResult
++        }
++
++        override suspend fun deleteLink(
++            config: ApiAccessConfig,
++            id: Long,
++        ): ShioriApiResult<DeleteLinkResponse> {
++            deleteRequests += id
++            return deleteLinkResult
++        }
++
++        override suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse> {
++            emptyTrashCalls += 1
++            return emptyTrashResult
++        }
+     }
+ 
+     private data class Request(
+diff --git a/app/src/main/kotlin/dev/shiori/android/ApiAccess.kt b/app/src/main/kotlin/dev/shiori/android/ApiAccess.kt
+index 2d1a852..181bd6a 100644
+--- a/app/src/main/kotlin/dev/shiori/android/ApiAccess.kt
++++ b/app/src/main/kotlin/dev/shiori/android/ApiAccess.kt
+@@ -55,11 +55,32 @@ object ApiAccessInputValidator {
+ 
+         return when (scheme) {
+             "https" -> true
+-            "http" -> host == "localhost" || host == "127.0.0.1" || host == "10.0.2.2"
++            "http" -> isLocalDevelopmentHost(host)
+             else -> false
+         }
+     }
+ 
++    private fun isLocalDevelopmentHost(host: String): Boolean {
++        if (host == "localhost" || host == "127.0.0.1" || host == "10.0.2.2" || host == "10.0.3.2") {
++            return true
++        }
++
++        if (host.endsWith(".local")) {
++            return true
++        }
++
++        val octets = host.split('.')
++        if (octets.size != 4 || octets.any { part -> part.toIntOrNull() == null }) {
++            return false
++        }
++
++        val first = octets[0].toInt()
++        val second = octets[1].toInt()
++        return first == 10 ||
++            (first == 172 && second in 16..31) ||
++            (first == 192 && second == 168)
++    }
++
+     fun isApiKeyValidLooking(rawValue: String): Boolean {
+         val value = normalizeApiKey(rawValue)
+         return value.length >= 8 && value.none(Char::isWhitespace)
+diff --git a/app/src/main/kotlin/dev/shiori/android/MainActivity.kt b/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+index a5dd88d..1705a5e 100644
+--- a/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
++++ b/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+@@ -57,6 +57,8 @@ class MainActivity : AppCompatActivity() {
+     private lateinit var addLinkButton: MaterialButton
+     private lateinit var linksList: RecyclerView
+     private lateinit var loadMoreButton: MaterialButton
++    private lateinit var trashRetentionText: TextView
++    private lateinit var emptyTrashButton: MaterialButton
+     private lateinit var linkSelectionStatusText: TextView
+     private lateinit var markSelectedReadButton: MaterialButton
+     private lateinit var markSelectedUnreadButton: MaterialButton
+@@ -66,6 +68,8 @@ class MainActivity : AppCompatActivity() {
+         onSelectionChanged = ::onLinkSelectionChanged,
+         onReadToggleClicked = ::toggleLinkReadState,
+         onEditClicked = ::showEditLinkDialog,
++        onDeleteClicked = ::confirmDeleteLink,
++        onRestoreClicked = ::restoreLink,
+     )
+ 
+     private var savedConfig = ApiAccessConfig()
+@@ -78,7 +82,9 @@ class MainActivity : AppCompatActivity() {
+     private var addLinkStatusMessage: String? = null
+     private var accessStatusOverrideMessage: String? = null
+     private var pendingSharedUrl: String? = null
++    private var pendingBrowserStatusMessage: String? = null
+     private var lastHandledIntentKey: String? = null
++    private var openBrowserAfterValidation = false
+     private val selectedLinkIds = linkedSetOf<Long>()
+     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
+ 
+@@ -102,14 +108,19 @@ class MainActivity : AppCompatActivity() {
+         setupLinksList()
+ 
+         currentScreen = savedInstanceState?.getString(KEY_SCREEN)?.let(Screen::valueOf) ?: Screen.Access
++        val resumeBrowserAfterValidation = currentScreen == Screen.Browser
+         currentDestination = savedInstanceState?.getString(KEY_DESTINATION)?.let(LinkBrowseDestination::valueOf)
+             ?: LinkBrowseDestination.Inbox
+         pendingSharedUrl = savedInstanceState?.getString(KEY_PENDING_SHARED_URL)
+         accessStatusOverrideMessage = savedInstanceState?.getString(KEY_ACCESS_STATUS_OVERRIDE)
++        pendingBrowserStatusMessage = savedInstanceState?.getString(KEY_PENDING_BROWSER_STATUS)
+         lastHandledIntentKey = savedInstanceState?.getString(KEY_LAST_HANDLED_INTENT)
+ 
+         loadStoredConfig()
+         handleIncomingIntent(intent)
++        if (resumeBrowserAfterValidation && isSavedConfigValid() && !hasUnsavedChanges() && currentScreen != Screen.Browser) {
++            startConnectionValidation(openBrowserOnSuccess = true)
++        }
+     }
+ 
+     override fun onNewIntent(intent: Intent) {
+@@ -124,6 +135,7 @@ class MainActivity : AppCompatActivity() {
+         outState.putString(KEY_DESTINATION, currentDestination.name)
+         outState.putString(KEY_PENDING_SHARED_URL, pendingSharedUrl)
+         outState.putString(KEY_ACCESS_STATUS_OVERRIDE, accessStatusOverrideMessage)
++        outState.putString(KEY_PENDING_BROWSER_STATUS, pendingBrowserStatusMessage)
+         outState.putString(KEY_LAST_HANDLED_INTENT, lastHandledIntentKey)
+     }
+ 
+@@ -154,6 +166,8 @@ class MainActivity : AppCompatActivity() {
+         addLinkButton = findViewById(R.id.add_link_button)
+         linksList = findViewById(R.id.links_list)
+         loadMoreButton = findViewById(R.id.load_more_button)
++        trashRetentionText = findViewById(R.id.trash_retention_text)
++        emptyTrashButton = findViewById(R.id.empty_trash_button)
+         linkSelectionStatusText = findViewById(R.id.link_selection_status_text)
+         markSelectedReadButton = findViewById(R.id.mark_selected_read_button)
+         markSelectedUnreadButton = findViewById(R.id.mark_selected_unread_button)
+@@ -255,6 +269,10 @@ class MainActivity : AppCompatActivity() {
+                 fetchLinks(currentDestination, reset = false)
+             }
+         }
++
++        emptyTrashButton.setOnClickListener {
++            confirmEmptyTrash()
++        }
+     }
+ 
+     private fun setupLinksList() {
+@@ -267,17 +285,9 @@ class MainActivity : AppCompatActivity() {
+         serverUrlInput.setText(savedConfig.serverUrl)
+         apiKeyInput.setText(savedConfig.apiKey)
+         validationStatus = ApiValidationStatus.Idle
+-
+-        if (!isSavedConfigValid()) {
+-            currentScreen = Screen.Access
+-        } else if (currentScreen != Screen.Access || !hasUnsavedChanges()) {
+-            currentScreen = Screen.Browser
+-        }
++        currentScreen = Screen.Access
+ 
+         render()
+-        if (currentScreen == Screen.Browser) {
+-            ensureCurrentDestinationLoaded()
+-        }
+     }
+ 
+     private fun currentDraft(): ApiAccessConfig = ApiAccessConfig(
+@@ -313,7 +323,7 @@ class MainActivity : AppCompatActivity() {
+         render()
+ 
+         if (pendingSharedUrl != null && isSavedConfigValid()) {
+-            openBrowser()
++            startConnectionValidation(openBrowserOnSuccess = true)
+         }
+     }
+ 
+@@ -487,6 +497,133 @@ class MainActivity : AppCompatActivity() {
+         }
+     }
+ 
++    private fun confirmDeleteLink(item: LinkCardModel) {
++        if (!isLinkActionAvailable() || isUpdatingLinks) {
++            return
++        }
++
++        AlertDialog.Builder(this)
++            .setTitle(R.string.title_move_to_trash)
++            .setMessage(getString(R.string.message_confirm_move_to_trash, item.title))
++            .setNegativeButton(android.R.string.cancel, null)
++            .setPositiveButton(R.string.action_move_to_trash) { _, _ ->
++                deleteLink(item)
++            }
++            .show()
++    }
++
++    private fun deleteLink(item: LinkCardModel) {
++        isUpdatingLinks = true
++        addLinkStatusMessage = getString(R.string.message_link_deleting)
++        renderBrowserState()
++
++        lifecycleScope.launch {
++            when (val result = linksRepository.deleteLink(savedConfig, item.id)) {
++                is ShioriApiResult.Success -> {
++                    removeLinkFromActiveLists(item.id)
++                    resetLinkState(LinkBrowseDestination.Trash)
++                    clearSelectedLinks(renderAfterClear = false)
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = getString(R.string.message_link_moved_to_trash)
++                    renderBrowserState()
++                }
++
++                is ShioriApiResult.Failure -> {
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = result.error.toDeleteMessage()
++                    renderBrowserState()
++                }
++            }
++        }
++    }
++
++    private fun restoreLink(item: LinkCardModel) {
++        if (currentDestination != LinkBrowseDestination.Trash || isUpdatingLinks) {
++            return
++        }
++
++        isUpdatingLinks = true
++        addLinkStatusMessage = getString(R.string.message_link_restoring)
++        renderBrowserState()
++
++        lifecycleScope.launch {
++            when (val result = linksRepository.restoreLink(savedConfig, item.id)) {
++                is ShioriApiResult.Success -> {
++                    val restoredDestination = result.value.toBrowseDestination()
++                    applyUpdatedLink(result.value)
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = getString(
++                        if (restoredDestination == LinkBrowseDestination.Archive) {
++                            R.string.message_link_restored_archive
++                        } else {
++                            R.string.message_link_restored_inbox
++                        },
++                    )
++                    currentDestination = restoredDestination
++                    renderBrowserState()
++                    ensureCurrentDestinationLoaded()
++                }
++
++                is ShioriApiResult.Failure -> {
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = result.error.toDeleteMessage()
++                    renderBrowserState()
++                }
++            }
++        }
++    }
++
++    private fun confirmEmptyTrash() {
++        if (currentDestination != LinkBrowseDestination.Trash || isUpdatingLinks) {
++            return
++        }
++
++        AlertDialog.Builder(this)
++            .setTitle(R.string.title_empty_trash)
++            .setMessage(R.string.message_confirm_empty_trash)
++            .setNegativeButton(android.R.string.cancel, null)
++            .setPositiveButton(R.string.action_empty_trash) { _, _ ->
++                emptyTrash()
++            }
++            .show()
++    }
++
++    private fun emptyTrash() {
++        isUpdatingLinks = true
++        addLinkStatusMessage = getString(R.string.message_trash_emptying)
++        renderBrowserState()
++
++        lifecycleScope.launch {
++            when (val result = linksRepository.emptyTrash(savedConfig)) {
++                is ShioriApiResult.Success -> {
++                    val removedCount = result.value.removedCount ?: currentLinkState().items.size
++                    updateLinkState(LinkBrowseDestination.Trash) {
++                        it.copy(
++                            items = emptyList(),
++                            isInitialLoading = false,
++                            isLoadingMore = false,
++                            hasLoadedOnce = true,
++                            endReached = true,
++                            nextOffset = 0,
++                            total = 0,
++                            message = getString(R.string.message_links_empty),
++                        )
++                    }
++                    clearSelectedLinks(renderAfterClear = false)
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = getString(R.string.message_trash_emptied, removedCount)
++                    renderBrowserState()
++                }
++
++                is ShioriApiResult.Failure -> {
++                    isUpdatingLinks = false
++                    addLinkStatusMessage = result.error.toDeleteMessage()
++                    renderBrowserState()
++                }
++            }
++        }
++    }
++
+     private fun showEditLinkDialog(item: LinkCardModel) {
+         if (!isLinkActionAvailable() || isUpdatingLinks) {
+             return
+@@ -603,6 +740,30 @@ class MainActivity : AppCompatActivity() {
+         pruneSelectedLinks()
+     }
+ 
++    private fun removeLinkFromActiveLists(id: Long) {
++        listOf(LinkBrowseDestination.Inbox, LinkBrowseDestination.Archive).forEach { destination ->
++            val state = linkStates.getValue(destination)
++            val updatedItems = state.items.filterNot { it.id == id }
++            if (updatedItems != state.items) {
++                linkStates[destination] = state.copy(
++                    items = updatedItems,
++                    message = if (updatedItems.isEmpty() && state.hasLoadedOnce) {
++                        getString(R.string.message_links_empty)
++                    } else {
++                        null
++                    },
++                    total = state.total?.let { (it - 1).coerceAtLeast(0) },
++                )
++            }
++        }
++
++        pruneSelectedLinks()
++    }
++
++    private fun resetLinkState(destination: LinkBrowseDestination) {
++        linkStates[destination] = LinkListUiState()
++    }
++
+     private fun applyLocalReadState(ids: List<Long>, read: Boolean) {
+         val idSet = ids.toSet()
+         LinkBrowseDestination.values().forEach { destination ->
+@@ -645,11 +806,25 @@ class MainActivity : AppCompatActivity() {
+     }
+ 
+     private fun validateConnection() {
++        startConnectionValidation(openBrowserOnSuccess = false)
++    }
++
++    private fun startConnectionValidation(openBrowserOnSuccess: Boolean) {
+         if (!isSavedConfigValid() || hasUnsavedChanges()) {
+             render()
+             return
+         }
+ 
++        if (openBrowserOnSuccess) {
++            openBrowserAfterValidation = true
++        }
++
++        if (isWorking) {
++            return
++        }
++
++        accessStatusOverrideMessage = null
++        currentScreen = Screen.Access
+         isWorking = true
+         validationStatus = ApiValidationStatus.Checking
+         render()
+@@ -660,7 +835,15 @@ class MainActivity : AppCompatActivity() {
+                 apiKey = savedConfig.apiKey,
+             )
+             isWorking = false
+-            render()
++            if (validationStatus == ApiValidationStatus.Success && openBrowserAfterValidation) {
++                openBrowserAfterValidation = false
++                openBrowserValidated()
++            } else {
++                if (validationStatus != ApiValidationStatus.Success) {
++                    openBrowserAfterValidation = false
++                }
++                render()
++            }
+         }
+     }
+ 
+@@ -670,8 +853,21 @@ class MainActivity : AppCompatActivity() {
+             return
+         }
+ 
++        if (validationStatus != ApiValidationStatus.Success) {
++            startConnectionValidation(openBrowserOnSuccess = true)
++            return
++        }
++
++        openBrowserValidated()
++    }
++
++    private fun openBrowserValidated() {
+         accessStatusOverrideMessage = null
+         currentScreen = Screen.Browser
++        pendingBrowserStatusMessage?.let {
++            addLinkStatusMessage = it
++            pendingBrowserStatusMessage = null
++        }
+         render()
+         ensureCurrentDestinationLoaded()
+         consumePendingSharedUrl()
+@@ -685,11 +881,18 @@ class MainActivity : AppCompatActivity() {
+ 
+         lastHandledIntentKey = intentKey
+         when (val incomingLinkIntent = resolveIncomingLinkIntent(intent)) {
+-            IncomingLinkIntent.None -> Unit
++            IncomingLinkIntent.None -> {
++                pendingBrowserStatusMessage = null
++                if (isSavedConfigValid() && !hasUnsavedChanges() && currentScreen != Screen.Browser) {
++                    startConnectionValidation(openBrowserOnSuccess = true)
++                }
++            }
++
+             is IncomingLinkIntent.Supported -> {
++                pendingBrowserStatusMessage = null
+                 pendingSharedUrl = incomingLinkIntent.url
+                 if (isSavedConfigValid() && !hasUnsavedChanges()) {
+-                    openBrowser()
++                    startConnectionValidation(openBrowserOnSuccess = true)
+                 } else {
+                     currentScreen = Screen.Access
+                     accessStatusOverrideMessage = getString(R.string.message_shared_link_requires_access)
+@@ -700,11 +903,8 @@ class MainActivity : AppCompatActivity() {
+             IncomingLinkIntent.Unsupported -> {
+                 pendingSharedUrl = null
+                 if (isSavedConfigValid() && !hasUnsavedChanges()) {
+-                    currentScreen = Screen.Browser
+-                    addLinkStatusMessage = getString(R.string.message_shared_link_unsupported)
+-                    accessStatusOverrideMessage = null
+-                    render()
+-                    ensureCurrentDestinationLoaded()
++                    pendingBrowserStatusMessage = getString(R.string.message_shared_link_unsupported)
++                    startConnectionValidation(openBrowserOnSuccess = true)
+                 } else {
+                     currentScreen = Screen.Access
+                     accessStatusOverrideMessage = getString(R.string.message_shared_link_unsupported)
+@@ -917,6 +1117,11 @@ class MainActivity : AppCompatActivity() {
+             selectedLinkIds.isNotEmpty() -> getString(R.string.message_selection_count, selectedLinkIds.size)
+             else -> getString(R.string.message_selection_idle)
+         }
++        trashRetentionText.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.GONE
++        emptyTrashButton.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.GONE
++        emptyTrashButton.isEnabled = currentDestination == LinkBrowseDestination.Trash &&
++            !isUpdatingLinks &&
++            state.items.isNotEmpty()
+         markSelectedReadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
+         markSelectedUnreadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
+         clearSelectionButton.isEnabled = selectedLinkIds.isNotEmpty()
+@@ -924,8 +1129,9 @@ class MainActivity : AppCompatActivity() {
+         linksAdapter.submitItems(
+             newItems = state.items,
+             selectedIds = selectedLinkIds,
+-            itemActionsEnabled = linkActionsAvailable && !isUpdatingLinks,
++            itemActionsEnabled = !isUpdatingLinks,
+             selectionEnabled = linkActionsAvailable,
++            destination = currentDestination,
+         )
+ 
+         browserProgress.visibility = if (state.isInitialLoading) View.VISIBLE else View.GONE
+@@ -980,6 +1186,7 @@ class MainActivity : AppCompatActivity() {
+         const val KEY_DESTINATION = "destination"
+         const val KEY_PENDING_SHARED_URL = "pending_shared_url"
+         const val KEY_ACCESS_STATUS_OVERRIDE = "access_status_override"
++        const val KEY_PENDING_BROWSER_STATUS = "pending_browser_status"
+         const val KEY_LAST_HANDLED_INTENT = "last_handled_intent"
+     }
+ }
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index dcc7085..7964bd2 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -12,6 +12,9 @@
+     <string name="action_edit_access">API access</string>
+     <string name="action_save_link">Save link</string>
+     <string name="action_edit_link">Edit</string>
++    <string name="action_restore_link">Restore</string>
++    <string name="action_move_to_trash">Move to trash</string>
++    <string name="action_empty_trash">Empty trash</string>
+     <string name="action_mark_read">Mark read</string>
+     <string name="action_mark_unread">Mark unread</string>
+     <string name="action_mark_selected_read">Mark selected read</string>
+@@ -26,6 +29,8 @@
+     <string name="subtitle_links_browser">Browse unread inbox items, archived links, and trash without losing your place.</string>
+     <string name="title_add_link">Save a link</string>
+     <string name="title_edit_link">Edit link details</string>
++    <string name="title_move_to_trash">Move link to trash?</string>
++    <string name="title_empty_trash">Empty trash permanently?</string>
+     <string name="subtitle_add_link">Paste a URL, add an optional title, and choose whether it should start in your archive.</string>
+     <string name="hint_link_url">Link URL</string>
+     <string name="hint_link_title">Custom title (optional)</string>
+@@ -49,10 +54,17 @@
+     <string name="message_links_count_with_total">Loaded %1$d of %2$d links.</string>
+     <string name="message_link_saving">Saving link…</string>
+     <string name="message_link_updating">Updating link…</string>
++    <string name="message_link_deleting">Moving link to trash…</string>
++    <string name="message_link_restoring">Restoring link…</string>
++    <string name="message_trash_emptying">Emptying trash…</string>
+     <string name="message_link_saved_inbox">Link saved. Showing it in your inbox.</string>
+     <string name="message_link_saved_archive">Link saved. Showing it in your archive.</string>
+     <string name="message_link_duplicate_inbox">That link already exists. Showing the saved copy in your inbox.</string>
+     <string name="message_link_duplicate_archive">That link already exists. Showing the saved copy in your archive.</string>
++    <string name="message_link_moved_to_trash">Link moved to trash.</string>
++    <string name="message_link_restored_inbox">Link restored. Showing it in your inbox.</string>
++    <string name="message_link_restored_archive">Link restored. Showing it in your archive.</string>
++    <string name="message_trash_emptied">Trash emptied. Removed %1$d links.</string>
+     <string name="message_link_read_updated">Link marked as read.</string>
+     <string name="message_link_unread_updated">Link marked as unread.</string>
+     <string name="message_links_marked_read">Selected links marked as read.</string>
+@@ -62,10 +74,13 @@
+     <string name="message_selection_disabled_in_trash">Read state and metadata edits are only available for inbox and archive links.</string>
+     <string name="message_selection_count">%1$d selected for bulk updates.</string>
+     <string name="message_selection_idle">Select links to update read state in bulk, or use actions on an individual item.</string>
++    <string name="message_trash_retention">Items stay in trash for 7 days before Shiori deletes them automatically.</string>
++    <string name="message_confirm_move_to_trash">Move "%1$s" to trash? You can restore it from trash for up to 7 days.</string>
++    <string name="message_confirm_empty_trash">This permanently deletes every trashed link right away. This action cannot be undone.</string>
+     <string name="message_shared_link_received">Saving the shared URL to Shiori…</string>
+     <string name="message_shared_link_requires_access">Save valid API access before importing the shared URL.</string>
+     <string name="message_shared_link_unsupported">This share did not include a supported HTTP or HTTPS URL.</string>
+-    <string name="error_server_url">Enter an HTTPS URL, or use localhost over HTTP for emulator testing.</string>
++    <string name="error_server_url">Enter an HTTPS URL, or use a local development host over HTTP while testing.</string>
+     <string name="error_api_key">Enter a valid-looking API key with no spaces.</string>
+     <string name="error_link_url">Enter a full HTTP or HTTPS URL.</string>
+ </resources>
+diff --git a/app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt b/app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt
+index 9e37cf2..25350db 100644
+--- a/app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt
++++ b/app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt
+@@ -7,10 +7,14 @@ import org.junit.Test
+ 
+ class ApiAccessInputValidatorTest {
+     @Test
+-    fun `accepts secure remote urls and emulator localhost urls`() {
++    fun `accepts production base url and local development hosts`() {
++        assertTrue(ApiAccessInputValidator.isServerUrlValid("https://www.shiori.sh"))
+         assertTrue(ApiAccessInputValidator.isServerUrlValid("https://shiori.example.com"))
+         assertTrue(ApiAccessInputValidator.isServerUrlValid("http://10.0.2.2:8080"))
++        assertTrue(ApiAccessInputValidator.isServerUrlValid("http://10.0.3.2:8080"))
+         assertTrue(ApiAccessInputValidator.isServerUrlValid("http://localhost:8080/"))
++        assertTrue(ApiAccessInputValidator.isServerUrlValid("http://192.168.1.50:8080"))
++        assertTrue(ApiAccessInputValidator.isServerUrlValid("http://shiori.local:8080"))
+     }
+ 
+     @Test
+[0m
+[0m$ [0m"${ANDROID_HOME:-$HOME/Library/Android/sdk}"/platform-tools/adb devices
+List of devices attached
+[0m
+[0m$ [0m"${ANDROID_HOME:-$HOME/Library/Android/sdk}"/emulator/emulator -list-avds
+Wear_OS_Large_Round_API_33
+[0m
+[0m$ [0m./gradlew test
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.4/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :core-network:preBuild UP-TO-DATE
+> Task :core-network:preDebugBuild UP-TO-DATE
+> Task :core-network:compileDebugAidl NO-SOURCE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :core-network:packageDebugRenderscript NO-SOURCE
+> Task :app:compileDebugRenderscript NO-SOURCE
+> Task :app:generateDebugBuildConfig
+> Task :app:generateDebugResValues
+> Task :core-network:compileDebugRenderscript NO-SOURCE
+> Task :core-network:writeDebugAarMetadata
+> Task :core-network:generateDebugResValues
+> Task :core-network:generateDebugResources
+> Task :app:checkDebugAarMetadata
+> Task :core-network:packageDebugResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :core-network:extractDeepLinksDebug
+> Task :core-network:generateDebugBuildConfig
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest
+> Task :core-network:compileDebugLibraryResources
+> Task :core-network:javaPreCompileDebug
+> Task :app:javaPreCompileDebug
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :core-network:mergeDebugShaders
+> Task :core-network:compileDebugShaders NO-SOURCE
+> Task :core-network:generateDebugAssets UP-TO-DATE
+> Task :core-network:packageDebugAssets
+> Task :core-network:parseDebugLocalResources
+> Task :app:mergeDebugAssets
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core-network:processDebugJavaRes NO-SOURCE
+> Task :core-network:preDebugUnitTestBuild UP-TO-DATE
+> Task :core-network:processDebugManifest
+> Task :core-network:checkDebugUnitTestAarMetadata
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :core-network:generateDebugUnitTestResValues
+> Task :core-network:mapDebugUnitTestSourceSetPaths
+> Task :app:processDebugManifestForPackage
+> Task :core-network:generateDebugUnitTestResources
+> Task :core-network:mergeDebugUnitTestResources
+> Task :core-network:generateDebugRFile
+> Task :core-network:processDebugUnitTestManifest
+> Task :app:mergeDebugResources
+> Task :core-network:javaPreCompileDebugUnitTest
+> Task :core-network:mergeDebugAssets
+> Task :core-network:generateDebugUnitTestAssets UP-TO-DATE
+> Task :core-network:mergeDebugUnitTestAssets
+> Task :core-network:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core-network:preReleaseBuild UP-TO-DATE
+> Task :core-network:compileReleaseAidl NO-SOURCE
+> Task :core-network:compileReleaseRenderscript NO-SOURCE
+> Task :core-network:generateReleaseBuildConfig
+> Task :core-network:generateReleaseResValues
+> Task :core-network:generateReleaseResources
+> Task :core-network:packageReleaseResources
+> Task :core-network:parseReleaseLocalResources
+> Task :core-network:processReleaseJavaRes NO-SOURCE
+> Task :core-network:preReleaseUnitTestBuild UP-TO-DATE
+> Task :core-network:javaPreCompileRelease
+> Task :core-network:processReleaseManifest
+> Task :core-network:writeReleaseAarMetadata
+> Task :core-network:generateReleaseRFile
+> Task :core-network:checkReleaseUnitTestAarMetadata
+> Task :core-network:processDebugUnitTestResources
+> Task :core-network:packageDebugUnitTestForUnitTest
+> Task :core-network:compileReleaseLibraryResources
+> Task :core-network:generateReleaseUnitTestResValues
+> Task :core-network:generateDebugUnitTestConfig
+> Task :core-network:mapReleaseUnitTestSourceSetPaths
+> Task :core-network:generateReleaseUnitTestResources
+> Task :core-network:mergeReleaseUnitTestResources
+> Task :core-network:extractDeepLinksRelease
+> Task :core-network:processReleaseUnitTestManifest
+> Task :core-network:mergeReleaseShaders
+> Task :core-network:javaPreCompileReleaseUnitTest
+> Task :core-network:compileReleaseShaders NO-SOURCE
+> Task :core-network:generateReleaseAssets UP-TO-DATE
+> Task :core-network:mergeReleaseAssets
+> Task :core-network:generateReleaseUnitTestAssets UP-TO-DATE
+> Task :core-network:packageReleaseAssets
+> Task :core-network:mergeReleaseUnitTestAssets
+> Task :core-network:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :app:buildKotlinToolingMetadata
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:compileReleaseAidl NO-SOURCE
+> Task :core-network:packageReleaseRenderscript NO-SOURCE
+> Task :app:compileReleaseRenderscript NO-SOURCE
+> Task :app:generateReleaseBuildConfig
+> Task :core-network:processReleaseUnitTestResources
+> Task :app:checkReleaseAarMetadata
+> Task :core-network:packageReleaseUnitTestForUnitTest
+> Task :app:generateReleaseResValues
+> Task :core-network:generateReleaseUnitTestConfig
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:processDebugResources
+> Task :app:packageDebugUnitTestForUnitTest
+> Task :app:generateDebugUnitTestConfig
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:javaPreCompileRelease
+> Task :app:writeReleaseApplicationId
+> Task :app:analyticsRecordingRelease
+> Task :app:preReleaseUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileReleaseUnitTest
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:processReleaseJavaRes NO-SOURCE
+> Task :app:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :app:processReleaseManifestForPackage
+> Task :app:mergeReleaseResources
+> Task :app:processReleaseResources
+> Task :app:packageReleaseUnitTestForUnitTest
+> Task :app:generateReleaseUnitTestConfig
+> Task :core-network:compileDebugKotlin
+> Task :core-network:compileReleaseKotlin
+> Task :core-network:compileDebugJavaWithJavac
+> Task :core-network:bundleLibResDebug
+> Task :core-network:bundleLibResRelease
+> Task :core-network:bundleLibRuntimeToJarDebug
+> Task :core-network:bundleLibCompileToJarDebug
+> Task :core-network:compileReleaseJavaWithJavac
+> Task :core-network:bundleLibRuntimeToJarRelease
+> Task :core-network:bundleLibCompileToJarRelease
+> Task :core-network:compileDebugUnitTestKotlin
+> Task :core-network:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core-network:compileReleaseUnitTestKotlin
+
+> Task :core-network:testDebugUnitTest
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+
+> Task :core-network:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+
+> Task :core-network:testReleaseUnitTest
+
+> Task :core-network:test
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+> Task :app:compileDebugKotlin
+> Task :app:compileReleaseKotlin
+> Task :app:compileDebugJavaWithJavac
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:bundleReleaseClassesToRuntimeJar
+> Task :app:bundleReleaseClassesToCompileJar
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compileReleaseUnitTestKotlin
+
+> Task :app:testDebugUnitTest
+
+> Task :test
+> Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+
+> Task :app:testReleaseUnitTest
+
+> Task :app:test
+
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+BUILD SUCCESSFUL in 27s
+109 actionable tasks: 109 executed
+[0m
+[0m$ [0m"${ANDROID_HOME:-$HOME/Library/Android/sdk}"/emulator/emulator -avd "Wear_OS_Large_Round_API_33" -no-snapshot-load >/tmp/wear_os_large_round_api_33.log 2>&1 &
+[0m
+[0m$ [0m"${ANDROID_HOME:-$HOME/Library/Android/sdk}"/platform-tools/adb wait-for-device && until [ "$("${ANDROID_HOME:-$HOME/Library/Android/sdk}"/platform-tools/adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do sleep 5; done
+<bash_metadata>
+bash tool terminated command after exceeding timeout 1200000 ms
+</bash_metadata>
+[0m
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mread failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.
+[0m
+[0m$ [0m"${ANDROID_HOME:-$HOME/Library/Android/sdk}"/platform-tools/adb devices -l
+List of devices attached
+[0m

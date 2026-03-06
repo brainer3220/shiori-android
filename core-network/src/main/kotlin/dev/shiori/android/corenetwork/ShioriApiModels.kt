@@ -13,7 +13,6 @@ data class LinksQuery(
 data class CreateLinkRequest(
     val url: String,
     val title: String? = null,
-    val summary: String? = null,
     val read: Boolean? = null,
 )
 
@@ -38,7 +37,9 @@ data class LinkListResponse(
 )
 
 data class CreateLinkResponse(
-    val link: LinkResponse,
+    val success: Boolean = true,
+    @Json(name = "linkId")
+    val linkId: String,
     val duplicate: Boolean = false,
 )
 

@@ -1,0 +1,1909 @@
+[0m
+> build · gpt-5.4
+[0m
+[0m# [0mTodos
+[ ] Review guardrails, errors, PRD, and repo context for US-002
+[ ] Audit existing POST /api/links client flow and related tests/models
+[ ] Implement US-002 changes in network/domain/UI flow and tests only
+[ ] Run required verification commands and review security/performance/regression
+[ ] Commit changes and update progress/activity logs
+[0m
+[0m✗ [0mread failed
+[91m[1mError: [0mFile not found: /Users/brainer/Programming/shiori-android/docs/AGENTS.md
+[0m→ [0mRead .ralph/guardrails.md
+[0m→ [0mRead .ralph/errors.log
+[0m→ [0mRead .agents/tasks/prd-share-intent.json
+[0m
+[0m$ [0m"/Users/brainer/Programming/shiori-android/docs/ralph" log "Start work on US-002 Align POST /api/links client (iteration 4)"
+zsh:1: no such file or directory: /Users/brainer/Programming/shiori-android/docs/ralph
+[0m
+[0m✱ [0mGlob "ralph*"[90m in . · 0 matches[0m
+[0m✱ [0mGlob "**/ShioriApiClientTest.kt"[90m in . · 0 matches[0m
+[0m✱ [0mGrep "createLink|POST /api/links|/api/links|linkId|duplicate"[90m in . · 0 matches[0m
+[0m→ [0mRead .
+[0m→ [0mRead ..
+[0m→ [0mRead ../AGENTS.md
+[0m
+[0m$ [0mls
+AGENTS.md
+app
+build
+build.gradle.kts
+core-network
+docs
+gradle.properties
+gradlew
+gradlew.bat
+ralph
+settings.gradle.kts
+[0m
+[0m$ [0m"/Users/brainer/Programming/shiori-android/ralph" log "Start work on US-002 Align POST /api/links client (iteration 4)"
+[0m
+[0m# [0mTodos
+[x] Review guardrails, errors, PRD, and repo context for US-002
+[ ] Audit existing POST /api/links client flow and related tests/models
+[ ] Implement US-002 changes in network/domain/UI flow and tests only
+[ ] Run required verification commands and review security/performance/regression
+[ ] Commit changes and update progress/activity logs
+[0m
+[0m→ [0mRead api-reference.md
+[0m✱ [0mGlob "**/*.kt"[90m in .. · 12 matches[0m
+[0m✱ [0mGrep "createLink|/api/links|linkId|duplicate|LinkResponse|metadata"[90m in .. · 101 matches[0m
+[0m→ [0mRead ../core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt
+[0m→ [0mRead ../core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiClient.kt
+[0m→ [0mRead ../core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiService.kt
+[0m→ [0mRead ../core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+[0m→ [0mRead ../app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m→ [0mRead ../app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt
+[0m→ [0mRead ../app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+[0m✱ [0mGrep "CreateLinkResponse\("[90m in .. · 6 matches[0m
+[0m✱ [0mGrep "result\.value\.link|response\.link|CreateLinkRequest\([^\)]*summary"[90m in .. · 3 matches[0m
+[0m✱ [0mGrep "CreateLinkRequest\("[90m in .. · 7 matches[0m
+[0m
+[0m$ [0mgit log --oneline -5
+3609f5d docs: record US-001 progress
+9bc6431 feat: validate access before opening links
+b7df9bb docs: record US-006 progress
+ad54cff feat: support link read-state and metadata updates
+43e82b3 docs: record US-005 progress
+[0m
+[0m$ [0mgit status --short
+M .ralph/activity.log
+?? docs/
+[0m
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+[0m✱ [0mGrep "result\.value\.link|response\.link|summary = "Summary"|CreateLinkRequest\([^\)]*summary"[90m in .. · 2 matches[0m
+[0m✱ [0mGrep "saveLinkShowsDuplicateFeedbackAndRefreshesArchive"[90m in .. · 1 match[0m
+[0m✱ [0mGrep "CreateLinkResponse\("[90m in .. · 9 matches[0m
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+[0m
+[0m$ [0m"/Users/brainer/Programming/shiori-android/ralph" log "Implemented US-002 create-link request/response contract updates and save-flow refresh behavior"
+[0m
+[0m# [0mTodos
+[x] Review guardrails, errors, PRD, and repo context for US-002
+[x] Audit existing POST /api/links client flow and related tests/models
+[x] Implement US-002 changes in network/domain/UI flow and tests only
+[ ] Run required verification commands and review security/performance/regression
+[ ] Commit changes and update progress/activity logs
+[0m
+[0m$ [0m$HOME/Library/Android/sdk/platform-tools/adb devices
+List of devices attached
+emulator-5554	device
+[0m
+[0m$ [0m./gradlew lintDebug
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.4/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :core-network:preBuild UP-TO-DATE
+> Task :core-network:preDebugBuild UP-TO-DATE
+> Task :core-network:compileDebugAidl NO-SOURCE
+> Task :core-network:mergeDebugJniLibFolders
+> Task :core-network:mergeDebugNativeLibs NO-SOURCE
+> Task :core-network:stripDebugDebugSymbols NO-SOURCE
+> Task :core-network:compileDebugRenderscript NO-SOURCE
+> Task :core-network:copyDebugJniLibsProjectAndLocalJars
+> Task :core-network:generateDebugBuildConfig
+> Task :core-network:generateDebugResValues
+> Task :core-network:generateDebugResources
+> Task :core-network:packageDebugResources
+> Task :core-network:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :core-network:javaPreCompileDebug
+> Task :core-network:mergeDebugShaders
+> Task :core-network:compileDebugShaders NO-SOURCE
+> Task :core-network:generateDebugAssets UP-TO-DATE
+> Task :core-network:parseDebugLocalResources
+> Task :core-network:packageDebugAssets
+> Task :core-network:packageDebugRenderscript NO-SOURCE
+> Task :core-network:prepareDebugArtProfile UP-TO-DATE
+> Task :core-network:prepareLintJarForPublish UP-TO-DATE
+> Task :core-network:processDebugJavaRes NO-SOURCE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :core-network:writeDebugAarMetadata
+> Task :app:compileDebugRenderscript NO-SOURCE
+> Task :app:generateDebugBuildConfig
+> Task :core-network:processDebugManifest
+> Task :app:checkDebugAarMetadata
+> Task :app:generateDebugResValues
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :core-network:generateDebugRFile
+
+> Task :app:mergeDebugResources FAILED
+ERROR:Resource and asset merger: /Users/brainer/Programming/shiori-android/app/build/intermediates/merged_res_blame_folder/debug/out/multi-v2/values-v17.json (No such file or directory)
+    java.io.FileNotFoundException: /Users/brainer/Programming/shiori-android/app/build/intermediates/merged_res_blame_folder/debug/out/multi-v2/values-v17.json (No such file or directory)
+    	at java.base/java.io.FileOutputStream.open0(Native Method)
+    	at java.base/java.io.FileOutputStream.open(FileOutputStream.java:298)
+    	at java.base/java.io.FileOutputStream.<init>(FileOutputStream.java:237)
+    	at java.base/java.io.FileOutputStream.<init>(FileOutputStream.java:187)
+    	at com.google.common.io.Files.newWriter(Files.java:108)
+    	at com.android.ide.common.blame.MergingLogPersistUtil.saveToMultiFileVersion2(MergingLogPersistUtil.java:193)
+    	at com.android.ide.common.blame.MergingLog.write(MergingLog.java:323)
+    	at com.android.ide.common.resources.MergedResourceWriter.end(MergedResourceWriter.java:313)
+    	at com.android.ide.common.resources.DataMerger.mergeData(DataMerger.java:299)
+    	at com.android.ide.common.resources.ResourceMerger.mergeData(ResourceMerger.java:391)
+    	at com.android.build.gradle.tasks.MergeResources$doFullTaskAction$1$1$2.invoke(MergeResources.kt:271)
+    	at com.android.build.gradle.internal.tasks.Blocks.recordSpan(Blocks.java:51)
+    	at com.android.build.gradle.tasks.MergeResources.doFullTaskAction(MergeResources.kt:267)
+    	at com.android.build.gradle.tasks.MergeResources.doTaskAction(MergeResources.kt:323)
+    	at com.android.build.gradle.internal.tasks.NewIncrementalTask$taskAction$$inlined$recordTaskAction$1.invoke(BaseTask.kt:69)
+    	at com.android.build.gradle.internal.tasks.Blocks.recordSpan(Blocks.java:51)
+    	at com.android.build.gradle.internal.tasks.NewIncrementalTask.taskAction(NewIncrementalTask.kt:46)
+    	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+    	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+    	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+    	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+    	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+    	at org.gradle.api.internal.project.taskfactory.IncrementalInputsTaskAction.doExecute(IncrementalInputsTaskAction.java:32)
+    	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
+    	at org.gradle.api.internal.project.taskfactory.AbstractIncrementalTaskAction.execute(AbstractIncrementalTaskAction.java:25)
+    	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:29)
+    	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:236)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
+    	at org.gradle.internal.operations.DefaultBuildOperationExecutor.run(DefaultBuildOperationExecutor.java:68)
+    	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:221)
+    	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:204)
+    	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:187)
+    	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:165)
+    	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:89)
+    	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:40)
+    	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:53)
+    	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:50)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+    	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+    	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:50)
+    	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:40)
+    	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:68)
+    	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:38)
+    	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:41)
+    	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:74)
+    	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+    	at org.gradle.internal.execution.steps.CreateOutputsStep.execute(CreateOutputsStep.java:51)
+    	at org.gradle.internal.execution.steps.CreateOutputsStep.execute(CreateOutputsStep.java:29)
+    	at org.gradle.internal.execution.steps.CaptureStateAfterExecutionStep.executeDelegateBroadcastingChanges(CaptureStateAfterExecutionStep.java:124)
+    	at org.gradle.internal.execution.steps.CaptureStateAfterExecutionStep.execute(CaptureStateAfterExecutionStep.java:80)
+    	at org.gradle.internal.execution.steps.CaptureStateAfterExecutionStep.execute(CaptureStateAfterExecutionStep.java:58)
+    	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:48)
+    	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:36)
+    	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:181)
+    	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:71)
+    	at org.gradle.internal.Either$Right.fold(Either.java:175)
+    	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:59)
+    	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:69)
+    	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:47)
+    	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:36)
+    	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:25)
+    	at org.gradle.internal.execution.steps.RecordOutputsStep.execute(RecordOutputsStep.java:36)
+    	at org.gradle.internal.execution.steps.RecordOutputsStep.execute(RecordOutputsStep.java:22)
+    	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:110)
+    	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:56)
+    	at java.base/java.util.Optional.orElseGet(Optional.java:369)
+    	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:56)
+    	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:38)
+    	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:73)
+    	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:44)
+    	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+    	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+    	at org.gradle.internal.execution.steps.ResolveCachingStateStep.execute(ResolveCachingStateStep.java:89)
+    	at org.gradle.internal.execution.steps.ResolveCachingStateStep.execute(ResolveCachingStateStep.java:50)
+    	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:102)
+    	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:57)
+    	at org.gradle.internal.execution.steps.CaptureStateBeforeExecutionStep.execute(CaptureStateBeforeExecutionStep.java:76)
+    	at org.gradle.internal.execution.steps.CaptureStateBeforeExecutionStep.execute(CaptureStateBeforeExecutionStep.java:50)
+    	at org.gradle.internal.execution.steps.SkipEmptyWorkStep.executeWithNoEmptySources(SkipEmptyWorkStep.java:254)
+    	at org.gradle.internal.execution.steps.SkipEmptyWorkStep.execute(SkipEmptyWorkStep.java:91)
+    	at org.gradle.internal.execution.steps.SkipEmptyWorkStep.execute(SkipEmptyWorkStep.java:56)
+    	at org.gradle.internal.execution.steps.RemoveUntrackedExecutionStateStep.execute(RemoveUntrackedExecutionStateStep.java:32)
+    	at org.gradle.internal.execution.steps.RemoveUntrackedExecutionStateStep.execute(RemoveUntrackedExecutionStateStep.java:21)
+    	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+    	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:43)
+    	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:31)
+    	at org.gradle.internal.execution.steps.AssignWorkspaceStep.lambda$execute$0(AssignWorkspaceStep.java:40)
+    	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:281)
+    	at org.gradle.internal.execution.steps.AssignWorkspaceStep.execute(AssignWorkspaceStep.java:40)
+    	at org.gradle.internal.execution.steps.AssignWorkspaceStep.execute(AssignWorkspaceStep.java:30)
+    	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:37)
+    	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:27)
+    	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:44)
+    	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:33)
+    	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:76)
+    	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:139)
+    	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:128)
+    	at org.gradle.api.internal.tasks.execution.CleanupStaleOutputsExecuter.execute(CleanupStaleOutputsExecuter.java:77)
+    	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+    	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+    	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+    	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:57)
+    	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+    	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+    	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+    	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+    	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+    	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+    	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+    	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:69)
+    	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:322)
+    	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:309)
+    	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:302)
+    	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:288)
+    	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:462)
+    	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:379)
+    	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+    	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+    	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+    	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+    	at java.base/java.lang.Thread.run(Thread.java:829)
+    
+
+> Task :core-network:compileDebugKotlin
+w: Detected multiple Kotlin daemon sessions at kotlin/sessions
+21 actionable tasks: 18 executed, 3 up-to-date
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:mergeDebugResources'.
+> Multiple task action failures occurred:
+   > Error: /Users/brainer/Programming/shiori-android/app/build/intermediates/merged_res_blame_folder/debug/out/multi-v2/values-v17.json (No such file or directory)
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values/values.xml (No such file or directory). Cause: null). Check logs for more details.
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-hi/values-hi.xml (No such file or directory). Cause: null). Check logs for more details.
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-pt/values-pt.xml (No such file or directory). Cause: null). Check logs for more details.
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-watch-v21/values-watch-v21.xml (No such file or directory). Cause: null). Check logs for more details.
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-watch-v20/values-watch-v20.xml (No such file or directory). Cause: null). Check logs for more details.
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-hr/values-hr.xml (No such file or directory). Cause: null). Check logs for more details.
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-hu/values-hu.xml (No such file or directory). Cause: null). Check logs for more details.
+   > A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+      > Resource compilation failed (/Users/brainer/Programming/shiori-android/app/build/intermediates/incremental/debug/mergeDebugResources/merged.dir/values-hy/values-hy.xml (No such file or directory). Cause: null). Check logs for more details.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+
+* Get more help at https://help.gradle.org
+
+BUILD FAILED in 15s
+[0m
+[0m$ [0m./gradlew test
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.4/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :core-network:preBuild UP-TO-DATE
+> Task :core-network:preDebugBuild UP-TO-DATE
+> Task :core-network:compileDebugAidl NO-SOURCE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :core-network:packageDebugRenderscript NO-SOURCE
+> Task :app:compileDebugRenderscript NO-SOURCE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :core-network:writeDebugAarMetadata UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :core-network:compileDebugRenderscript NO-SOURCE
+> Task :core-network:generateDebugResValues UP-TO-DATE
+> Task :core-network:generateDebugResources UP-TO-DATE
+> Task :core-network:packageDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :core-network:extractDeepLinksDebug
+> Task :core-network:processDebugManifest UP-TO-DATE
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :core-network:compileDebugLibraryResources
+> Task :core-network:parseDebugLocalResources UP-TO-DATE
+> Task :core-network:generateDebugRFile UP-TO-DATE
+> Task :core-network:generateDebugBuildConfig UP-TO-DATE
+> Task :app:mergeDebugResources
+> Task :core-network:javaPreCompileDebug UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest
+> Task :app:javaPreCompileDebug
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :core-network:mergeDebugShaders UP-TO-DATE
+> Task :core-network:compileDebugShaders NO-SOURCE
+> Task :core-network:generateDebugAssets UP-TO-DATE
+> Task :core-network:packageDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core-network:processDebugJavaRes NO-SOURCE
+> Task :core-network:preDebugUnitTestBuild UP-TO-DATE
+> Task :core-network:generateDebugUnitTestResValues
+> Task :core-network:checkDebugUnitTestAarMetadata
+> Task :core-network:mapDebugUnitTestSourceSetPaths
+> Task :core-network:generateDebugUnitTestResources
+> Task :core-network:mergeDebugUnitTestResources
+> Task :core-network:processDebugUnitTestManifest
+> Task :core-network:javaPreCompileDebugUnitTest
+> Task :core-network:mergeDebugAssets
+> Task :core-network:generateDebugUnitTestAssets UP-TO-DATE
+> Task :core-network:mergeDebugUnitTestAssets
+> Task :core-network:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core-network:preReleaseBuild UP-TO-DATE
+> Task :core-network:compileReleaseAidl NO-SOURCE
+> Task :core-network:compileReleaseRenderscript NO-SOURCE
+> Task :core-network:generateReleaseBuildConfig
+> Task :core-network:generateReleaseResValues
+> Task :core-network:generateReleaseResources
+> Task :core-network:packageReleaseResources
+> Task :core-network:processReleaseJavaRes NO-SOURCE
+> Task :core-network:preReleaseUnitTestBuild UP-TO-DATE
+> Task :core-network:javaPreCompileRelease
+> Task :core-network:compileReleaseLibraryResources
+> Task :core-network:writeReleaseAarMetadata
+> Task :core-network:generateReleaseUnitTestResValues
+> Task :core-network:checkReleaseUnitTestAarMetadata
+> Task :core-network:processReleaseManifest
+> Task :core-network:mapReleaseUnitTestSourceSetPaths
+> Task :core-network:parseReleaseLocalResources
+> Task :core-network:generateReleaseUnitTestResources
+> Task :core-network:mergeReleaseUnitTestResources
+> Task :core-network:extractDeepLinksRelease
+> Task :core-network:generateReleaseRFile
+> Task :core-network:processReleaseUnitTestManifest
+> Task :core-network:javaPreCompileReleaseUnitTest
+> Task :core-network:mergeReleaseShaders
+> Task :core-network:compileReleaseShaders NO-SOURCE
+> Task :core-network:generateReleaseAssets UP-TO-DATE
+> Task :core-network:processDebugUnitTestResources
+> Task :core-network:mergeReleaseAssets
+> Task :core-network:packageDebugUnitTestForUnitTest
+> Task :core-network:generateReleaseUnitTestAssets UP-TO-DATE
+> Task :core-network:packageReleaseAssets
+> Task :core-network:generateDebugUnitTestConfig
+> Task :core-network:mergeReleaseUnitTestAssets
+> Task :core-network:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :app:buildKotlinToolingMetadata
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:compileReleaseAidl NO-SOURCE
+> Task :core-network:packageReleaseRenderscript NO-SOURCE
+> Task :app:compileReleaseRenderscript NO-SOURCE
+> Task :app:generateReleaseBuildConfig
+> Task :core-network:processReleaseUnitTestResources
+> Task :core-network:packageReleaseUnitTestForUnitTest
+> Task :app:checkReleaseAarMetadata
+> Task :core-network:generateReleaseUnitTestConfig
+> Task :app:generateReleaseResValues
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:javaPreCompileRelease
+> Task :app:processDebugManifestForPackage
+> Task :app:mergeReleaseResources
+> Task :app:writeReleaseApplicationId
+> Task :app:analyticsRecordingRelease
+> Task :app:preReleaseUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileReleaseUnitTest
+> Task :app:processReleaseManifestForPackage
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:processReleaseJavaRes NO-SOURCE
+> Task :app:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :app:processReleaseResources
+> Task :app:processDebugResources
+> Task :app:packageReleaseUnitTestForUnitTest
+> Task :app:packageDebugUnitTestForUnitTest
+> Task :app:generateDebugUnitTestConfig
+> Task :app:generateReleaseUnitTestConfig
+
+> Task :core-network:compileDebugKotlin
+e: Daemon compilation failed: null
+java.lang.Exception
+	at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+	at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:227)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:161)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:132)
+	at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.RuntimeException: java.io.IOException: java.lang.RuntimeException: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap$4.onDropFromCache(PersistentHashMap.java:307)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap$4.onDropFromCache(PersistentHashMap.java:265)
+	at org.jetbrains.kotlin.com.intellij.util.containers.SLRUMap.clear(SLRUMap.java:172)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.processKeysWithExistingMapping(PersistentHashMap.java:582)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.getAllKeysWithExistingMapping(PersistentHashMap.java:574)
+	at org.jetbrains.kotlin.incremental.storage.CachingLazyStorage.getKeys(CachingLazyStorage.kt:61)
+	at org.jetbrains.kotlin.incremental.storage.LookupMap.getKeys(LookupMap.kt:56)
+	at org.jetbrains.kotlin.incremental.TrackedLookupMap.getKeys(LookupStorage.kt:306)
+	at org.jetbrains.kotlin.incremental.LookupStorage.getLookupSymbols(LookupStorage.kt:89)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker$shrinkClasspath$lookupSymbols$1.invoke(ClasspathSnapshotShrinker.kt:40)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker$shrinkClasspath$lookupSymbols$1.invoke(ClasspathSnapshotShrinker.kt:39)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker$MetricsReporter.getLookupSymbols(ClasspathSnapshotShrinker.kt:125)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker.shrinkClasspath(ClasspathSnapshotShrinker.kt:39)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker.shrinkClasspath$default(ClasspathSnapshotShrinker.kt:34)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinkerKt.shrinkAndSaveClasspathSnapshot(ClasspathSnapshotShrinker.kt:288)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.performWorkAfterCompilation(IncrementalJvmCompilerRunner.kt:507)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.performWorkAfterCompilation(IncrementalJvmCompilerRunner.kt:133)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:411)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:290)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:112)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:627)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:101)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1587)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:359)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 more
+Caused by: java.io.IOException: java.lang.RuntimeException: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.doEnumerate(PersistentEnumeratorBase.java:321)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.enumerate(PersistentEnumeratorBase.java:335)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.enumerate(PersistentHashMap.java:486)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap$4.onDropFromCache(PersistentHashMap.java:283)
+	... 39 more
+Caused by: java.lang.RuntimeException: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.valueOf(PersistentEnumeratorBase.java:503)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.valueOf(PersistentBTreeEnumerator.java:515)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.isKeyAtIndex(PersistentEnumeratorBase.java:429)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.enumerateImpl(PersistentBTreeEnumerator.java:402)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.doEnumerate(PersistentEnumeratorBase.java:311)
+	... 42 more
+Caused by: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.incremental.storage.LookupSymbolKeyDescriptor.read(externalizers.kt:45)
+	at org.jetbrains.kotlin.incremental.storage.LookupSymbolKeyDescriptor.read(externalizers.kt:34)
+	at org.jetbrains.kotlin.com.intellij.util.io.keyStorage.AppendableStorageBackedByResizableMappedFile.read(AppendableStorageBackedByResizableMappedFile.java:77)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.valueOf(PersistentEnumeratorBase.java:487)
+	... 46 more
+
+Failed to compile with Kotlin daemon: java.lang.Exception
+	at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+	at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:227)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:161)
+	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:132)
+	at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.RuntimeException: java.io.IOException: java.lang.RuntimeException: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap$4.onDropFromCache(PersistentHashMap.java:307)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap$4.onDropFromCache(PersistentHashMap.java:265)
+	at org.jetbrains.kotlin.com.intellij.util.containers.SLRUMap.clear(SLRUMap.java:172)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.processKeysWithExistingMapping(PersistentHashMap.java:582)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.getAllKeysWithExistingMapping(PersistentHashMap.java:574)
+	at org.jetbrains.kotlin.incremental.storage.CachingLazyStorage.getKeys(CachingLazyStorage.kt:61)
+	at org.jetbrains.kotlin.incremental.storage.LookupMap.getKeys(LookupMap.kt:56)
+	at org.jetbrains.kotlin.incremental.TrackedLookupMap.getKeys(LookupStorage.kt:306)
+	at org.jetbrains.kotlin.incremental.LookupStorage.getLookupSymbols(LookupStorage.kt:89)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker$shrinkClasspath$lookupSymbols$1.invoke(ClasspathSnapshotShrinker.kt:40)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker$shrinkClasspath$lookupSymbols$1.invoke(ClasspathSnapshotShrinker.kt:39)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker$MetricsReporter.getLookupSymbols(ClasspathSnapshotShrinker.kt:125)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker.shrinkClasspath(ClasspathSnapshotShrinker.kt:39)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinker.shrinkClasspath$default(ClasspathSnapshotShrinker.kt:34)
+	at org.jetbrains.kotlin.incremental.classpathDiff.ClasspathSnapshotShrinkerKt.shrinkAndSaveClasspathSnapshot(ClasspathSnapshotShrinker.kt:288)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.performWorkAfterCompilation(IncrementalJvmCompilerRunner.kt:507)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.performWorkAfterCompilation(IncrementalJvmCompilerRunner.kt:133)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:411)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:290)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:112)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:627)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:101)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1587)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:359)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 more
+Caused by: java.io.IOException: java.lang.RuntimeException: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.doEnumerate(PersistentEnumeratorBase.java:321)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.enumerate(PersistentEnumeratorBase.java:335)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.enumerate(PersistentHashMap.java:486)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap$4.onDropFromCache(PersistentHashMap.java:283)
+	... 39 more
+Caused by: java.lang.RuntimeException: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.valueOf(PersistentEnumeratorBase.java:503)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.valueOf(PersistentBTreeEnumerator.java:515)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.isKeyAtIndex(PersistentEnumeratorBase.java:429)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentBTreeEnumerator.enumerateImpl(PersistentBTreeEnumerator.java:402)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.doEnumerate(PersistentEnumeratorBase.java:311)
+	... 42 more
+Caused by: java.lang.IllegalStateException: Unexpected byte value for storeFullFqNames: 101
+	at org.jetbrains.kotlin.incremental.storage.LookupSymbolKeyDescriptor.read(externalizers.kt:45)
+	at org.jetbrains.kotlin.incremental.storage.LookupSymbolKeyDescriptor.read(externalizers.kt:34)
+	at org.jetbrains.kotlin.com.intellij.util.io.keyStorage.AppendableStorageBackedByResizableMappedFile.read(AppendableStorageBackedByResizableMappedFile.java:77)
+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentEnumeratorBase.valueOf(PersistentEnumeratorBase.java:487)
+	... 46 more
+Using fallback strategy: Compile without Kotlin daemon
+Try ./gradlew --stop if this issue persists.
+
+> Task :core-network:compileReleaseKotlin
+> Task :core-network:bundleLibResRelease
+> Task :core-network:compileReleaseJavaWithJavac
+> Task :core-network:bundleLibRuntimeToJarRelease
+> Task :core-network:bundleLibCompileToJarRelease
+> Task :core-network:compileReleaseUnitTestKotlin
+> Task :core-network:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+
+> Task :core-network:testReleaseUnitTest
+
+dev.shiori.android.corenetwork.ShioriApiClientTest > createLink posts request body and parses duplicate response FAILED
+    java.lang.AssertionError at ShioriApiClientTest.kt:73
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+
+7 tests completed, 1 failed
+
+> Task :core-network:testReleaseUnitTest FAILED
+
+> Task :core-network:compileDebugKotlin
+Errors were stored into /Users/brainer/Programming/shiori-android/.gradle/kotlin/errors/errors-1772806710896.log
+
+> Task :app:compileReleaseKotlin
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':core-network:testReleaseUnitTest'.
+> There were failing tests. See the report at: file:///Users/brainer/Programming/shiori-android/core-network/build/reports/tests/testReleaseUnitTest/index.html
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+
+* Get more help at https://help.gradle.org
+
+BUILD FAILED in 22s
+92 actionable tasks: 78 executed, 14 up-to-date
+[0m
+[0m→ [0mRead ../core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt[90m [offset=70, limit=45][0m
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+[0m
+[0m$ [0m./gradlew clean
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.4/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :app:clean
+> Task :core-network:clean
+
+BUILD SUCCESSFUL in 4s
+2 actionable tasks: 2 executed
+[0m
+[0m$ [0m./gradlew test
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.4/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :core-network:preBuild UP-TO-DATE
+> Task :core-network:preDebugBuild UP-TO-DATE
+> Task :core-network:compileDebugAidl NO-SOURCE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :core-network:packageDebugRenderscript NO-SOURCE
+> Task :app:compileDebugRenderscript NO-SOURCE
+> Task :app:generateDebugBuildConfig
+> Task :app:generateDebugResValues
+> Task :core-network:compileDebugRenderscript NO-SOURCE
+> Task :core-network:writeDebugAarMetadata
+> Task :core-network:generateDebugResValues
+> Task :core-network:generateDebugResources
+> Task :app:checkDebugAarMetadata
+> Task :core-network:packageDebugResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :core-network:extractDeepLinksDebug
+> Task :core-network:compileDebugLibraryResources
+> Task :core-network:generateDebugBuildConfig
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebug
+> Task :core-network:javaPreCompileDebug
+> Task :app:javaPreCompileDebugUnitTest
+> Task :core-network:parseDebugLocalResources
+> Task :core-network:processDebugManifest
+> Task :app:mergeDebugShaders
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :core-network:mergeDebugShaders
+> Task :core-network:compileDebugShaders NO-SOURCE
+> Task :core-network:generateDebugAssets UP-TO-DATE
+> Task :core-network:packageDebugAssets
+> Task :core-network:generateDebugRFile
+> Task :app:mergeDebugResources
+> Task :app:mergeDebugAssets
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core-network:processDebugJavaRes NO-SOURCE
+> Task :core-network:preDebugUnitTestBuild UP-TO-DATE
+> Task :core-network:checkDebugUnitTestAarMetadata
+> Task :core-network:generateDebugUnitTestResValues
+> Task :core-network:mapDebugUnitTestSourceSetPaths
+> Task :core-network:generateDebugUnitTestResources
+> Task :core-network:mergeDebugUnitTestResources
+> Task :core-network:processDebugUnitTestManifest
+> Task :core-network:javaPreCompileDebugUnitTest
+> Task :core-network:mergeDebugAssets
+> Task :core-network:generateDebugUnitTestAssets UP-TO-DATE
+> Task :core-network:mergeDebugUnitTestAssets
+> Task :core-network:processDebugUnitTestJavaRes NO-SOURCE
+> Task :core-network:preReleaseBuild UP-TO-DATE
+> Task :core-network:compileReleaseAidl NO-SOURCE
+> Task :core-network:compileReleaseRenderscript NO-SOURCE
+> Task :core-network:generateReleaseBuildConfig
+> Task :core-network:generateReleaseResValues
+> Task :core-network:generateReleaseResources
+> Task :core-network:packageReleaseResources
+> Task :core-network:processReleaseJavaRes NO-SOURCE
+> Task :core-network:parseReleaseLocalResources
+> Task :core-network:preReleaseUnitTestBuild UP-TO-DATE
+> Task :core-network:javaPreCompileRelease
+> Task :core-network:writeReleaseAarMetadata
+> Task :app:processDebugManifestForPackage
+> Task :core-network:processReleaseManifest
+> Task :core-network:checkReleaseUnitTestAarMetadata
+> Task :core-network:generateReleaseRFile
+> Task :core-network:compileReleaseLibraryResources
+> Task :core-network:processDebugUnitTestResources
+> Task :core-network:packageDebugUnitTestForUnitTest
+> Task :core-network:generateReleaseUnitTestResValues
+> Task :core-network:generateDebugUnitTestConfig
+> Task :core-network:mapReleaseUnitTestSourceSetPaths
+> Task :core-network:generateReleaseUnitTestResources
+> Task :core-network:mergeReleaseUnitTestResources
+> Task :core-network:extractDeepLinksRelease
+> Task :core-network:processReleaseUnitTestManifest
+> Task :core-network:javaPreCompileReleaseUnitTest
+> Task :core-network:mergeReleaseShaders
+> Task :core-network:compileReleaseShaders NO-SOURCE
+> Task :core-network:generateReleaseAssets UP-TO-DATE
+> Task :core-network:mergeReleaseAssets
+> Task :core-network:generateReleaseUnitTestAssets UP-TO-DATE
+> Task :core-network:packageReleaseAssets
+> Task :core-network:mergeReleaseUnitTestAssets
+> Task :core-network:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :app:buildKotlinToolingMetadata
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:compileReleaseAidl NO-SOURCE
+> Task :core-network:packageReleaseRenderscript NO-SOURCE
+> Task :app:compileReleaseRenderscript NO-SOURCE
+> Task :app:generateReleaseBuildConfig
+> Task :app:generateReleaseResValues
+> Task :app:checkReleaseAarMetadata
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :core-network:processReleaseUnitTestResources
+> Task :app:processDebugResources
+> Task :app:packageDebugUnitTestForUnitTest
+> Task :app:generateDebugUnitTestConfig
+> Task :core-network:packageReleaseUnitTestForUnitTest
+> Task :core-network:generateReleaseUnitTestConfig
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:javaPreCompileRelease
+> Task :app:writeReleaseApplicationId
+> Task :app:analyticsRecordingRelease
+> Task :app:preReleaseUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileReleaseUnitTest
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:processReleaseJavaRes NO-SOURCE
+> Task :app:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :app:processReleaseManifestForPackage
+> Task :app:mergeReleaseResources
+> Task :app:processReleaseResources
+> Task :app:packageReleaseUnitTestForUnitTest
+> Task :app:generateReleaseUnitTestConfig
+> Task :core-network:compileReleaseKotlin
+> Task :core-network:compileDebugKotlin
+> Task :core-network:bundleLibResRelease
+> Task :core-network:compileDebugJavaWithJavac
+> Task :core-network:bundleLibResDebug
+> Task :core-network:bundleLibCompileToJarDebug
+> Task :core-network:bundleLibRuntimeToJarDebug
+> Task :core-network:compileReleaseJavaWithJavac
+> Task :core-network:bundleLibRuntimeToJarRelease
+> Task :core-network:bundleLibCompileToJarRelease
+> Task :core-network:compileReleaseUnitTestKotlin
+> Task :core-network:compileDebugUnitTestKotlin
+> Task :core-network:compileDebugUnitTestJavaWithJavac NO-SOURCE
+
+> Task :core-network:testDebugUnitTest
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+
+> Task :core-network:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compileDebugKotlin
+> Task :app:compileReleaseKotlin
+
+> Task :core-network:testReleaseUnitTest
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+
+> Task :app:compileDebugJavaWithJavac
+> Task :core-network:test
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:bundleReleaseClassesToRuntimeJar
+> Task :app:bundleReleaseClassesToCompileJar
+> Task :app:compileDebugUnitTestKotlin
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:compileReleaseUnitTestKotlin
+
+> Task :app:testDebugUnitTest
+
+> Task :test
+> Task :app:compileReleaseUnitTestJavaWithJavac NO-SOURCE
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+
+> Task :app:testReleaseUnitTest
+
+> Task :app:test
+
+BUILD SUCCESSFUL in 17s
+109 actionable tasks: 109 executed
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by retrofit2.Platform (file:/Users/brainer/.gradle/caches/modules-2/files-2.1/com.squareup.retrofit2/retrofit/2.9.0/d8fdfbd5da952141a665a403348b74538efc05ff/retrofit-2.9.0.jar) to constructor java.lang.invoke.MethodHandles$Lookup(java.lang.Class,int)
+WARNING: Please consider reporting this to the maintainers of retrofit2.Platform
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+[0m
+[0m$ [0m./gradlew lintDebug
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.4/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :core-network:preBuild UP-TO-DATE
+> Task :core-network:preDebugBuild UP-TO-DATE
+> Task :core-network:compileDebugAidl NO-SOURCE
+> Task :core-network:mergeDebugJniLibFolders
+> Task :core-network:mergeDebugNativeLibs NO-SOURCE
+> Task :core-network:stripDebugDebugSymbols NO-SOURCE
+> Task :core-network:compileDebugRenderscript NO-SOURCE
+> Task :core-network:copyDebugJniLibsProjectAndLocalJars
+> Task :core-network:generateDebugBuildConfig UP-TO-DATE
+> Task :core-network:generateDebugResValues UP-TO-DATE
+> Task :core-network:generateDebugResources UP-TO-DATE
+> Task :core-network:packageDebugResources UP-TO-DATE
+> Task :core-network:parseDebugLocalResources UP-TO-DATE
+> Task :core-network:processDebugManifest UP-TO-DATE
+> Task :core-network:generateDebugRFile UP-TO-DATE
+> Task :core-network:compileDebugKotlin UP-TO-DATE
+> Task :core-network:extractDebugAnnotations
+> Task :core-network:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :core-network:javaPreCompileDebug UP-TO-DATE
+> Task :core-network:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core-network:mergeDebugGeneratedProguardFiles UP-TO-DATE
+> Task :core-network:mergeDebugConsumerProguardFiles
+> Task :core-network:mergeDebugShaders UP-TO-DATE
+> Task :core-network:compileDebugShaders NO-SOURCE
+> Task :core-network:generateDebugAssets UP-TO-DATE
+> Task :core-network:packageDebugAssets UP-TO-DATE
+> Task :core-network:packageDebugRenderscript NO-SOURCE
+> Task :core-network:prepareDebugArtProfile UP-TO-DATE
+> Task :core-network:prepareLintJarForPublish UP-TO-DATE
+> Task :core-network:processDebugJavaRes NO-SOURCE
+> Task :core-network:writeDebugAarMetadata UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :app:compileDebugRenderscript NO-SOURCE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :core-network:mergeDebugJavaResource
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :core-network:syncDebugLibJars
+> Task :core-network:bundleDebugLocalLintAar
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :core-network:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :core-network:compileDebugLibraryResources UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :core-network:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:processDebugAndroidTestManifest
+> Task :app:compileDebugAndroidTestRenderscript NO-SOURCE
+> Task :app:extractProguardFiles
+> Task :app:generateDebugAndroidTestResValues
+> Task :core-network:bundleLibResDebug UP-TO-DATE
+> Task :core-network:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :core-network:createFullJarDebug
+> Task :core-network:writeDebugLintModelMetadata
+> Task :core-network:preDebugAndroidTestBuild UP-TO-DATE
+> Task :core-network:processDebugAndroidTestManifest
+> Task :core-network:compileDebugAndroidTestRenderscript NO-SOURCE
+> Task :core-network:extractProguardFiles
+> Task :core-network:generateDebugAndroidTestResValues
+
+> Task :app:lintAnalyzeDebug
+Could not load custom lint check jar file /Users/brainer/.gradle/caches/transforms-3/80aa46527c16460cc4b9b46a9df6cd9d/transformed/lifecycle-runtime-ktx-2.7.0/jars/lint.jar
+java.lang.UnsupportedClassVersionError: androidx/lifecycle/lint/LifecycleRuntimeIssueRegistry has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1022)
+	at com.intellij.util.lang.UrlClassLoader.consumeClassData(UrlClassLoader.java:257)
+	at com.intellij.util.lang.JdkZipResourceFile.findClass(JdkZipResourceFile.java:89)
+	at com.intellij.util.lang.JarLoader.findClass(JarLoader.java:63)
+	at com.intellij.util.lang.ClassPath.findClassInLoader(ClassPath.java:246)
+	at com.intellij.util.lang.ClassPath.findClassWithoutCache(ClassPath.java:235)
+	at com.intellij.util.lang.ClassPath.findClass(ClassPath.java:202)
+	at com.intellij.util.lang.UrlClassLoader.findClass(UrlClassLoader.java:209)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:594)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:527)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:398)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.loadIssueRegistry(JarFileIssueRegistry.kt:257)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:183)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:144)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get$default(JarFileIssueRegistry.kt:119)
+	at com.android.tools.lint.client.api.LintDriver.registerCustomDetectors(LintDriver.kt:725)
+	at com.android.tools.lint.client.api.LintDriver.initializeExtraRegistries(LintDriver.kt:610)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze(LintDriver.kt:503)
+	at com.android.tools.lint.client.api.LintDriver.analyzeOnly(LintDriver.kt:448)
+	at com.android.tools.lint.LintCliClient$analyzeOnly$1.invoke(LintCliClient.kt:247)
+	at com.android.tools.lint.LintCliClient$analyzeOnly$1.invoke(LintCliClient.kt:247)
+	at com.android.tools.lint.LintCliClient.run(LintCliClient.kt:289)
+	at com.android.tools.lint.LintCliClient.run$default(LintCliClient.kt:272)
+	at com.android.tools.lint.LintCliClient.analyzeOnly(LintCliClient.kt:247)
+	at com.android.tools.lint.Main.run(Main.java:1668)
+	at com.android.tools.lint.Main.run(Main.java:274)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.invokeLintMainRunMethod(AndroidLintWorkAction.kt:96)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.runLint(AndroidLintWorkAction.kt:85)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.execute(AndroidLintWorkAction.kt:61)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Could not load custom lint check jar file /Users/brainer/.gradle/caches/transforms-3/6b5b46f5b3e3196b8e0c542446c04df5/transformed/lifecycle-livedata-core-ktx-2.7.0/jars/lint.jar
+java.lang.UnsupportedClassVersionError: androidx/lifecycle/lint/LiveDataCoreIssueRegistry has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1022)
+	at com.intellij.util.lang.UrlClassLoader.consumeClassData(UrlClassLoader.java:257)
+	at com.intellij.util.lang.JdkZipResourceFile.findClass(JdkZipResourceFile.java:89)
+	at com.intellij.util.lang.JarLoader.findClass(JarLoader.java:63)
+	at com.intellij.util.lang.ClassPath.findClassInLoader(ClassPath.java:246)
+	at com.intellij.util.lang.ClassPath.findClassWithoutCache(ClassPath.java:235)
+	at com.intellij.util.lang.ClassPath.findClass(ClassPath.java:202)
+	at com.intellij.util.lang.UrlClassLoader.findClass(UrlClassLoader.java:209)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:594)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:527)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:398)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.loadIssueRegistry(JarFileIssueRegistry.kt:257)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:183)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:144)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get$default(JarFileIssueRegistry.kt:119)
+	at com.android.tools.lint.client.api.LintDriver.registerCustomDetectors(LintDriver.kt:725)
+	at com.android.tools.lint.client.api.LintDriver.initializeExtraRegistries(LintDriver.kt:610)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze(LintDriver.kt:503)
+	at com.android.tools.lint.client.api.LintDriver.analyzeOnly(LintDriver.kt:448)
+	at com.android.tools.lint.LintCliClient$analyzeOnly$1.invoke(LintCliClient.kt:247)
+	at com.android.tools.lint.LintCliClient$analyzeOnly$1.invoke(LintCliClient.kt:247)
+	at com.android.tools.lint.LintCliClient.run(LintCliClient.kt:289)
+	at com.android.tools.lint.LintCliClient.run$default(LintCliClient.kt:272)
+	at com.android.tools.lint.LintCliClient.analyzeOnly(LintCliClient.kt:247)
+	at com.android.tools.lint.Main.run(Main.java:1668)
+	at com.android.tools.lint.Main.run(Main.java:274)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.invokeLintMainRunMethod(AndroidLintWorkAction.kt:96)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.runLint(AndroidLintWorkAction.kt:85)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.execute(AndroidLintWorkAction.kt:61)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Could not load custom lint check jar file /Users/brainer/.gradle/caches/transforms-3/6113c6a2c3507ed82fe5da256a203f93/transformed/activity-1.8.2/jars/lint.jar
+java.lang.UnsupportedClassVersionError: androidx/activity/lint/ActivityIssueRegistry has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1022)
+	at com.intellij.util.lang.UrlClassLoader.consumeClassData(UrlClassLoader.java:257)
+	at com.intellij.util.lang.JdkZipResourceFile.findClass(JdkZipResourceFile.java:89)
+	at com.intellij.util.lang.JarLoader.findClass(JarLoader.java:63)
+	at com.intellij.util.lang.ClassPath.findClassInLoader(ClassPath.java:246)
+	at com.intellij.util.lang.ClassPath.findClassWithoutCache(ClassPath.java:235)
+	at com.intellij.util.lang.ClassPath.findClass(ClassPath.java:202)
+	at com.intellij.util.lang.UrlClassLoader.findClass(UrlClassLoader.java:209)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:594)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:527)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:398)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.loadIssueRegistry(JarFileIssueRegistry.kt:257)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:183)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:144)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get$default(JarFileIssueRegistry.kt:119)
+	at com.android.tools.lint.client.api.LintDriver.registerCustomDetectors(LintDriver.kt:725)
+	at com.android.tools.lint.client.api.LintDriver.initializeExtraRegistries(LintDriver.kt:610)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze(LintDriver.kt:503)
+	at com.android.tools.lint.client.api.LintDriver.analyzeOnly(LintDriver.kt:448)
+	at com.android.tools.lint.LintCliClient$analyzeOnly$1.invoke(LintCliClient.kt:247)
+	at com.android.tools.lint.LintCliClient$analyzeOnly$1.invoke(LintCliClient.kt:247)
+	at com.android.tools.lint.LintCliClient.run(LintCliClient.kt:289)
+	at com.android.tools.lint.LintCliClient.run$default(LintCliClient.kt:272)
+	at com.android.tools.lint.LintCliClient.analyzeOnly(LintCliClient.kt:247)
+	at com.android.tools.lint.Main.run(Main.java:1668)
+	at com.android.tools.lint.Main.run(Main.java:274)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.invokeLintMainRunMethod(AndroidLintWorkAction.kt:96)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.runLint(AndroidLintWorkAction.kt:85)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.execute(AndroidLintWorkAction.kt:61)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+
+> Task :core-network:lintAnalyzeDebug
+
+> Task :core-network:lintReportDebug
+Wrote HTML report to file:///Users/brainer/Programming/shiori-android/core-network/build/reports/lint-results-debug.html
+
+> Task :core-network:lintDebug
+
+> Task :app:lintReportDebug
+Wrote HTML report to file:///Users/brainer/Programming/shiori-android/app/build/reports/lint-results-debug.html
+
+> Task :app:lintDebug
+> Task :lintDebug
+Could not load custom lint check jar file /Users/brainer/.gradle/caches/transforms-3/80aa46527c16460cc4b9b46a9df6cd9d/transformed/lifecycle-runtime-ktx-2.7.0/jars/lint.jar
+java.lang.UnsupportedClassVersionError: androidx/lifecycle/lint/LifecycleRuntimeIssueRegistry has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1022)
+	at com.intellij.util.lang.UrlClassLoader.consumeClassData(UrlClassLoader.java:257)
+	at com.intellij.util.lang.JdkZipResourceFile.findClass(JdkZipResourceFile.java:89)
+	at com.intellij.util.lang.JarLoader.findClass(JarLoader.java:63)
+	at com.intellij.util.lang.ClassPath.findClassInLoader(ClassPath.java:246)
+	at com.intellij.util.lang.ClassPath.findClassWithoutCache(ClassPath.java:235)
+	at com.intellij.util.lang.ClassPath.findClass(ClassPath.java:202)
+	at com.intellij.util.lang.UrlClassLoader.findClass(UrlClassLoader.java:209)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:594)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:527)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:398)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.loadIssueRegistry(JarFileIssueRegistry.kt:257)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:183)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:144)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get$default(JarFileIssueRegistry.kt:119)
+	at com.android.tools.lint.client.api.LintDriver.registerCustomDetectors(LintDriver.kt:725)
+	at com.android.tools.lint.client.api.LintDriver.initializeExtraRegistries(LintDriver.kt:610)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze(LintDriver.kt:503)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze$default(LintDriver.kt:486)
+	at com.android.tools.lint.client.api.LintDriver.mergeOnly(LintDriver.kt:471)
+	at com.android.tools.lint.LintCliClient$mergeOnly$1.invoke(LintCliClient.kt:261)
+	at com.android.tools.lint.LintCliClient$mergeOnly$1.invoke(LintCliClient.kt:259)
+	at com.android.tools.lint.LintCliClient.run(LintCliClient.kt:289)
+	at com.android.tools.lint.LintCliClient.mergeOnly(LintCliClient.kt:259)
+	at com.android.tools.lint.Main.run(Main.java:1670)
+	at com.android.tools.lint.Main.run(Main.java:274)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.invokeLintMainRunMethod(AndroidLintWorkAction.kt:96)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.runLint(AndroidLintWorkAction.kt:85)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.execute(AndroidLintWorkAction.kt:61)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Could not load custom lint check jar file /Users/brainer/.gradle/caches/transforms-3/6b5b46f5b3e3196b8e0c542446c04df5/transformed/lifecycle-livedata-core-ktx-2.7.0/jars/lint.jar
+java.lang.UnsupportedClassVersionError: androidx/lifecycle/lint/LiveDataCoreIssueRegistry has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1022)
+	at com.intellij.util.lang.UrlClassLoader.consumeClassData(UrlClassLoader.java:257)
+	at com.intellij.util.lang.JdkZipResourceFile.findClass(JdkZipResourceFile.java:89)
+	at com.intellij.util.lang.JarLoader.findClass(JarLoader.java:63)
+	at com.intellij.util.lang.ClassPath.findClassInLoader(ClassPath.java:246)
+	at com.intellij.util.lang.ClassPath.findClassWithoutCache(ClassPath.java:235)
+	at com.intellij.util.lang.ClassPath.findClass(ClassPath.java:202)
+	at com.intellij.util.lang.UrlClassLoader.findClass(UrlClassLoader.java:209)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:594)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:527)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:398)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.loadIssueRegistry(JarFileIssueRegistry.kt:257)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:183)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:144)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get$default(JarFileIssueRegistry.kt:119)
+	at com.android.tools.lint.client.api.LintDriver.registerCustomDetectors(LintDriver.kt:725)
+	at com.android.tools.lint.client.api.LintDriver.initializeExtraRegistries(LintDriver.kt:610)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze(LintDriver.kt:503)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze$default(LintDriver.kt:486)
+	at com.android.tools.lint.client.api.LintDriver.mergeOnly(LintDriver.kt:471)
+	at com.android.tools.lint.LintCliClient$mergeOnly$1.invoke(LintCliClient.kt:261)
+	at com.android.tools.lint.LintCliClient$mergeOnly$1.invoke(LintCliClient.kt:259)
+	at com.android.tools.lint.LintCliClient.run(LintCliClient.kt:289)
+	at com.android.tools.lint.LintCliClient.mergeOnly(LintCliClient.kt:259)
+	at com.android.tools.lint.Main.run(Main.java:1670)
+	at com.android.tools.lint.Main.run(Main.java:274)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.invokeLintMainRunMethod(AndroidLintWorkAction.kt:96)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.runLint(AndroidLintWorkAction.kt:85)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.execute(AndroidLintWorkAction.kt:61)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Could not load custom lint check jar file /Users/brainer/.gradle/caches/transforms-3/6113c6a2c3507ed82fe5da256a203f93/transformed/activity-1.8.2/jars/lint.jar
+java.lang.UnsupportedClassVersionError: androidx/activity/lint/ActivityIssueRegistry has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 55.0
+	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1022)
+	at com.intellij.util.lang.UrlClassLoader.consumeClassData(UrlClassLoader.java:257)
+	at com.intellij.util.lang.JdkZipResourceFile.findClass(JdkZipResourceFile.java:89)
+	at com.intellij.util.lang.JarLoader.findClass(JarLoader.java:63)
+	at com.intellij.util.lang.ClassPath.findClassInLoader(ClassPath.java:246)
+	at com.intellij.util.lang.ClassPath.findClassWithoutCache(ClassPath.java:235)
+	at com.intellij.util.lang.ClassPath.findClass(ClassPath.java:202)
+	at com.intellij.util.lang.UrlClassLoader.findClass(UrlClassLoader.java:209)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:594)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:527)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:398)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.loadIssueRegistry(JarFileIssueRegistry.kt:257)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:183)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get(JarFileIssueRegistry.kt:144)
+	at com.android.tools.lint.client.api.JarFileIssueRegistry$Factory.get$default(JarFileIssueRegistry.kt:119)
+	at com.android.tools.lint.client.api.LintDriver.registerCustomDetectors(LintDriver.kt:725)
+	at com.android.tools.lint.client.api.LintDriver.initializeExtraRegistries(LintDriver.kt:610)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze(LintDriver.kt:503)
+	at com.android.tools.lint.client.api.LintDriver.doAnalyze$default(LintDriver.kt:486)
+	at com.android.tools.lint.client.api.LintDriver.mergeOnly(LintDriver.kt:471)
+	at com.android.tools.lint.LintCliClient$mergeOnly$1.invoke(LintCliClient.kt:261)
+	at com.android.tools.lint.LintCliClient$mergeOnly$1.invoke(LintCliClient.kt:259)
+	at com.android.tools.lint.LintCliClient.run(LintCliClient.kt:289)
+	at com.android.tools.lint.LintCliClient.mergeOnly(LintCliClient.kt:259)
+	at com.android.tools.lint.Main.run(Main.java:1670)
+	at com.android.tools.lint.Main.run(Main.java:274)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.invokeLintMainRunMethod(AndroidLintWorkAction.kt:96)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.runLint(AndroidLintWorkAction.kt:85)
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction.execute(AndroidLintWorkAction.kt:61)
+	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$2(DefaultWorkerExecutor.java:212)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:187)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:120)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:162)
+	at org.gradle.internal.Factories$1.create(Factories.java:31)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
+	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:114)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
+	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+
+BUILD SUCCESSFUL in 20s
+57 actionable tasks: 21 executed, 36 up-to-date
+[0m
+[0m$ [0m./gradlew connectedDebugAndroidTest
+To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/7.6.4/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :core-network:preBuild UP-TO-DATE
+> Task :core-network:preDebugBuild UP-TO-DATE
+> Task :core-network:compileDebugAidl NO-SOURCE
+> Task :app:compileDebugAidl NO-SOURCE
+> Task :core-network:packageDebugRenderscript NO-SOURCE
+> Task :app:compileDebugRenderscript NO-SOURCE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :core-network:writeDebugAarMetadata UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :core-network:compileDebugRenderscript NO-SOURCE
+> Task :core-network:generateDebugResValues UP-TO-DATE
+> Task :core-network:generateDebugResources UP-TO-DATE
+> Task :core-network:packageDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :core-network:extractDeepLinksDebug UP-TO-DATE
+> Task :core-network:processDebugManifest UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :core-network:compileDebugLibraryResources UP-TO-DATE
+> Task :core-network:parseDebugLocalResources UP-TO-DATE
+> Task :core-network:generateDebugRFile UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :core-network:generateDebugBuildConfig UP-TO-DATE
+> Task :core-network:compileDebugKotlin UP-TO-DATE
+> Task :core-network:javaPreCompileDebug UP-TO-DATE
+> Task :core-network:compileDebugJavaWithJavac UP-TO-DATE
+> Task :core-network:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:compileDebugAndroidTestAidl NO-SOURCE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:compileDebugAndroidTestRenderscript NO-SOURCE
+> Task :app:generateDebugAndroidTestBuildConfig
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:checkDebugAndroidTestAarMetadata
+> Task :app:mapDebugAndroidTestSourceSetPaths
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:javaPreCompileDebugAndroidTest
+> Task :core-network:mergeDebugShaders UP-TO-DATE
+> Task :core-network:compileDebugShaders NO-SOURCE
+> Task :core-network:generateDebugAssets UP-TO-DATE
+> Task :core-network:packageDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :core-network:processDebugJavaRes NO-SOURCE
+> Task :core-network:bundleLibResDebug UP-TO-DATE
+> Task :app:mergeDebugAndroidTestResources
+> Task :app:desugarDebugFileDependencies
+> Task :app:checkDebugDuplicateClasses
+> Task :core-network:bundleLibRuntimeToDirDebug
+> Task :app:mergeDebugJavaResource
+> Task :app:processDebugAndroidTestResources
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugJniLibFolders
+> Task :core-network:mergeDebugJniLibFolders UP-TO-DATE
+> Task :core-network:mergeDebugNativeLibs NO-SOURCE
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :core-network:copyDebugJniLibsProjectOnly
+> Task :app:mergeDebugAndroidTestShaders
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:compileDebugAndroidTestShaders NO-SOURCE
+> Task :app:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeDebugAndroidTestAssets
+> Task :app:compressDebugAndroidTestAssets
+> Task :app:processDebugAndroidTestJavaRes NO-SOURCE
+> Task :app:mergeLibDexDebug
+> Task :app:mergeDebugAndroidTestJniLibFolders
+> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:desugarDebugAndroidTestFileDependencies
+> Task :app:validateSigningDebugAndroidTest
+> Task :app:checkDebugAndroidTestDuplicateClasses
+> Task :app:writeDebugAndroidTestSigningConfigVersions
+> Task :core-network:preDebugAndroidTestBuild UP-TO-DATE
+> Task :core-network:compileDebugAndroidTestAidl NO-SOURCE
+> Task :app:mergeLibDexDebugAndroidTest
+> Task :core-network:processDebugAndroidTestManifest UP-TO-DATE
+> Task :core-network:compileDebugAndroidTestRenderscript NO-SOURCE
+> Task :core-network:generateDebugAndroidTestBuildConfig
+> Task :core-network:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :core-network:checkDebugAndroidTestAarMetadata
+> Task :core-network:mapDebugAndroidTestSourceSetPaths
+> Task :core-network:generateDebugAndroidTestResources UP-TO-DATE
+> Task :core-network:mergeDebugAndroidTestResources
+> Task :core-network:mergeDebugAndroidTestShaders
+> Task :core-network:compileDebugAndroidTestShaders NO-SOURCE
+> Task :core-network:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :core-network:javaPreCompileDebugAndroidTest
+> Task :core-network:mergeDebugAndroidTestAssets
+> Task :core-network:compressDebugAndroidTestAssets
+> Task :core-network:processDebugAndroidTestJavaRes NO-SOURCE
+> Task :core-network:mergeDebugAndroidTestJniLibFolders
+> Task :core-network:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :core-network:desugarDebugAndroidTestFileDependencies
+> Task :core-network:validateSigningDebugAndroidTest
+> Task :core-network:writeDebugAndroidTestSigningConfigVersions
+> Task :core-network:processDebugAndroidTestResources
+> Task :core-network:checkDebugAndroidTestDuplicateClasses
+> Task :core-network:compileDebugAndroidTestKotlin NO-SOURCE
+> Task :app:mergeProjectDexDebug
+> Task :app:mergeExtDexDebugAndroidTest
+> Task :core-network:compileDebugAndroidTestJavaWithJavac
+> Task :core-network:mergeLibDexDebugAndroidTest
+> Task :core-network:dexBuilderDebugAndroidTest
+> Task :core-network:mergeProjectDexDebugAndroidTest
+> Task :core-network:mergeDebugAndroidTestJavaResource
+> Task :core-network:mergeExtDexDebugAndroidTest
+> Task :core-network:packageDebugAndroidTest
+> Task :core-network:createDebugAndroidTestApkListingFileRedirect
+> Task :core-network:connectedDebugAndroidTest SKIPPED
+> Task :app:mergeExtDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:compileDebugAndroidTestKotlin
+> Task :app:compileDebugAndroidTestJavaWithJavac
+> Task :app:mergeDebugAndroidTestJavaResource
+> Task :app:dexBuilderDebugAndroidTest
+> Task :app:mergeProjectDexDebugAndroidTest
+> Task :app:packageDebugAndroidTest
+> Task :app:createDebugAndroidTestApkListingFileRedirect
+
+> Task :app:connectedDebugAndroidTest
+Starting 18 tests on Wear_OS_Large_Round_API_33(AVD) - 13
+
+> Task :connectedDebugAndroidTest
+
+BUILD SUCCESSFUL in 1m 3s
+100 actionable tasks: 62 executed, 38 up-to-date
+[0m
+[0m$ [0m"/Users/brainer/Programming/shiori-android/ralph" log "Verified US-002 with unit tests, lintDebug, and connectedDebugAndroidTest"
+[0m
+[0m$ [0mgit log --oneline -5
+3609f5d docs: record US-001 progress
+9bc6431 feat: validate access before opening links
+b7df9bb docs: record US-006 progress
+ad54cff feat: support link read-state and metadata updates
+43e82b3 docs: record US-005 progress
+[0m
+[0m$ [0mgit status --short
+M .ralph/activity.log
+ M app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+ M app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt
+ M app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+ M app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt
+ M core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt
+ M core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+?? docs/
+[0m
+[0m$ [0mgit diff -- app/src/main/kotlin/dev/shiori/android/MainActivity.kt app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+diff --git a/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt b/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+index 981f5a8..224501a 100644
+--- a/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
++++ b/app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt
+@@ -454,7 +454,7 @@ class MainActivityTest {
+     }
+ 
+     @Test
+-    fun saveLinkShowsDuplicateFeedbackAndRefreshesArchive() {
++    fun saveLinkShowsDuplicateFeedbackAndRefreshesInbox() {
+         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+         linksRepository.enqueue(
+             LinkBrowseDestination.Inbox,
+@@ -463,14 +463,15 @@ class MainActivityTest {
+         )
+         linksRepository.saveResult = ShioriApiResult.Success(
+             CreateLinkResponse(
++                success = true,
++                linkId = "20",
+                 duplicate = true,
+-                link = link(id = 20, title = "Existing article", read = true),
+             ),
+         )
+         linksRepository.enqueue(
+-            LinkBrowseDestination.Archive,
++            LinkBrowseDestination.Inbox,
+             0,
+-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 20, title = "Existing article", read = true))),
++            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 20, title = "Existing article", read = false))),
+         )
+ 
+         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+@@ -484,7 +485,7 @@ class MainActivityTest {
+             waitForText(
+                 scenario,
+                 R.id.add_link_status_text,
+-                "That link already exists. Showing the saved copy in your archive.",
++                "That link already exists. Showing the saved copy in your inbox.",
+             )
+             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+             assertLoadedTitles(scenario, "Existing article")
+@@ -499,7 +500,7 @@ class MainActivityTest {
+             assertEquals(
+                 listOf(
+                     Request(LinkBrowseDestination.Inbox, 20, 0),
+-                    Request(LinkBrowseDestination.Archive, 20, 0),
++                    Request(LinkBrowseDestination.Inbox, 20, 0),
+                 ),
+                 linksRepository.requests,
+             )
+@@ -521,8 +522,9 @@ class MainActivityTest {
+         )
+         linksRepository.saveResult = ShioriApiResult.Success(
+             CreateLinkResponse(
++                success = true,
++                linkId = "30",
+                 duplicate = false,
+-                link = link(id = 30, title = "Shared article", read = false),
+             ),
+         )
+ 
+@@ -601,8 +603,9 @@ class MainActivityTest {
+         )
+         linksRepository.saveResult = ShioriApiResult.Success(
+             CreateLinkResponse(
++                success = true,
++                linkId = "40",
+                 duplicate = true,
+-                link = link(id = 40, title = "Viewed article", read = false),
+             ),
+         )
+ 
+@@ -858,7 +861,7 @@ class MainActivityTest {
+         val deleteRequests = CopyOnWriteArrayList<Long>()
+         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
+         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
+-            CreateLinkResponse(link = LinkResponse(id = 99, url = "https://example.com/99", read = false)),
++            CreateLinkResponse(success = true, linkId = "99"),
+         )
+         var bulkUpdateResult: ShioriApiResult<List<LinkResponse>> = ShioriApiResult.Success(emptyList())
+         var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
+diff --git a/app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt b/app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt
+index 66fdcfe..d5f16e9 100644
+--- a/app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt
++++ b/app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt
+@@ -378,6 +378,12 @@ internal fun LinkResponse.toBrowseDestination(): LinkBrowseDestination = if (rea
+     LinkBrowseDestination.Inbox
+ }
+ 
++internal fun CreateLinkResponse.toBrowseDestination(request: CreateLinkRequest): LinkBrowseDestination = when {
++    duplicate -> LinkBrowseDestination.Inbox
++    request.read == true -> LinkBrowseDestination.Archive
++    else -> LinkBrowseDestination.Inbox
++}
++
+ private fun String?.toTimestampLabel(prefix: String): String? {
+     val value = this?.takeIf { it.isNotBlank() } ?: return null
+     val compact = value
+diff --git a/app/src/main/kotlin/dev/shiori/android/MainActivity.kt b/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+index 7c2884d..55e3534 100644
+--- a/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
++++ b/app/src/main/kotlin/dev/shiori/android/MainActivity.kt
+@@ -22,6 +22,7 @@ import com.google.android.material.button.MaterialButtonToggleGroup
+ import com.google.android.material.textfield.TextInputEditText
+ import com.google.android.material.textfield.TextInputLayout
+ import dev.shiori.android.corenetwork.CreateLinkRequest
++import dev.shiori.android.corenetwork.CreateLinkResponse
+ import dev.shiori.android.corenetwork.LinkResponse
+ import dev.shiori.android.corenetwork.ShioriApiResult
+ import dev.shiori.android.corenetwork.UpdateLinkRequest
+@@ -366,7 +367,7 @@ class MainActivity : AppCompatActivity() {
+ 
+         lifecycleScope.launch {
+             when (val result = linksRepository.saveLink(savedConfig, request)) {
+-                is ShioriApiResult.Success -> handleLinkSaved(result.value.link, result.value.duplicate)
++                is ShioriApiResult.Success -> handleLinkSaved(result.value, request)
+                 is ShioriApiResult.Failure -> {
+                     isSavingLink = false
+                     addLinkStatusMessage = result.error.toSaveMessage()
+@@ -376,14 +377,13 @@ class MainActivity : AppCompatActivity() {
+         }
+     }
+ 
+-    private fun handleLinkSaved(link: LinkResponse, duplicate: Boolean) {
+-        val destination = link.toBrowseDestination()
++    private fun handleLinkSaved(response: CreateLinkResponse, request: CreateLinkRequest) {
++        val destination = response.toBrowseDestination(request)
+         addLinkUrlInput.setText("")
+         addLinkTitleInput.setText("")
+         addLinkReadCheckbox.isChecked = false
+         addLinkStatusMessage = when {
+-            duplicate && destination == LinkBrowseDestination.Archive -> getString(R.string.message_link_duplicate_archive)
+-            duplicate -> getString(R.string.message_link_duplicate_inbox)
++            response.duplicate -> getString(R.string.message_link_duplicate_inbox)
+             destination == LinkBrowseDestination.Archive -> getString(R.string.message_link_saved_archive)
+             else -> getString(R.string.message_link_saved_inbox)
+         }
+diff --git a/app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt b/app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt
+index 718ceb6..b34c098 100644
+--- a/app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt
++++ b/app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt
+@@ -87,6 +87,25 @@ class LinksBrowserTest {
+         assertEquals(request, client.lastCreateRequest)
+     }
+ 
++    @Test
++    fun `saved link destination follows create response contract`() {
++        assertEquals(
++            LinkBrowseDestination.Inbox,
++            CreateLinkResponse(success = true, linkId = "new-link", duplicate = false)
++                .toBrowseDestination(CreateLinkRequest(url = "https://example.com/new", read = false)),
++        )
++        assertEquals(
++            LinkBrowseDestination.Archive,
++            CreateLinkResponse(success = true, linkId = "read-link", duplicate = false)
++                .toBrowseDestination(CreateLinkRequest(url = "https://example.com/read", read = true)),
++        )
++        assertEquals(
++            LinkBrowseDestination.Inbox,
++            CreateLinkResponse(success = true, linkId = "duplicate-link", duplicate = true)
++                .toBrowseDestination(CreateLinkRequest(url = "https://example.com/duplicate", read = true)),
++        )
++    }
++
+     @Test
+     fun `repository forwards bulk read updates to api client`() = runTest {
+         val client = FakeShioriApiClient()
+@@ -189,7 +208,7 @@ class LinksBrowserTest {
+     private class FakeShioriApiClient : ShioriApiClient {
+         val inboxResult = ShioriApiResult.Success(LinkListResponse())
+         val trashResult = ShioriApiResult.Success(LinkListResponse())
+-        val createResult = ShioriApiResult.Success(CreateLinkResponse(link = LinkResponse(id = 9, url = "https://example.com/article")))
++        val createResult = ShioriApiResult.Success(CreateLinkResponse(success = true, linkId = "9"))
+         val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = listOf(LinkResponse(id = 2, url = "https://example.com/2", read = true))))
+         val singleUpdateResult = ShioriApiResult.Success(LinkResponse(id = 8, url = "https://example.com/8", title = "Updated title", read = true))
+         val restoreResult = ShioriApiResult.Success(LinkResponse(id = 12, url = "https://example.com/12", title = "Restored title", read = false))
+diff --git a/core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt b/core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt
+index 1956b5f..816db39 100644
+--- a/core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt
++++ b/core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt
+@@ -13,7 +13,6 @@ data class LinksQuery(
+ data class CreateLinkRequest(
+     val url: String,
+     val title: String? = null,
+-    val summary: String? = null,
+     val read: Boolean? = null,
+ )
+ 
+@@ -38,7 +37,9 @@ data class LinkListResponse(
+ )
+ 
+ data class CreateLinkResponse(
+-    val link: LinkResponse,
++    val success: Boolean = true,
++    @Json(name = "linkId")
++    val linkId: String,
+     val duplicate: Boolean = false,
+ )
+ 
+diff --git a/core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt b/core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+index 118d1e4..ee90338 100644
+--- a/core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
++++ b/core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt
+@@ -75,12 +75,9 @@ class ShioriApiClientTest {
+             MockResponse().setResponseCode(200).setBody(
+                 """
+                 {
+-                  "duplicate": true,
+-                  "link": {
+-                    "id": 11,
+-                    "url": "https://example.com/article",
+-                    "title": "Article"
+-                  }
++                  "success": true,
++                  "linkId": "550e8400-e29b-41d4-a716-446655440000",
++                  "duplicate": true
+                 }
+                 """.trimIndent(),
+             ),
+@@ -90,18 +87,24 @@ class ShioriApiClientTest {
+             CreateLinkRequest(
+                 url = "https://example.com/article",
+                 title = "Article",
+-                summary = "Summary",
+                 read = false,
+             ),
+         )
+ 
+         val request = server.takeRequest()
++        val body = request.body.readUtf8()
+         assertEquals("POST", request.method)
+-        assertTrue(request.body.readUtf8().contains("\"url\":\"https://example.com/article\""))
++        assertEquals("Bearer test-api-key", request.getHeader("Authorization"))
++        assertEquals("/api/links", request.path)
++        assertTrue(body.contains("\"url\":\"https://example.com/article\""))
++        assertTrue(body.contains("\"title\":\"Article\""))
++        assertTrue(body.contains("\"read\":false"))
++        assertTrue(!body.contains("summary"))
+         assertTrue(result is ShioriApiResult.Success)
+         val response = (result as ShioriApiResult.Success).value
++        assertTrue(response.success)
+         assertTrue(response.duplicate)
+-        assertEquals(11L, response.link.id)
++        assertEquals("550e8400-e29b-41d4-a716-446655440000", response.linkId)
+     }
+ 
+     @Test
+@@ -211,7 +214,7 @@ class ShioriApiClientTest {
+     }
+ 
+     @Test
+-    fun `http error codes map to domain errors`() = runTest {
++    fun `createLink http error codes map to domain errors`() = runTest {
+         val cases = listOf(
+             400 to ShioriApiError.Validation,
+             401 to ShioriApiError.Unauthorized,
+@@ -223,10 +226,22 @@ class ShioriApiClientTest {
+ 
+         cases.forEach { (statusCode, expectedError) ->
+             server.enqueue(MockResponse().setResponseCode(statusCode))
+-            val result = client.getLinks()
++            val result = client.createLink(CreateLinkRequest(url = "https://example.com/$statusCode"))
+             assertTrue(result is ShioriApiResult.Failure)
+             assertEquals(expectedError, (result as ShioriApiResult.Failure).error)
+             server.takeRequest()
+         }
+     }
++
++    @Test
++    fun `createLink network failures map to network errors`() = runTest {
++        server.enqueue(MockResponse().setSocketPolicy(okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START))
++
++        val result = client.createLink(CreateLinkRequest(url = "https://example.com/network"))
++
++        assertTrue(result is ShioriApiResult.Failure)
++        val error = (result as ShioriApiResult.Failure).error
++        assertTrue(error is ShioriApiError.Network)
++        assertTrue((error as ShioriApiError.Network).cause is java.io.IOException)
++    }
+ }
+[0m
+[0m$ [0mgit status --short docs .ralph/activity.log
+M .ralph/activity.log
+?? docs/
+[0m
+[0m✱ [0mGlob "**/*"[90m in . · 28 matches[0m
+[0m→ [0mRead .ralph/activity.log
+[0m
+[0m$ [0m"/Users/brainer/Programming/shiori-android/ralph" log "US-002 code changes implemented"
+[0m→ [0mRead .ralph/activity.log[90m [offset=12, limit=20][0m
+[0m→ [0mRead ../.ralph/activity.log[90m [offset=1, limit=40][0m
+[0m
+[0m$ [0mdate '+%Y-%m-%d %H:%M:%S'
+2026-03-06 23:22:08
+[0m
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M docs/.ralph/activity.log

@@ -378,6 +378,12 @@ internal fun LinkResponse.toBrowseDestination(): LinkBrowseDestination = if (rea
     LinkBrowseDestination.Inbox
 }
 
+internal fun CreateLinkResponse.toBrowseDestination(request: CreateLinkRequest): LinkBrowseDestination = when {
+    duplicate -> LinkBrowseDestination.Inbox
+    request.read == true -> LinkBrowseDestination.Archive
+    else -> LinkBrowseDestination.Inbox
+}
+
 private fun String?.toTimestampLabel(prefix: String): String? {
     val value = this?.takeIf { it.isNotBlank() } ?: return null
     val compact = value

@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "total": 4,
+  "remaining": 4,
+  "quality_gates": [
+    "`./gradlew test` passes.",
+    "`./gradlew lintDebug` passes.",
+    "If no emulator is running, start `Wear_OS_Large_Round_API_33` before `./gradlew connectedDebugAndroidTest`.",
+    "`./gradlew connectedDebugAndroidTest` passes."
+  ],
+  "id": "US-001",
+  "title": "Store API access"
+}

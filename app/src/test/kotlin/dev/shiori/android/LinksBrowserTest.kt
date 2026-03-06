@@ -88,6 +88,25 @@ class LinksBrowserTest {
     }
 
     @Test
+    fun `saved link destination follows create response contract`() {
+        assertEquals(
+            LinkBrowseDestination.Inbox,
+            CreateLinkResponse(success = true, linkId = "new-link", duplicate = false)
+                .toBrowseDestination(CreateLinkRequest(url = "https://example.com/new", read = false)),
+        )
+        assertEquals(
+            LinkBrowseDestination.Archive,
+            CreateLinkResponse(success = true, linkId = "read-link", duplicate = false)
+                .toBrowseDestination(CreateLinkRequest(url = "https://example.com/read", read = true)),
+        )
+        assertEquals(
+            LinkBrowseDestination.Inbox,
+            CreateLinkResponse(success = true, linkId = "duplicate-link", duplicate = true)
+                .toBrowseDestination(CreateLinkRequest(url = "https://example.com/duplicate", read = true)),
+        )
+    }
+
+    @Test
     fun `repository forwards bulk read updates to api client`() = runTest {
         val client = FakeShioriApiClient()
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
@@ -189,7 +208,7 @@ class LinksBrowserTest {
     private class FakeShioriApiClient : ShioriApiClient {
         val inboxResult = ShioriApiResult.Success(LinkListResponse())
         val trashResult = ShioriApiResult.Success(LinkListResponse())
-        val createResult = ShioriApiResult.Success(CreateLinkResponse(link = LinkResponse(id = 9, url = "https://example.com/article")))
+        val createResult = ShioriApiResult.Success(CreateLinkResponse(success = true, linkId = "9"))
         val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = listOf(LinkResponse(id = 2, url = "https://example.com/2", read = true))))
         val singleUpdateResult = ShioriApiResult.Success(LinkResponse(id = 8, url = "https://example.com/8", title = "Updated title", read = true))
         val restoreResult = ShioriApiResult.Success(LinkResponse(id = 12, url = "https://example.com/12", title = "Restored title", read = false))

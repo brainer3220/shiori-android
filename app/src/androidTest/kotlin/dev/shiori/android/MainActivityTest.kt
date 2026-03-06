@@ -454,7 +454,7 @@ class MainActivityTest {
     }
 
     @Test
-    fun saveLinkShowsDuplicateFeedbackAndRefreshesArchive() {
+    fun saveLinkShowsDuplicateFeedbackAndRefreshesInbox() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
@@ -463,14 +463,15 @@ class MainActivityTest {
         )
         linksRepository.saveResult = ShioriApiResult.Success(
             CreateLinkResponse(
+                success = true,
+                linkId = "20",
                 duplicate = true,
-                link = link(id = 20, title = "Existing article", read = true),
             ),
         )
         linksRepository.enqueue(
-            LinkBrowseDestination.Archive,
+            LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 20, title = "Existing article", read = true))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 20, title = "Existing article", read = false))),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -484,7 +485,7 @@ class MainActivityTest {
             waitForText(
                 scenario,
                 R.id.add_link_status_text,
-                "That link already exists. Showing the saved copy in your archive.",
+                "That link already exists. Showing the saved copy in your inbox.",
             )
             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
             assertLoadedTitles(scenario, "Existing article")
@@ -499,7 +500,7 @@ class MainActivityTest {
             assertEquals(
                 listOf(
                     Request(LinkBrowseDestination.Inbox, 20, 0),
-                    Request(LinkBrowseDestination.Archive, 20, 0),
+                    Request(LinkBrowseDestination.Inbox, 20, 0),
                 ),
                 linksRepository.requests,
             )
@@ -521,8 +522,9 @@ class MainActivityTest {
         )
         linksRepository.saveResult = ShioriApiResult.Success(
             CreateLinkResponse(
+                success = true,
+                linkId = "30",
                 duplicate = false,
-                link = link(id = 30, title = "Shared article", read = false),
             ),
         )
 
@@ -601,8 +603,9 @@ class MainActivityTest {
         )
         linksRepository.saveResult = ShioriApiResult.Success(
             CreateLinkResponse(
+                success = true,
+                linkId = "40",
                 duplicate = true,
-                link = link(id = 40, title = "Viewed article", read = false),
             ),
         )
 
@@ -858,7 +861,7 @@ class MainActivityTest {
         val deleteRequests = CopyOnWriteArrayList<Long>()
         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
-            CreateLinkResponse(link = LinkResponse(id = 99, url = "https://example.com/99", read = false)),
+            CreateLinkResponse(success = true, linkId = "99"),
         )
         var bulkUpdateResult: ShioriApiResult<List<LinkResponse>> = ShioriApiResult.Success(emptyList())
         var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(

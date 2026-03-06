@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "total": 4,
+  "remaining": 3,
+  "quality_gates": [
+    "`./gradlew test` passes.",
+    "`./gradlew lintDebug` passes.",
+    "If no emulator is running, start `Wear_OS_Large_Round_API_33` before `./gradlew connectedDebugAndroidTest`.",
+    "`./gradlew connectedDebugAndroidTest` passes."
+  ],
+  "id": "US-002",
+  "title": "Align POST /api/links client"
+}

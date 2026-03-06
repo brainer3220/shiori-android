@@ -75,12 +75,9 @@ class ShioriApiClientTest {
             MockResponse().setResponseCode(200).setBody(
                 """
                 {
-                  "duplicate": true,
-                  "link": {
-                    "id": 11,
-                    "url": "https://example.com/article",
-                    "title": "Article"
-                  }
+                  "success": true,
+                  "linkId": "550e8400-e29b-41d4-a716-446655440000",
+                  "duplicate": true
                 }
                 """.trimIndent(),
             ),
@@ -90,18 +87,24 @@ class ShioriApiClientTest {
             CreateLinkRequest(
                 url = "https://example.com/article",
                 title = "Article",
-                summary = "Summary",
                 read = false,
             ),
         )
 
         val request = server.takeRequest()
+        val body = request.body.readUtf8()
         assertEquals("POST", request.method)
-        assertTrue(request.body.readUtf8().contains("\"url\":\"https://example.com/article\""))
+        assertEquals("Bearer test-api-key", request.getHeader("Authorization"))
+        assertEquals("/api/links", request.path)
+        assertTrue(body.contains("\"url\":\"https://example.com/article\""))
+        assertTrue(body.contains("\"title\":\"Article\""))
+        assertTrue(body.contains("\"read\":false"))
+        assertTrue(!body.contains("summary"))
         assertTrue(result is ShioriApiResult.Success)
         val response = (result as ShioriApiResult.Success).value
+        assertTrue(response.success)
         assertTrue(response.duplicate)
-        assertEquals(11L, response.link.id)
+        assertEquals("550e8400-e29b-41d4-a716-446655440000", response.linkId)
     }
 
     @Test
@@ -211,7 +214,7 @@ class ShioriApiClientTest {
     }
 
     @Test
-    fun `http error codes map to domain errors`() = runTest {
+    fun `createLink http error codes map to domain errors`() = runTest {
         val cases = listOf(
             400 to ShioriApiError.Validation,
             401 to ShioriApiError.Unauthorized,
@@ -223,10 +226,22 @@ class ShioriApiClientTest {
 
         cases.forEach { (statusCode, expectedError) ->
             server.enqueue(MockResponse().setResponseCode(statusCode))
-            val result = client.getLinks()
+            val result = client.createLink(CreateLinkRequest(url = "https://example.com/$statusCode"))
             assertTrue(result is ShioriApiResult.Failure)
             assertEquals(expectedError, (result as ShioriApiResult.Failure).error)
             server.takeRequest()
         }
+    }
+
+    @Test
+    fun `createLink network failures map to network errors`() = runTest {
+        server.enqueue(MockResponse().setSocketPolicy(okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START))
+
+        val result = client.createLink(CreateLinkRequest(url = "https://example.com/network"))
+
+        assertTrue(result is ShioriApiResult.Failure)
+        val error = (result as ShioriApiResult.Failure).error
+        assertTrue(error is ShioriApiError.Network)
+        assertTrue((error as ShioriApiError.Network).cause is java.io.IOException)
     }
 }
