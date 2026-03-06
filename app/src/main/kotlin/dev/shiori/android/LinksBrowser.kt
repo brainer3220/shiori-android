@@ -19,6 +19,7 @@ import dev.shiori.android.corenetwork.createShioriApiClient
 import dev.shiori.android.corenetwork.read
 import java.net.URI
 import java.util.Locale
+import kotlin.math.ceil
 
 enum class LinkBrowseDestination {
     Inbox,
@@ -50,6 +51,63 @@ data class LinkListUiState(
     val total: Int? = null,
     val message: String? = null,
 )
+
+private enum class LinkActionMessageContext(
+    val validationMessage: String,
+    val unauthorizedMessage: String,
+    val notFoundMessage: String,
+    val conflictMessage: String,
+    val serverMessage: String,
+    val networkMessage: String,
+    val unknownMessage: String,
+    val rateLimitLabel: String,
+    val documentedLimitPerMinute: Int,
+) {
+    Browse(
+        validationMessage = "Shiori rejected this list request. Check your current filter and try again.",
+        unauthorizedMessage = "Your API key is no longer authorized. Update it in API access.",
+        notFoundMessage = "Shiori could not find this list endpoint. Check the server URL.",
+        conflictMessage = "Shiori is still processing one of these links. Wait for processing to finish, then reload.",
+        serverMessage = "Shiori hit a server error while loading links. Wait a moment and try again.",
+        networkMessage = "Could not reach your Shiori server. Check the connection and try again.",
+        unknownMessage = "Shiori returned an unexpected response while loading links. Try again.",
+        rateLimitLabel = "link requests",
+        documentedLimitPerMinute = 60,
+    ),
+    Save(
+        validationMessage = "Shiori rejected this link. Check the URL and try again.",
+        unauthorizedMessage = "Your API key is no longer authorized. Update it in API access.",
+        notFoundMessage = "Shiori could not find the save endpoint. Check the server URL.",
+        conflictMessage = "Shiori is still processing this link. Wait for that work to finish, then try saving it again.",
+        serverMessage = "Shiori hit a server error while saving this link. Wait a moment and try again.",
+        networkMessage = "Could not reach your Shiori server. Check the connection and try again.",
+        unknownMessage = "Shiori returned an unexpected response while saving this link. Try again.",
+        rateLimitLabel = "link saves",
+        documentedLimitPerMinute = 30,
+    ),
+    Update(
+        validationMessage = "Shiori rejected that link update. Check the values and try again.",
+        unauthorizedMessage = "Your API key is no longer authorized. Update it in API access.",
+        notFoundMessage = "Shiori could not find that link anymore. Refresh and try again.",
+        conflictMessage = "Shiori is still processing this link, so read state or metadata cannot change yet. Wait a moment, then try again.",
+        serverMessage = "Shiori hit a server error while updating this link. Wait a moment and try again.",
+        networkMessage = "Could not reach your Shiori server. Check the connection and try again.",
+        unknownMessage = "Shiori returned an unexpected response while updating this link. Try again.",
+        rateLimitLabel = "link updates",
+        documentedLimitPerMinute = 60,
+    ),
+    Trash(
+        validationMessage = "Shiori rejected that trash action. Refresh and try again.",
+        unauthorizedMessage = "Your API key is no longer authorized. Update it in API access.",
+        notFoundMessage = "Shiori could not find that link anymore. Refresh and try again.",
+        conflictMessage = "Shiori is still processing this link, so this trash action cannot finish yet. Wait a moment, then try again.",
+        serverMessage = "Shiori hit a server error while changing trash. Wait a moment and try again.",
+        networkMessage = "Could not reach your Shiori server. Check the connection and try again.",
+        unknownMessage = "Shiori returned an unexpected response while changing trash. Try again.",
+        rateLimitLabel = "trash requests",
+        documentedLimitPerMinute = 60,
+    ),
+}
 
 internal sealed interface IncomingLinkIntent {
     object None : IncomingLinkIntent
@@ -218,48 +276,64 @@ internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
     updatedAt = updatedAt.toTimestampLabel("Updated"),
 )
 
-internal fun ShioriApiError.toBrowseMessage(): String = when (this) {
-    ShioriApiError.Validation -> "Shiori rejected this list request. Check your filters and try again."
-    ShioriApiError.Unauthorized -> "Your API key is no longer authorized. Update it in API access."
-    ShioriApiError.NotFound -> "Shiori could not find this list endpoint. Check the server URL."
-    ShioriApiError.Conflict -> "Shiori is still processing one of these links. Try again in a moment."
-    ShioriApiError.RateLimited -> "Shiori rate limited this request. Wait a moment before loading more."
-    is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
-    is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
-    is ShioriApiError.Unknown -> "An unexpected error interrupted link loading. Try again."
+internal fun ShioriApiError.toBrowseMessage(): String = toUserMessage(LinkActionMessageContext.Browse)
+
+internal fun ShioriApiError.toBrowseMessage(nowEpochSeconds: Long): String =
+    toUserMessage(LinkActionMessageContext.Browse, nowEpochSeconds)
+
+internal fun ShioriApiError.toSaveMessage(): String = toUserMessage(LinkActionMessageContext.Save)
+
+internal fun ShioriApiError.toSaveMessage(nowEpochSeconds: Long): String =
+    toUserMessage(LinkActionMessageContext.Save, nowEpochSeconds)
+
+internal fun ShioriApiError.toUpdateMessage(): String = toUserMessage(LinkActionMessageContext.Update)
+
+internal fun ShioriApiError.toUpdateMessage(nowEpochSeconds: Long): String =
+    toUserMessage(LinkActionMessageContext.Update, nowEpochSeconds)
+
+internal fun ShioriApiError.toDeleteMessage(): String = toUserMessage(LinkActionMessageContext.Trash)
+
+internal fun ShioriApiError.toDeleteMessage(nowEpochSeconds: Long): String =
+    toUserMessage(LinkActionMessageContext.Trash, nowEpochSeconds)
+
+private fun ShioriApiError.toUserMessage(
+    context: LinkActionMessageContext,
+    nowEpochSeconds: Long = System.currentTimeMillis() / 1000,
+): String = when (this) {
+    ShioriApiError.Validation -> context.validationMessage
+    ShioriApiError.Unauthorized -> context.unauthorizedMessage
+    ShioriApiError.NotFound -> context.notFoundMessage
+    ShioriApiError.Conflict -> context.conflictMessage
+    is ShioriApiError.RateLimited -> buildRateLimitMessage(context, nowEpochSeconds)
+    is ShioriApiError.Server -> context.serverMessage
+    is ShioriApiError.Network -> context.networkMessage
+    is ShioriApiError.Unknown -> context.unknownMessage
 }
 
-internal fun ShioriApiError.toSaveMessage(): String = when (this) {
-    ShioriApiError.Validation -> "Shiori rejected this link. Check the URL and try again."
-    ShioriApiError.Unauthorized -> "Your API key is no longer authorized. Update it in API access."
-    ShioriApiError.NotFound -> "Shiori could not find the save endpoint. Check the server URL."
-    ShioriApiError.Conflict -> "Shiori is still processing this link. Try saving it again in a moment."
-    ShioriApiError.RateLimited -> "Shiori rate limited this request. Wait a moment before trying again."
-    is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
-    is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
-    is ShioriApiError.Unknown -> "An unexpected error interrupted link saving. Try again."
+private fun ShioriApiError.RateLimited.buildRateLimitMessage(
+    context: LinkActionMessageContext,
+    nowEpochSeconds: Long,
+): String {
+    val waitSeconds = retryAfterSeconds ?: resetAtEpochSeconds?.minus(nowEpochSeconds)?.toInt()?.coerceAtLeast(0)
+    val waitMessage = waitSeconds?.toWaitMessage() ?: "Wait a bit before trying again."
+    return "Shiori rate limited ${context.rateLimitLabel}. $waitMessage The documented limit is ${context.documentedLimitPerMinute} per minute."
 }
 
-internal fun ShioriApiError.toUpdateMessage(): String = when (this) {
-    ShioriApiError.Validation -> "Shiori rejected that link update. Check the values and try again."
-    ShioriApiError.Unauthorized -> "Your API key is no longer authorized. Update it in API access."
-    ShioriApiError.NotFound -> "Shiori could not find that link anymore. Refresh and try again."
-    ShioriApiError.Conflict -> "Shiori is still processing this link, so read state or metadata cannot change yet. Try again in a moment."
-    ShioriApiError.RateLimited -> "Shiori rate limited this update. Wait a moment before trying again."
-    is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
-    is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
-    is ShioriApiError.Unknown -> "An unexpected error interrupted this link update. Try again."
-}
+private fun Int.toWaitMessage(): String {
+    if (this <= 1) {
+        return "Wait about 1 second before trying again."
+    }
 
-internal fun ShioriApiError.toDeleteMessage(): String = when (this) {
-    ShioriApiError.Validation -> "Shiori rejected that trash action. Refresh and try again."
-    ShioriApiError.Unauthorized -> "Your API key is no longer authorized. Update it in API access."
-    ShioriApiError.NotFound -> "Shiori could not find that link anymore. Refresh and try again."
-    ShioriApiError.Conflict -> "Shiori is still processing this link, so this trash action cannot finish yet. Try again in a moment."
-    ShioriApiError.RateLimited -> "Shiori rate limited this trash action. Wait a moment before trying again."
-    is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
-    is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
-    is ShioriApiError.Unknown -> "An unexpected error interrupted this trash action. Try again."
+    if (this < 60) {
+        return "Wait about $this seconds before trying again."
+    }
+
+    val minutes = ceil(this / 60.0).toInt()
+    return if (minutes == 1) {
+        "Wait about 1 minute before trying again."
+    } else {
+        "Wait about $minutes minutes before trying again."
+    }
 }
 
 internal fun normalizeLinkUrl(rawValue: String): String = rawValue.trim()

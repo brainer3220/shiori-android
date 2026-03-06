@@ -114,7 +114,10 @@ sealed interface ShioriApiError {
     object Unauthorized : ShioriApiError
     object NotFound : ShioriApiError
     object Conflict : ShioriApiError
-    object RateLimited : ShioriApiError
+    data class RateLimited(
+        val retryAfterSeconds: Int? = null,
+        val resetAtEpochSeconds: Long? = null,
+    ) : ShioriApiError
     data class Server(val statusCode: Int) : ShioriApiError
     data class Network(val cause: Throwable) : ShioriApiError
     data class Unknown(val cause: Throwable) : ShioriApiError

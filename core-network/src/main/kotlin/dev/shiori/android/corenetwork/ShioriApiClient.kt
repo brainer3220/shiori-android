@@ -100,10 +100,10 @@ class DefaultShioriApiClient internal constructor(
                 if (body != null) {
                     ShioriApiResult.Success(body)
                 } else {
-                    ShioriApiResult.Failure(ShioriApiError.Server(response.code()))
+                    ShioriApiResult.Failure(ShioriApiError.Unknown(IllegalStateException("Empty response body for HTTP ${response.code()}")))
                 }
             } else {
-                ShioriApiResult.Failure(response.code().toDomainError())
+                ShioriApiResult.Failure(response.toDomainError())
             }
         } catch (exception: IOException) {
             ShioriApiResult.Failure(ShioriApiError.Network(exception))
@@ -121,7 +121,7 @@ class DefaultShioriApiClient internal constructor(
             if (response.isSuccessful) {
                 ShioriApiResult.Success(response.body() ?: fallback)
             } else {
-                ShioriApiResult.Failure(response.code().toDomainError())
+                ShioriApiResult.Failure(response.toDomainError())
             }
         } catch (exception: IOException) {
             ShioriApiResult.Failure(ShioriApiError.Network(exception))
@@ -194,7 +194,18 @@ internal fun Int.toDomainError(): ShioriApiError = when (this) {
     401 -> ShioriApiError.Unauthorized
     404 -> ShioriApiError.NotFound
     409 -> ShioriApiError.Conflict
-    429 -> ShioriApiError.RateLimited
+    429 -> ShioriApiError.RateLimited()
     500 -> ShioriApiError.Server(this)
     else -> ShioriApiError.Server(this)
+}
+
+private fun Response<*>.toDomainError(): ShioriApiError {
+    if (code() != 429) {
+        return code().toDomainError()
+    }
+
+    return ShioriApiError.RateLimited(
+        retryAfterSeconds = headers()["Retry-After"]?.trim()?.toIntOrNull()?.takeIf { it >= 0 },
+        resetAtEpochSeconds = headers()["X-RateLimit-Reset"]?.trim()?.toLongOrNull()?.takeIf { it >= 0L },
+    )
 }

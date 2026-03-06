@@ -365,7 +365,7 @@ class MainActivityTest {
             waitForText(
                 scenario,
                 R.id.add_link_status_text,
-                "Shiori is still processing this link, so read state or metadata cannot change yet. Try again in a moment.",
+                "Shiori is still processing this link, so read state or metadata cannot change yet. Wait a moment, then try again.",
             )
             assertFirstCard(scenario, expectedDomain = "example.com", expectedSummary = "Summary 10", expectedStatus = "Unread  •  Ready")
             assertEquals(listOf(Request(LinkBrowseDestination.Inbox, 20, 0)), linksRepository.requests)
@@ -595,7 +595,9 @@ class MainActivityTest {
                 links = listOf(link(id = "16", title = "Rate limited trash item", read = true, status = "trashed")),
             ),
         )
-        linksRepository.emptyTrashResult = ShioriApiResult.Failure(ShioriApiError.RateLimited)
+        linksRepository.emptyTrashResult = ShioriApiResult.Failure(
+            ShioriApiError.RateLimited(retryAfterSeconds = 30),
+        )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
@@ -608,7 +610,7 @@ class MainActivityTest {
             waitForText(
                 scenario,
                 R.id.add_link_status_text,
-                "Shiori rate limited this trash action. Wait a moment before trying again.",
+                "Shiori rate limited trash requests. Wait about 30 seconds before trying again. The documented limit is 60 per minute.",
             )
             waitForRecyclerCount(scenario, 1)
             assertLoadedTitles(scenario, "Rate limited trash item")
@@ -732,7 +734,9 @@ class MainActivityTest {
             0,
             page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "1", title = "Inbox article", read = false))),
         )
-        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.RateLimited)
+        linksRepository.saveResult = ShioriApiResult.Failure(
+            ShioriApiError.RateLimited(retryAfterSeconds = 45),
+        )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
@@ -744,13 +748,48 @@ class MainActivityTest {
             waitForText(
                 scenario,
                 R.id.add_link_status_text,
-                "Shiori rate limited this request. Wait a moment before trying again.",
+                "Shiori rate limited link saves. Wait about 45 seconds before trying again. The documented limit is 30 per minute.",
             )
             assertLoadedTitles(scenario, "Inbox article")
             assertEquals(
                 CreateLinkRequest(
                     url = "https://example.com/22",
                     title = "Fresh article",
+                    read = null,
+                ),
+                linksRepository.savedRequests.single(),
+            )
+            assertEquals(listOf(Request(LinkBrowseDestination.Inbox, 20, 0)), linksRepository.requests)
+        }
+    }
+
+    @Test
+    fun saveLinkShowsValidationFailureWithoutChangingLoadedItems() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "17", title = "Inbox article", read = false))),
+        )
+        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.Validation)
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+
+            setText(scenario, R.id.add_link_url_input, "https://example.com/invalid")
+            setText(scenario, R.id.add_link_title_input, "Bad request")
+            clickButton(scenario, R.id.add_link_button)
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori rejected this link. Check the URL and try again.",
+            )
+            assertLoadedTitles(scenario, "Inbox article")
+            assertEquals(
+                CreateLinkRequest(
+                    url = "https://example.com/invalid",
+                    title = "Bad request",
                     read = null,
                 ),
                 linksRepository.savedRequests.single(),
@@ -892,7 +931,7 @@ class MainActivityTest {
             waitForText(
                 scenario,
                 R.id.add_link_status_text,
-                "Shiori is still processing this link. Try saving it again in a moment.",
+                "Shiori is still processing this link. Wait for that work to finish, then try saving it again.",
             )
             assertEquals("https://example.com/conflict", linksRepository.savedRequests.single().url)
         }
@@ -906,7 +945,9 @@ class MainActivityTest {
             0,
             page(limit = 20, offset = 0, total = 0, links = emptyList()),
         )
-        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.RateLimited)
+        linksRepository.saveResult = ShioriApiResult.Failure(
+            ShioriApiError.RateLimited(retryAfterSeconds = 12),
+        )
 
         val launchIntent = Intent(Intent.ACTION_SEND).apply {
             setClassName(
@@ -921,9 +962,56 @@ class MainActivityTest {
             waitForText(
                 scenario,
                 R.id.add_link_status_text,
-                "Shiori rate limited this request. Wait a moment before trying again.",
+                "Shiori rate limited link saves. Wait about 12 seconds before trying again. The documented limit is 30 per minute.",
             )
             assertEquals("https://example.com/rate-limited", linksRepository.savedRequests.single().url)
+        }
+    }
+
+    @Test
+    fun browseRateLimitUsesDocumentedResetHeaderTiming() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        val nowEpochSeconds = System.currentTimeMillis() / 1000
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            ShioriApiResult.Failure(
+                ShioriApiError.RateLimited(resetAtEpochSeconds = nowEpochSeconds + 61),
+            ),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.browser_state_text,
+                "Shiori rate limited link requests. Wait about 2 minutes before trying again. The documented limit is 60 per minute.",
+            )
+            waitForText(scenario, R.id.load_more_button, activityString(R.string.action_retry_links))
+        }
+    }
+
+    @Test
+    fun saveLinkServerFailureStaysDistinctFromRateLimitOrAuthFailures() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "1", title = "Inbox article", read = false))),
+        )
+        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.Server(500))
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+
+            setText(scenario, R.id.add_link_url_input, "https://example.com/server-error")
+            clickButton(scenario, R.id.add_link_button)
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori hit a server error while saving this link. Wait a moment and try again.",
+            )
+            assertLoadedTitles(scenario, "Inbox article")
         }
     }
 

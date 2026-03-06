@@ -10,6 +10,7 @@ import dev.shiori.android.corenetwork.LinkReadFilter
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinkSortOrder
 import dev.shiori.android.corenetwork.LinksQuery
+import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.UpdateLinkRequest
@@ -231,6 +232,59 @@ class LinksBrowserTest {
         assertEquals(
             "https://example.com/from-view",
             findSupportedUrlInText("https://example.com/from-view"),
+        )
+    }
+
+    @Test
+    fun `error messages stay distinct across documented statuses`() {
+        assertEquals(
+            "Shiori rejected this list request. Check your current filter and try again.",
+            ShioriApiError.Validation.toBrowseMessage(),
+        )
+        assertEquals(
+            "Your API key is no longer authorized. Update it in API access.",
+            ShioriApiError.Unauthorized.toSaveMessage(),
+        )
+        assertEquals(
+            "Shiori could not find that link anymore. Refresh and try again.",
+            ShioriApiError.NotFound.toUpdateMessage(),
+        )
+        assertEquals(
+            "Shiori is still processing this link, so this trash action cannot finish yet. Wait a moment, then try again.",
+            ShioriApiError.Conflict.toDeleteMessage(),
+        )
+        assertEquals(
+            "Shiori hit a server error while saving this link. Wait a moment and try again.",
+            ShioriApiError.Server(500).toSaveMessage(),
+        )
+    }
+
+    @Test
+    fun `rate limited save messages use retry after details`() {
+        assertEquals(
+            "Shiori rate limited link saves. Wait about 45 seconds before trying again. The documented limit is 30 per minute.",
+            ShioriApiError.RateLimited(retryAfterSeconds = 45).toSaveMessage(),
+        )
+    }
+
+    @Test
+    fun `rate limited browse messages fall back to reset header timing`() {
+        val nowEpochSeconds = 1_735_689_600L
+        assertEquals(
+            "Shiori rate limited link requests. Wait about 2 minutes before trying again. The documented limit is 60 per minute.",
+            ShioriApiError.RateLimited(resetAtEpochSeconds = nowEpochSeconds + 61).toBrowseMessage(nowEpochSeconds),
+        )
+    }
+
+    @Test
+    fun `network and unknown failures are not mislabeled as documented auth or rate limit errors`() {
+        assertEquals(
+            "Could not reach your Shiori server. Check the connection and try again.",
+            ShioriApiError.Network(RuntimeException("offline")).toSaveMessage(),
+        )
+        assertEquals(
+            "Shiori returned an unexpected response while saving this link. Try again.",
+            ShioriApiError.Unknown(IllegalStateException("bad json")).toSaveMessage(),
         )
     }
 

@@ -298,7 +298,7 @@ class ShioriApiClientTest {
             401 to ShioriApiError.Unauthorized,
             404 to ShioriApiError.NotFound,
             409 to ShioriApiError.Conflict,
-            429 to ShioriApiError.RateLimited,
+            429 to ShioriApiError.RateLimited(),
             500 to ShioriApiError.Server(500),
         )
 
@@ -321,5 +321,32 @@ class ShioriApiClientTest {
         val error = (result as ShioriApiResult.Failure).error
         assertTrue(error is ShioriApiError.Network)
         assertTrue((error as ShioriApiError.Network).cause is java.io.IOException)
+    }
+
+    @Test
+    fun `rate limit errors include documented retry headers when present`() = runTest {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(429)
+                .addHeader("Retry-After", "45")
+                .addHeader("X-RateLimit-Reset", "1735689645"),
+        )
+
+        val result = client.createLink(CreateLinkRequest(url = "https://example.com/rate-limited"))
+
+        assertEquals(
+            ShioriApiError.RateLimited(retryAfterSeconds = 45, resetAtEpochSeconds = 1735689645),
+            (result as ShioriApiResult.Failure).error,
+        )
+    }
+
+    @Test
+    fun `empty successful responses do not map to auth errors`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        val result = client.createLink(CreateLinkRequest(url = "https://example.com/empty-body"))
+
+        assertTrue(result is ShioriApiResult.Failure)
+        assertTrue((result as ShioriApiResult.Failure).error !is ShioriApiError.Unauthorized)
     }
 }

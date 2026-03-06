@@ -60,4 +60,26 @@ class DefaultApiConnectionCheckerTest {
 
         assertEquals(ApiValidationStatus.Failure, result)
     }
+
+    @Test
+    fun `maps rate limited responses to generic failure instead of unauthorized`() = runTest {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(429)
+                .addHeader("Retry-After", "30"),
+        )
+
+        val result = checker.validate(server.url("/").toString(), "test-api-key")
+
+        assertEquals(ApiValidationStatus.Failure, result)
+    }
+
+    @Test
+    fun `maps malformed success responses to generic failure`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        val result = checker.validate(server.url("/").toString(), "test-api-key")
+
+        assertEquals(ApiValidationStatus.Failure, result)
+    }
 }
