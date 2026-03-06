@@ -1932,3 +1932,30 @@ M docs/.ralph/runs/run-20260306-222712-39971-iter-6.log
 [0m$ [0mgit status --porcelain
 M docs/.ralph/runs/run-20260306-222712-39971-iter-6.log
 [0m
+[0m$ [0mgit add docs/.ralph/runs/run-20260306-222712-39971-iter-6.log && git commit -m "docs: finalize US-004 run log" && git status --porcelain && git show -s --format="%h %s" HEAD
+[main 8e9cba3] docs: finalize US-004 run log
+ 1 file changed, 15 insertions(+)
+8e9cba3 docs: finalize US-004 run log
+[0m
+Completed US-004 by extending instrumentation coverage around the existing shared-URL auto-save path in `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`.
+
+- Added share-intent tests for `unauthorized`, `conflict`, `rate-limited`, and `network` save outcomes, and verified each shows a user-visible status message while still reusing the normal add-link workflow.
+- Kept the story scoped to US-004: no production-path behavior changes were needed because the current implementation already normalizes shared URLs, sends `read = false`, leaves `title` empty, refreshes the destination list, and routes through the main save flow.
+- Recorded the run in `docs/.ralph/progress.md`.
+
+Verification:
+- `./gradlew clean test` -> PASS
+- `./gradlew lintDebug` -> PASS
+- `./gradlew connectedDebugAndroidTest` -> PASS
+
+Review:
+- Security: no new app logic or data handling introduced; test-only change.
+- Performance: no runtime impact; test-only change.
+- Regression: existing cold-launch share, deep-link import, missing access, and unsupported-content coverage remains in place.
+
+Commits:
+- `c2af1dd test: cover shared auto-save result messages`
+- `7be114a docs: record US-004 progress`
+- `8e9cba3 docs: finalize US-004 run log`
+
+<promise>COMPLETE</promise>
