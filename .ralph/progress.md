@@ -13,8 +13,8 @@ Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-0018
 Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-4.md
 - Guardrails reviewed: yes
 - No-commit run: false
-- Commit: 46e16f7 fix: align link patch updates with API docs
-- Post-commit status: `.ralph/activity.log`, `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.md`
+- Commit: 46e16f7 fix: align link patch updates with API docs; 4b1701f docs: record US-004 progress
+- Post-commit status: `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.md`
 - Verification:
   - Command: `./gradlew test` -> PASS
   - Command: `./gradlew lintDebug` -> PASS
