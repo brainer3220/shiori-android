@@ -204,6 +204,51 @@ Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-
     - A small Android library module is enough to validate shared networking code with lint and unit tests before any UI story exists.
   - Gotchas encountered
     - Kotlin 1.8 rejected `data object`, and newer Retrofit/OkHttp artifacts triggered lint metadata warnings with AGP 7.4, so dependency versions had to be aligned conservatively.
+- Useful context
+  - The workspace started without Git metadata or a Gradle project, so the foundation story had to bootstrap both the buildable module and a lightweight activity logger script.
+---
+
+## [2026-03-06 18:24:33 KST] - US-006: Update read state and link metadata
+Thread: 
+Run: 20260306-160314-32261 (iteration 11)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-11.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-11.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: ad54cff feat: support link read-state and metadata updates
+- Post-commit status: `clean`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+- Files changed:
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinkListAdapter.kt`
+  - `app/src/main/res/layout/activity_main.xml`
+  - `app/src/main/res/layout/item_link.xml`
+  - `app/src/main/res/layout/dialog_edit_link.xml`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiService.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiClient.kt`
+  - `core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt`
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+- What was implemented
+  - Added inbox and archive item actions for single read toggles, metadata edits, and bulk read or unread updates while keeping trash read-only.
+  - Extended the repository and API client with bulk read updates plus single-link patch handling that can explicitly send `summary: null` when the user clears a summary.
+  - Updated list-state reconciliation so successful read toggles immediately refresh the current filtered list, keep cached inbox or archive content consistent, and clear bulk selections that fall out of view.
+  - Added a dedicated conflict message for `409` processing responses and surfaced update success or failure feedback through the existing browser status area.
+  - Added unit and connected-test coverage for bulk updates, single read toggles, metadata edits, and the summary-clear request payload on the Wear emulator.
+  - Reviewed the final changes for security, performance, and regression risk: update payloads stay on the existing authenticated client without logging link data, list mutations reconcile locally instead of forcing extra reload loops after every toggle, and prior access, browsing, save, and share flows still pass unit and instrumentation coverage.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Keeping link mutations in the shared repository plus reconciling cached list state in `MainActivity` makes inbox and archive updates feel immediate without extra fetches.
+  - Gotchas encountered
+    - Shiori summary clearing needs an explicit JSON `null`, so single-link patch requests cannot rely on default Moshi null omission when the user asks to clear metadata.
   - Useful context
-    - The workspace started without Git metadata or a Gradle project, so the foundation story had to bootstrap both the buildable module and a lightweight activity logger script.
+    - The round Wear emulator still hides some RecyclerView child views from Espresso, so instrumentation coverage is more reliable when it inspects adapter state or invokes the same activity handlers directly.
 ---
