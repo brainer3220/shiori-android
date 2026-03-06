@@ -6,6 +6,47 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-07 00:32:47 KST] - US-001: Normalize core API models to the documented contract
+Thread: 
+Run: 20260307-001840-72835 (iteration 1)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-1.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-1.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 532bce0 feat: normalize Shiori API id handling
+- Post-commit status: `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+  - Command: `"$HOME/Library/Android/sdk/platform-tools/adb" wait-for-device && until [ "$("$HOME/Library/Android/sdk/platform-tools/adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do sleep 5; done && "$HOME/Library/Android/sdk/platform-tools/adb" devices` -> PASS
+- Files changed:
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinkListAdapter.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiClient.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiService.kt`
+  - `core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt`
+- What was implemented
+  - Switched `core-network` link ids, `linkId` values, bulk mutation ids, and path parameters from numeric types to opaque `String` values so UUID-like identifiers round-trip without coercion.
+  - Trimmed the network contract toward the documented API by removing reliance on undocumented link fields like `tags`, adding the documented optional link metadata fields, and deriving local read state from documented `read_at` data.
+  - Updated bulk-delete and empty-trash response parsing to match the documented mutation payloads while keeping the app's current flows working with local fallback updates.
+  - Extended `ShioriApiClientTest` coverage for documented `GET /api/links` parsing, missing undocumented fields, and string-id PATCH and DELETE serialization, then updated affected app tests and adapters to consume string ids consistently.
+  - Reviewed the final changes for security, performance, and regression risk: the new id handling treats server identifiers as opaque input without unsafe numeric conversion, bulk-read updates still avoid extra fetch loops by using the existing local fallback path, and the full unit, lint, and emulator suites pass after the contract alignment changes.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - A computed `LinkResponse.read` property derived from documented `read_at` keeps the UI compatible while the wire model stays aligned to the published API.
+  - Gotchas encountered
+    - This repo's Kotlin incremental caches can become corrupted after repeated Gradle runs; rerunning the task succeeds via non-incremental fallback, so avoid parallel Gradle verification and expect noisy cache warnings.
+  - Useful context
+    - `lintDebug` still passes in this environment even though AndroidX lint jars emit Java class-version warnings on stdout.
+---
+
 ## [2026-03-06 23:13:05 KST] - US-001: Store API access
 Thread: 
 Run: 20260306-222712-39971 (iteration 3)
