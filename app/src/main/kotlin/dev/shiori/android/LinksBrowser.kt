@@ -10,8 +10,10 @@ import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.DeleteLinkResponse
 import dev.shiori.android.corenetwork.EmptyTrashResponse
+import dev.shiori.android.corenetwork.LinkReadFilter
 import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiResult
+import dev.shiori.android.corenetwork.LinkSortOrder
 import dev.shiori.android.corenetwork.createShioriApiClient
 import dev.shiori.android.corenetwork.read
 import java.net.URI
@@ -164,24 +166,26 @@ internal fun LinkBrowseDestination.toLinksQuery(limit: Int, offset: Int): LinksQ
     LinkBrowseDestination.Inbox -> LinksQuery(
         limit = limit,
         offset = offset,
-        read = false,
-        sort = "created_at",
+        read = LinkReadFilter.Unread,
+        sort = LinkSortOrder.Newest,
     )
 
     LinkBrowseDestination.Archive -> LinksQuery(
         limit = limit,
         offset = offset,
-        read = true,
-        sort = "created_at",
+        read = LinkReadFilter.Read,
+        sort = LinkSortOrder.Newest,
     )
 
     LinkBrowseDestination.Trash -> LinksQuery(
         limit = limit,
         offset = offset,
-        sort = "updated_at",
         trash = true,
     )
 }
+
+internal fun parseSavedDestination(rawValue: String?): LinkBrowseDestination =
+    LinkBrowseDestination.values().firstOrNull { it.name == rawValue } ?: LinkBrowseDestination.Inbox
 
 internal fun mergeLinkCards(
     existing: List<LinkCardModel>,

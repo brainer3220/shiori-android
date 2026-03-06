@@ -53,8 +53,8 @@ class DefaultShioriApiClient internal constructor(
         service.getLinks(
             limit = query.limit,
             offset = query.offset,
-            read = query.read,
-            sort = query.sort,
+            read = query.read?.value,
+            sort = query.sort?.value,
             trash = query.trash.takeIf { it },
         )
     }

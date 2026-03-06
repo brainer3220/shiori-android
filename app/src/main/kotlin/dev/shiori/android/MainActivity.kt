@@ -116,8 +116,7 @@ class MainActivity : AppCompatActivity() {
 
         currentScreen = savedInstanceState?.getString(KEY_SCREEN)?.let(Screen::valueOf) ?: Screen.Access
         val resumeBrowserAfterValidation = currentScreen == Screen.Browser
-        currentDestination = savedInstanceState?.getString(KEY_DESTINATION)?.let(LinkBrowseDestination::valueOf)
-            ?: LinkBrowseDestination.Inbox
+        currentDestination = parseSavedDestination(savedInstanceState?.getString(KEY_DESTINATION))
         pendingSharedUrl = savedInstanceState?.getString(KEY_PENDING_SHARED_URL)
         accessStatusOverrideMessage = savedInstanceState?.getString(KEY_ACCESS_STATUS_OVERRIDE)
         pendingBrowserStatusMessage = savedInstanceState?.getString(KEY_PENDING_BROWSER_STATUS)

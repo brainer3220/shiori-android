@@ -16,7 +16,7 @@ internal interface ShioriApiService {
     suspend fun getLinks(
         @Query("limit") limit: Int? = null,
         @Query("offset") offset: Int? = null,
-        @Query("read") read: Boolean? = null,
+        @Query("read") read: String? = null,
         @Query("sort") sort: String? = null,
         @Query("trash") trash: Boolean? = null,
     ): Response<LinkListResponse>

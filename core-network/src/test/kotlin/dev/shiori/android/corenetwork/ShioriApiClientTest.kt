@@ -68,12 +68,19 @@ class ShioriApiClientTest {
             ),
         )
 
-        val result = client.getLinks(LinksQuery(limit = 20, offset = 40, read = false, sort = "created_at"))
+        val result = client.getLinks(
+            LinksQuery(
+                limit = 20,
+                offset = 40,
+                read = LinkReadFilter.Unread,
+                sort = LinkSortOrder.Newest,
+            ),
+        )
 
         val request = server.takeRequest()
         assertEquals("GET", request.method)
         assertEquals("Bearer test-api-key", request.getHeader("Authorization"))
-        assertEquals("/api/links?limit=20&offset=40&read=false&sort=created_at", request.path)
+        assertEquals("/api/links?limit=20&offset=40&read=unread&sort=newest", request.path)
         assertTrue(result is ShioriApiResult.Success)
         val response = (result as ShioriApiResult.Success).value
         assertEquals(142, response.total)

@@ -5,10 +5,21 @@ import com.squareup.moshi.Json
 data class LinksQuery(
     val limit: Int? = null,
     val offset: Int? = null,
-    val read: Boolean? = null,
-    val sort: String? = null,
+    val read: LinkReadFilter? = null,
+    val sort: LinkSortOrder? = null,
     val trash: Boolean = false,
 )
+
+enum class LinkReadFilter(val value: String) {
+    All("all"),
+    Read("read"),
+    Unread("unread"),
+}
+
+enum class LinkSortOrder(val value: String) {
+    Newest("newest"),
+    Oldest("oldest"),
+}
 
 data class CreateLinkRequest(
     val url: String,

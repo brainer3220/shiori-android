@@ -3,7 +3,9 @@ package dev.shiori.android
 import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.LinkListResponse
+import dev.shiori.android.corenetwork.LinkReadFilter
 import dev.shiori.android.corenetwork.LinkResponse
+import dev.shiori.android.corenetwork.LinkSortOrder
 import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.DeleteLinkResponse
@@ -21,17 +23,24 @@ class LinksBrowserTest {
     @Test
     fun `browse destinations map to documented link queries`() {
         assertEquals(
-            LinksQuery(limit = 20, offset = 40, read = false, sort = "created_at"),
+            LinksQuery(limit = 20, offset = 40, read = LinkReadFilter.Unread, sort = LinkSortOrder.Newest),
             LinkBrowseDestination.Inbox.toLinksQuery(limit = 20, offset = 40),
         )
         assertEquals(
-            LinksQuery(limit = 20, offset = 40, read = true, sort = "created_at"),
+            LinksQuery(limit = 20, offset = 40, read = LinkReadFilter.Read, sort = LinkSortOrder.Newest),
             LinkBrowseDestination.Archive.toLinksQuery(limit = 20, offset = 40),
         )
         assertEquals(
-            LinksQuery(limit = 20, offset = 40, sort = "updated_at", trash = true),
+            LinksQuery(limit = 20, offset = 40, trash = true),
             LinkBrowseDestination.Trash.toLinksQuery(limit = 20, offset = 40),
         )
+    }
+
+    @Test
+    fun `saved destination parsing falls back to inbox for unexpected values`() {
+        assertEquals(LinkBrowseDestination.Archive, parseSavedDestination("Archive"))
+        assertEquals(LinkBrowseDestination.Inbox, parseSavedDestination("unexpected"))
+        assertEquals(LinkBrowseDestination.Inbox, parseSavedDestination(null))
     }
 
     @Test
@@ -66,8 +75,27 @@ class LinksBrowserTest {
 
         assertSame(client.inboxResult, inboxResult)
         assertSame(client.trashResult, trashResult)
-        assertEquals(LinksQuery(limit = 20, offset = 0, read = false, sort = "created_at"), client.lastInboxQuery)
-        assertEquals(LinksQuery(limit = 20, offset = 40, sort = "updated_at", trash = true), client.lastTrashQuery)
+        assertEquals(LinksQuery(limit = 20, offset = 0, read = LinkReadFilter.Unread, sort = LinkSortOrder.Newest), client.lastInboxQuery)
+        assertEquals(LinksQuery(limit = 20, offset = 40, trash = true), client.lastTrashQuery)
+    }
+
+    @Test
+    fun `mergeLinkCards removes duplicate incoming entries while keeping refreshed values`() {
+        val existing = listOf(
+            LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
+        )
+        val incoming = listOf(
+            LinkCardModel("2", "https://example.com/2", "Two", "Two", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel("2", "https://example.com/2", "Two refreshed", "Two refreshed", "example.com", null, true, null, "Read", null, null),
+        )
+
+        assertEquals(
+            listOf(
+                LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
+                LinkCardModel("2", "https://example.com/2", "Two refreshed", "Two refreshed", "example.com", null, true, null, "Read", null, null),
+            ),
+            mergeLinkCards(existing, incoming),
+        )
     }
 
     @Test
