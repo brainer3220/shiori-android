@@ -1907,3 +1907,45 @@ M .ralph/activity.log
 [0m
 [0m⚙ [0mapply_patch Success. Updated the following files:
 M docs/.ralph/activity.log
+[0m
+[0m$ [0mgit add -A && git commit -m "feat: align create-link client with API contract" && git status --short && git show -s --format="%h %s" HEAD
+[main 83597a2] feat: align create-link client with API contract
+ 34 files changed, 12255 insertions(+), 28 deletions(-)
+ create mode 100644 docs/.ralph/.tmp/prd-prompt-20260306-221600-32286.md
+ create mode 100644 docs/.ralph/.tmp/prompt-20260306-222712-39971-1.md
+ create mode 100644 docs/.ralph/.tmp/prompt-20260306-222712-39971-2.md
+ create mode 100644 docs/.ralph/.tmp/prompt-20260306-222712-39971-3.md
+ create mode 100644 docs/.ralph/.tmp/prompt-20260306-222712-39971-4.md
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222012-34727-1.json
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222012-34727-1.md
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-1.json
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-1.md
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-2.json
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-2.md
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-3.json
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-3.md
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-4.json
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-4.md
+ create mode 100644 docs/.ralph/activity.log
+ create mode 100644 docs/.ralph/errors.log
+ create mode 100644 docs/.ralph/guardrails.md
+ create mode 100644 docs/.ralph/progress.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-1.log
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-1.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-2.log
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-2.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-3.log
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-3.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-4.log
+ create mode 100644 docs/api-reference.md
+83597a2 feat: align create-link client with API contract
+[0m
+[0m→ [0mRead .ralph/progress.md[90m [offset=1, limit=200][0m
+[0m
+[0m$ [0mdate '+%Y-%m-%d %H:%M:%S'
+2026-03-06 23:22:40
+[0m
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M docs/.ralph/progress.md
+[0m⚙ [0mapply_patch Success. Updated the following files:
+M docs/.ralph/activity.log
