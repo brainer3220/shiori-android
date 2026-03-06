@@ -2,6 +2,7 @@ package dev.shiori.android
 
 import android.os.Bundle
 import android.view.View
+import android.widget.CheckBox
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
@@ -16,6 +17,8 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import dev.shiori.android.corenetwork.CreateLinkRequest
+import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiResult
 import kotlinx.coroutines.launch
 
@@ -42,6 +45,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var trashButton: MaterialButton
     private lateinit var browserStateText: TextView
     private lateinit var browserProgress: ProgressBar
+    private lateinit var addLinkUrlLayout: TextInputLayout
+    private lateinit var addLinkUrlInput: TextInputEditText
+    private lateinit var addLinkTitleInput: TextInputEditText
+    private lateinit var addLinkReadCheckbox: CheckBox
+    private lateinit var addLinkStatusText: TextView
+    private lateinit var addLinkButton: MaterialButton
     private lateinit var linksList: RecyclerView
     private lateinit var loadMoreButton: MaterialButton
 
@@ -50,8 +59,10 @@ class MainActivity : AppCompatActivity() {
     private var savedConfig = ApiAccessConfig()
     private var validationStatus = ApiValidationStatus.Idle
     private var isWorking = false
+    private var isSavingLink = false
     private var currentScreen = Screen.Access
     private var currentDestination = LinkBrowseDestination.Inbox
+    private var addLinkStatusMessage: String? = null
     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,6 +116,12 @@ class MainActivity : AppCompatActivity() {
         trashButton = findViewById(R.id.filter_trash_button)
         browserStateText = findViewById(R.id.browser_state_text)
         browserProgress = findViewById(R.id.browser_progress)
+        addLinkUrlLayout = findViewById(R.id.add_link_url_layout)
+        addLinkUrlInput = findViewById(R.id.add_link_url_input)
+        addLinkTitleInput = findViewById(R.id.add_link_title_input)
+        addLinkReadCheckbox = findViewById(R.id.add_link_read_checkbox)
+        addLinkStatusText = findViewById(R.id.add_link_status_text)
+        addLinkButton = findViewById(R.id.add_link_button)
         linksList = findViewById(R.id.links_list)
         loadMoreButton = findViewById(R.id.load_more_button)
     }
@@ -118,6 +135,24 @@ class MainActivity : AppCompatActivity() {
         apiKeyInput.doAfterTextChanged {
             if (!isWorking) {
                 render()
+            }
+        }
+        addLinkUrlInput.doAfterTextChanged {
+            if (!isSavingLink) {
+                addLinkStatusMessage = null
+                renderBrowserState()
+            }
+        }
+        addLinkTitleInput.doAfterTextChanged {
+            if (!isSavingLink) {
+                addLinkStatusMessage = null
+                renderBrowserState()
+            }
+        }
+        addLinkReadCheckbox.setOnCheckedChangeListener { _, _ ->
+            if (!isSavingLink) {
+                addLinkStatusMessage = null
+                renderBrowserState()
             }
         }
 
@@ -158,6 +193,10 @@ class MainActivity : AppCompatActivity() {
                 else -> LinkBrowseDestination.Inbox
             }
             onDestinationSelected(destination)
+        }
+
+        addLinkButton.setOnClickListener {
+            saveLink()
         }
 
         loadMoreButton.setOnClickListener {
@@ -224,6 +263,69 @@ class MainActivity : AppCompatActivity() {
         }
 
         render()
+    }
+
+    private fun currentLinkDraft(): CreateLinkRequest = CreateLinkRequest(
+        url = addLinkUrlInput.text?.toString().orEmpty(),
+        title = addLinkTitleInput.text?.toString(),
+        read = addLinkReadCheckbox.isChecked,
+    )
+
+    private fun saveLink() {
+        if (!isSavedConfigValid() || hasUnsavedChanges()) {
+            currentScreen = Screen.Access
+            render()
+            return
+        }
+
+        val rawUrl = addLinkUrlInput.text?.toString().orEmpty()
+        if (!isLinkUrlValid(rawUrl)) {
+            renderBrowserState()
+            return
+        }
+
+        isSavingLink = true
+        addLinkStatusMessage = getString(R.string.message_link_saving)
+        renderBrowserState()
+
+        val draft = currentLinkDraft()
+        val request = CreateLinkRequest(
+            url = normalizeLinkUrl(draft.url),
+            title = normalizeLinkTitle(draft.title.orEmpty()).takeIf { it.isNotEmpty() },
+            read = draft.read,
+        )
+
+        lifecycleScope.launch {
+            when (val result = linksRepository.saveLink(savedConfig, request)) {
+                is ShioriApiResult.Success -> handleLinkSaved(result.value.link, result.value.duplicate)
+                is ShioriApiResult.Failure -> {
+                    isSavingLink = false
+                    addLinkStatusMessage = result.error.toSaveMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
+    private fun handleLinkSaved(link: LinkResponse, duplicate: Boolean) {
+        val destination = link.toBrowseDestination()
+        addLinkUrlInput.setText("")
+        addLinkTitleInput.setText("")
+        addLinkReadCheckbox.isChecked = false
+        addLinkStatusMessage = when {
+            duplicate && destination == LinkBrowseDestination.Archive -> getString(R.string.message_link_duplicate_archive)
+            duplicate -> getString(R.string.message_link_duplicate_inbox)
+            destination == LinkBrowseDestination.Archive -> getString(R.string.message_link_saved_archive)
+            else -> getString(R.string.message_link_saved_inbox)
+        }
+        isSavingLink = false
+
+        if (currentDestination != destination) {
+            currentDestination = destination
+        }
+
+        renderBrowserState()
+        fetchLinks(currentDestination, reset = true)
     }
 
     private fun validateConnection() {
@@ -418,6 +520,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         val state = currentLinkState()
+        val rawLinkUrl = addLinkUrlInput.text?.toString().orEmpty()
+        val isLinkUrlValid = isLinkUrlValid(rawLinkUrl)
+        addLinkUrlLayout.error = when {
+            rawLinkUrl.isBlank() || isLinkUrlValid -> null
+            else -> getString(R.string.error_link_url)
+        }
+        addLinkButton.isEnabled = !isSavingLink && isLinkUrlValid
+        addLinkReadCheckbox.isEnabled = !isSavingLink
+        addLinkUrlInput.isEnabled = !isSavingLink
+        addLinkTitleInput.isEnabled = !isSavingLink
+        addLinkStatusText.visibility = if (addLinkStatusMessage.isNullOrBlank()) View.GONE else View.VISIBLE
+        addLinkStatusText.text = addLinkStatusMessage
+
         linksAdapter.submitItems(state.items)
 
         browserProgress.visibility = if (state.isInitialLoading) View.VISIBLE else View.GONE

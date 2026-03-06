@@ -15,6 +15,8 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import dev.shiori.android.corenetwork.CreateLinkRequest
+import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiResult
@@ -201,6 +203,59 @@ class MainActivityTest {
         }
     }
 
+    @Test
+    fun saveLinkShowsDuplicateFeedbackAndRefreshesArchive() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 1, title = "Inbox article", read = false))),
+        )
+        linksRepository.saveResult = ShioriApiResult.Success(
+            CreateLinkResponse(
+                duplicate = true,
+                link = link(id = 20, title = "Existing article", read = true),
+            ),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Archive,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 20, title = "Existing article", read = true))),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+
+            setText(scenario, R.id.add_link_url_input, "https://example.com/20")
+            setText(scenario, R.id.add_link_title_input, "Existing article")
+            setChecked(scenario, R.id.add_link_read_checkbox, true)
+            clickButton(scenario, R.id.add_link_button)
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "That link already exists. Showing the saved copy in your archive.",
+            )
+            waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+            assertLoadedTitles(scenario, "Existing article")
+            assertEquals(
+                CreateLinkRequest(
+                    url = "https://example.com/20",
+                    title = "Existing article",
+                    read = true,
+                ),
+                linksRepository.savedRequests.single(),
+            )
+            assertEquals(
+                listOf(
+                    Request(LinkBrowseDestination.Inbox, 20, 0),
+                    Request(LinkBrowseDestination.Archive, 20, 0),
+                ),
+                linksRepository.requests,
+            )
+        }
+    }
+
     private fun enterAccess(serverUrl: String, apiKey: String) {
         onView(withId(R.id.server_url_input)).perform(scrollTo(), click(), replaceText(serverUrl))
         closeSoftKeyboard()
@@ -240,6 +295,26 @@ class MainActivityTest {
     ) {
         scenario.onActivity { activity ->
             activity.findViewById<android.view.View>(viewId).performClick()
+        }
+    }
+
+    private fun setText(
+        scenario: ActivityScenario<MainActivity>,
+        viewId: Int,
+        value: String,
+    ) {
+        scenario.onActivity { activity ->
+            activity.findViewById<com.google.android.material.textfield.TextInputEditText>(viewId).setText(value)
+        }
+    }
+
+    private fun setChecked(
+        scenario: ActivityScenario<MainActivity>,
+        viewId: Int,
+        checked: Boolean,
+    ) {
+        scenario.onActivity { activity ->
+            activity.findViewById<android.widget.CheckBox>(viewId).isChecked = checked
         }
     }
 
@@ -367,7 +442,11 @@ class MainActivityTest {
 
     private class FakeLinksRepository : LinksRepository {
         val requests = CopyOnWriteArrayList<Request>()
+        val savedRequests = CopyOnWriteArrayList<CreateLinkRequest>()
         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
+        var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
+            CreateLinkResponse(link = LinkResponse(id = 99, url = "https://example.com/99", read = false)),
+        )
 
         fun enqueue(
             destination: LinkBrowseDestination,
@@ -400,6 +479,14 @@ class MainActivityTest {
 
                 else -> queue.removeFirst()
             }
+        }
+
+        override suspend fun saveLink(
+            config: ApiAccessConfig,
+            request: CreateLinkRequest,
+        ): ShioriApiResult<CreateLinkResponse> {
+            savedRequests += request
+            return saveResult
         }
     }
 

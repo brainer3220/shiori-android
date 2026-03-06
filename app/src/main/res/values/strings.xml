@@ -10,11 +10,17 @@
     <string name="action_open_links">Open links</string>
     <string name="action_clear_key">Clear API key</string>
     <string name="action_edit_access">API access</string>
+    <string name="action_save_link">Save link</string>
     <string name="action_load_more">Load more links</string>
     <string name="action_loading_more">Loading more…</string>
     <string name="action_retry_links">Retry loading</string>
     <string name="title_links_browser">Your links</string>
     <string name="subtitle_links_browser">Browse unread inbox items, archived links, and trash without losing your place.</string>
+    <string name="title_add_link">Save a link</string>
+    <string name="subtitle_add_link">Paste a URL, add an optional title, and choose whether it should start in your archive.</string>
+    <string name="hint_link_url">Link URL</string>
+    <string name="hint_link_title">Custom title (optional)</string>
+    <string name="label_mark_link_read">Start as read</string>
     <string name="filter_inbox">Inbox</string>
     <string name="filter_archive">Archive</string>
     <string name="filter_trash">Trash</string>
@@ -29,6 +35,12 @@
     <string name="message_links_empty">No links match this filter yet.</string>
     <string name="message_links_count">Loaded %1$d links.</string>
     <string name="message_links_count_with_total">Loaded %1$d of %2$d links.</string>
+    <string name="message_link_saving">Saving link…</string>
+    <string name="message_link_saved_inbox">Link saved. Showing it in your inbox.</string>
+    <string name="message_link_saved_archive">Link saved. Showing it in your archive.</string>
+    <string name="message_link_duplicate_inbox">That link already exists. Showing the saved copy in your inbox.</string>
+    <string name="message_link_duplicate_archive">That link already exists. Showing the saved copy in your archive.</string>
     <string name="error_server_url">Enter an HTTPS URL, or use localhost over HTTP for emulator testing.</string>
     <string name="error_api_key">Enter a valid-looking API key with no spaces.</string>
+    <string name="error_link_url">Enter a full HTTP or HTTPS URL.</string>
 </resources>

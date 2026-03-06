@@ -1,12 +1,16 @@
 package dev.shiori.android
 
+import dev.shiori.android.corenetwork.CreateLinkRequest
+import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.LinkListResponse
+import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.ShioriApiResult
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LinksBrowserTest {
@@ -63,11 +67,55 @@ class LinksBrowserTest {
         assertEquals(LinksQuery(limit = 20, offset = 40, sort = "updated_at", trash = true), client.lastTrashQuery)
     }
 
+    @Test
+    fun `repository forwards create link requests to api client`() = runTest {
+        val client = FakeShioriApiClient()
+        val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
+        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+        val request = CreateLinkRequest(
+            url = "https://example.com/article",
+            title = "Article",
+            read = true,
+        )
+
+        val result = repository.saveLink(config, request)
+
+        assertSame(client.createResult, result)
+        assertEquals(request, client.lastCreateRequest)
+    }
+
+    @Test
+    fun `link save validation accepts only http and https urls with hosts`() {
+        assertTrue(isLinkUrlValid("https://example.com/article"))
+        assertTrue(isLinkUrlValid("http://localhost:8080/preview"))
+        assertEquals("https://example.com/article", normalizeLinkUrl(" https://example.com/article "))
+
+        val invalidCases = listOf(
+            "",
+            "example.com/article",
+            "ftp://example.com/file",
+            "https:///missing-host",
+        )
+
+        invalidCases.forEach { value ->
+            assertEquals(false, isLinkUrlValid(value))
+        }
+    }
+
+    @Test
+    fun `saved link destination follows read state`() {
+        assertEquals(LinkBrowseDestination.Inbox, LinkResponse(id = 1, url = "https://example.com", read = false).toBrowseDestination())
+        assertEquals(LinkBrowseDestination.Inbox, LinkResponse(id = 1, url = "https://example.com", read = null).toBrowseDestination())
+        assertEquals(LinkBrowseDestination.Archive, LinkResponse(id = 1, url = "https://example.com", read = true).toBrowseDestination())
+    }
+
     private class FakeShioriApiClient : ShioriApiClient {
         val inboxResult = ShioriApiResult.Success(LinkListResponse())
         val trashResult = ShioriApiResult.Success(LinkListResponse())
+        val createResult = ShioriApiResult.Success(CreateLinkResponse(link = LinkResponse(id = 9, url = "https://example.com/article")))
         var lastInboxQuery: LinksQuery? = null
         var lastTrashQuery: LinksQuery? = null
+        var lastCreateRequest: CreateLinkRequest? = null
 
         override suspend fun getLinks(query: LinksQuery): ShioriApiResult<LinkListResponse> {
             lastInboxQuery = query
@@ -79,7 +127,10 @@ class LinksBrowserTest {
             return trashResult
         }
 
-        override suspend fun createLink(request: dev.shiori.android.corenetwork.CreateLinkRequest) = throw UnsupportedOperationException()
+        override suspend fun createLink(request: CreateLinkRequest): ShioriApiResult<CreateLinkResponse> {
+            lastCreateRequest = request
+            return createResult
+        }
 
         override suspend fun updateReadState(request: dev.shiori.android.corenetwork.BulkReadStateRequest) = throw UnsupportedOperationException()
 

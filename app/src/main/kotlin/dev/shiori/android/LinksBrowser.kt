@@ -1,6 +1,8 @@
 package dev.shiori.android
 
 import dev.shiori.android.corenetwork.ApiKeyProvider
+import dev.shiori.android.corenetwork.CreateLinkRequest
+import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinksQuery
@@ -57,6 +59,11 @@ interface LinksRepository {
         limit: Int,
         offset: Int,
     ): ShioriApiResult<LinkListResponse>
+
+    suspend fun saveLink(
+        config: ApiAccessConfig,
+        request: CreateLinkRequest,
+    ): ShioriApiResult<CreateLinkResponse>
 }
 
 class DefaultLinksRepository(
@@ -76,6 +83,11 @@ class DefaultLinksRepository(
             client.getLinks(query)
         }
     }
+
+    override suspend fun saveLink(
+        config: ApiAccessConfig,
+        request: CreateLinkRequest,
+    ): ShioriApiResult<CreateLinkResponse> = clientFactory.create(config).createLink(request)
 }
 
 internal fun LinkBrowseDestination.toLinksQuery(limit: Int, offset: Int): LinksQuery = when (this) {
@@ -137,6 +149,40 @@ internal fun ShioriApiError.toBrowseMessage(): String = when (this) {
     is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
     is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
     is ShioriApiError.Unknown -> "An unexpected error interrupted link loading. Try again."
+}
+
+internal fun ShioriApiError.toSaveMessage(): String = when (this) {
+    ShioriApiError.Validation -> "Shiori rejected this link. Check the URL and try again."
+    ShioriApiError.Unauthorized -> "Your API key is no longer authorized. Update it in API access."
+    ShioriApiError.NotFound -> "Shiori could not find the save endpoint. Check the server URL."
+    ShioriApiError.Conflict -> "Shiori is still processing this link. Try saving it again in a moment."
+    ShioriApiError.RateLimited -> "Shiori rate limited this request. Wait a moment before trying again."
+    is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
+    is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
+    is ShioriApiError.Unknown -> "An unexpected error interrupted link saving. Try again."
+}
+
+internal fun normalizeLinkUrl(rawValue: String): String = rawValue.trim()
+
+internal fun normalizeLinkTitle(rawValue: String): String = rawValue.trim()
+
+internal fun isLinkUrlValid(rawValue: String): Boolean {
+    val value = normalizeLinkUrl(rawValue)
+    if (value.isEmpty()) {
+        return false
+    }
+
+    val uri = runCatching { URI(value) }.getOrNull() ?: return false
+    val scheme = uri.scheme?.lowercase() ?: return false
+    val host = uri.host?.takeIf { it.isNotBlank() }
+
+    return (scheme == "https" || scheme == "http") && host != null
+}
+
+internal fun LinkResponse.toBrowseDestination(): LinkBrowseDestination = if (read == true) {
+    LinkBrowseDestination.Archive
+} else {
+    LinkBrowseDestination.Inbox
 }
 
 private fun String?.toTimestampLabel(prefix: String): String? {
