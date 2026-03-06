@@ -154,6 +154,37 @@ class ShioriApiClientTest {
     }
 
     @Test
+    fun `createLink omits optional fields when title and read are absent`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """
+                {
+                  "success": true,
+                  "linkId": "fresh-link"
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        val result = client.createLink(
+            CreateLinkRequest(
+                url = "https://example.com/minimal",
+                title = null,
+                read = null,
+            ),
+        )
+
+        val request = server.takeRequest()
+        val body = request.body.readUtf8()
+        assertEquals("POST", request.method)
+        assertTrue(body.contains("\"url\":\"https://example.com/minimal\""))
+        assertTrue(!body.contains("title"))
+        assertTrue(!body.contains("read"))
+        assertTrue(result is ShioriApiResult.Success)
+        assertEquals("fresh-link", (result as ShioriApiResult.Success).value.linkId)
+    }
+
+    @Test
     fun `bulk update and restore use documented patch endpoints with string ids`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(

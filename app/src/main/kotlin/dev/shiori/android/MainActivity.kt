@@ -365,7 +365,7 @@ class MainActivity : AppCompatActivity() {
         val request = CreateLinkRequest(
             url = normalizeLinkUrl(draft.url),
             title = normalizeLinkTitle(draft.title.orEmpty()).takeIf { it.isNotEmpty() },
-            read = draft.read,
+            read = draft.read?.takeIf { it },
         )
 
         lifecycleScope.launch {
@@ -396,8 +396,7 @@ class MainActivity : AppCompatActivity() {
             currentDestination = destination
         }
 
-        renderBrowserState()
-        fetchLinks(currentDestination, reset = true)
+        fetchLinks(destination, reset = true)
     }
 
     private fun onLinkSelectionChanged(item: LinkCardModel, isSelected: Boolean) {

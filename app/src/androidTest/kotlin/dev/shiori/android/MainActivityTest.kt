@@ -508,6 +508,117 @@ class MainActivityTest {
     }
 
     @Test
+    fun saveLinkRefreshesArchiveAfterCreateSuccess() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "1", title = "Inbox article", read = false))),
+        )
+        linksRepository.saveResult = ShioriApiResult.Success(
+            CreateLinkResponse(
+                success = true,
+                linkId = "21",
+                duplicate = false,
+            ),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Archive,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "21", title = "Archived article", read = true))),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+
+            setText(scenario, R.id.add_link_url_input, "https://example.com/21")
+            setText(scenario, R.id.add_link_title_input, "Archived article")
+            setChecked(scenario, R.id.add_link_read_checkbox, true)
+            clickButton(scenario, R.id.add_link_button)
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Link saved. Showing it in your archive.",
+            )
+            waitForRecyclerCount(scenario, 1)
+            assertLoadedTitles(scenario, "Archived article")
+            assertEquals(
+                CreateLinkRequest(
+                    url = "https://example.com/21",
+                    title = "Archived article",
+                    read = true,
+                ),
+                linksRepository.savedRequests.single(),
+            )
+            assertEquals(
+                listOf(
+                    Request(LinkBrowseDestination.Inbox, 20, 0),
+                    Request(LinkBrowseDestination.Archive, 20, 0),
+                ),
+                linksRepository.requests,
+            )
+        }
+    }
+
+    @Test
+    fun saveLinkOmitsReadWhenUncheckedAndShowsRateLimitFailure() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "1", title = "Inbox article", read = false))),
+        )
+        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.RateLimited)
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+
+            setText(scenario, R.id.add_link_url_input, "https://example.com/22")
+            setText(scenario, R.id.add_link_title_input, "Fresh article")
+            clickButton(scenario, R.id.add_link_button)
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori rate limited this request. Wait a moment before trying again.",
+            )
+            assertLoadedTitles(scenario, "Inbox article")
+            assertEquals(
+                CreateLinkRequest(
+                    url = "https://example.com/22",
+                    title = "Fresh article",
+                    read = null,
+                ),
+                linksRepository.savedRequests.single(),
+            )
+            assertEquals(listOf(Request(LinkBrowseDestination.Inbox, 20, 0)), linksRepository.requests)
+        }
+    }
+
+    @Test
+    fun saveLinkRejectsInvalidUrlWithoutCallingRepository() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+
+            setText(scenario, R.id.add_link_url_input, "not-a-url")
+            setText(scenario, R.id.add_link_title_input, "Broken")
+            clickButton(scenario, R.id.add_link_button)
+
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertTrue(linksRepository.savedRequests.isEmpty())
+            assertEquals(listOf(Request(LinkBrowseDestination.Inbox, 20, 0)), linksRepository.requests)
+        }
+    }
+
+    @Test
     fun sharedSendIntentUsesExistingSaveWorkflowOnColdLaunch() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
@@ -550,7 +661,7 @@ class MainActivityTest {
                     CreateLinkRequest(
                         url = "https://example.com/shared",
                         title = null,
-                        read = false,
+                        read = null,
                     ),
                 ),
                 linksRepository.savedRequests.toList(),
@@ -588,7 +699,7 @@ class MainActivityTest {
                 CreateLinkRequest(
                     url = "https://example.com/unauthorized",
                     title = null,
-                    read = false,
+                    read = null,
                 ),
                 linksRepository.savedRequests.single(),
             )
