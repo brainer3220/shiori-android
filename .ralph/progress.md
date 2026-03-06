@@ -6,6 +6,46 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-07 00:40:56 KST] - US-002: Align browse queries with documented list semantics
+Thread: 
+Run: 20260307-001840-72835 (iteration 2)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-2.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-2.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 96b2870 fix: align browse queries with API docs
+- Post-commit status: `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+  - Command: `"$HOME/Library/Android/sdk/platform-tools/adb" devices` -> PASS
+  - Command: `"$HOME/Library/Android/sdk/emulator/emulator" -list-avds` -> PASS
+- Files changed:
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiClient.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiService.kt`
+  - `core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt`
+- What was implemented
+  - Replaced boolean and timestamp-based browse query values with documented list semantics by modeling read filters as `all|read|unread` and sort order as `newest|oldest`, then serializing those exact values in the Retrofit client.
+  - Remapped inbox and archive browsing to documented unread and read filters with `sort=newest`, while keeping trash requests limited to documented pagination plus `trash=true`.
+  - Added a safe saved-destination parser so unexpected local tab state falls back to inbox instead of crashing during activity restoration.
+  - Extended browse tests to cover documented destination-to-query mapping, fallback parsing, repository trash routing, and duplicate-free merge behavior for overlapping pages.
+  - Reviewed the final changes for security, performance, and regression risk: the new query enums constrain outbound requests to documented values only, pagination still merges pages without extra fetches or duplicate cards, and the full unit, lint, and emulator verification suite passes after the list-semantics alignment.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Encoding documented query semantics as enums at the network boundary keeps unsupported local values from leaking into requests.
+  - Gotchas encountered
+    - `LinkBrowseDestination.entries` is not available with this repo's Kotlin language level, so use `values()` for safe enum fallback parsing.
+  - Useful context
+    - `lintDebug` succeeds in this environment even though AndroidX lint jars still print Java class-version warnings during analysis.
+---
+
 ## [2026-03-07 00:32:47 KST] - US-001: Normalize core API models to the documented contract
 Thread: 
 Run: 20260307-001840-72835 (iteration 1)
