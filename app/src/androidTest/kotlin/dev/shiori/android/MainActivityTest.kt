@@ -560,6 +560,129 @@ class MainActivityTest {
     }
 
     @Test
+    fun sharedSendIntentShowsUnauthorizedSaveFeedback() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.Unauthorized)
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://example.com/unauthorized")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Your API key is no longer authorized. Update it in API access.",
+            )
+            assertEquals(
+                CreateLinkRequest(
+                    url = "https://example.com/unauthorized",
+                    title = null,
+                    read = false,
+                ),
+                linksRepository.savedRequests.single(),
+            )
+        }
+    }
+
+    @Test
+    fun sharedSendIntentShowsConflictSaveFeedback() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.Conflict)
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://example.com/conflict")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori is still processing this link. Try saving it again in a moment.",
+            )
+            assertEquals("https://example.com/conflict", linksRepository.savedRequests.single().url)
+        }
+    }
+
+    @Test
+    fun sharedSendIntentShowsRateLimitedSaveFeedback() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.RateLimited)
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://example.com/rate-limited")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori rate limited this request. Wait a moment before trying again.",
+            )
+            assertEquals("https://example.com/rate-limited", linksRepository.savedRequests.single().url)
+        }
+    }
+
+    @Test
+    fun sharedSendIntentShowsNetworkSaveFeedback() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.saveResult = ShioriApiResult.Failure(ShioriApiError.Network(RuntimeException("offline")))
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://example.com/network")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Could not reach your Shiori server. Check the connection and try again.",
+            )
+            assertEquals("https://example.com/network", linksRepository.savedRequests.single().url)
+        }
+    }
+
+    @Test
     fun invalidSharedContentShowsGracefulFeedback() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
