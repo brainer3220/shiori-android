@@ -589,6 +589,79 @@ class MainActivityTest {
     }
 
     @Test
+    fun sharedSendMultipleShowsUnsupportedFeedbackWithoutSaving() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+
+        val launchIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putCharSequenceArrayListExtra(
+                Intent.EXTRA_TEXT,
+                arrayListOf<CharSequence>("https://example.com/one", "https://example.com/two"),
+            )
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "This share did not include a supported HTTP or HTTPS URL.",
+            )
+            assertTrue(linksRepository.savedRequests.isEmpty())
+        }
+    }
+
+    @Test
+    fun sharedUrlWaitsForAccessSetupBeforeSaving() {
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://example.com/pending")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.status_text,
+                "Save valid API access before importing the shared URL.",
+            )
+            assertTrue(linksRepository.savedRequests.isEmpty())
+
+            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
+            onView(withId(R.id.save_button)).perform(scrollTo(), click())
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Link saved. Showing it in your inbox.",
+            )
+            assertEquals("https://example.com/pending", linksRepository.savedRequests.single().url)
+        }
+    }
+
+    @Test
     fun viewIntentImportsUrlWhenAppLaunchesFromDeepLink() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
@@ -626,6 +699,43 @@ class MainActivityTest {
                 "https://example.com/viewed",
                 linksRepository.savedRequests.single().url,
             )
+        }
+    }
+
+    @Test
+    fun duplicateSharedIntentIsIgnoredWhenHandledAgain() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://example.com/once")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Link saved. Showing it in your inbox.",
+            )
+
+            invokePrivateMethod(scenario, "handleIncomingIntent", launchIntent)
+
+            assertEquals(1, linksRepository.savedRequests.size)
+            assertEquals("https://example.com/once", linksRepository.savedRequests.single().url)
         }
     }
 

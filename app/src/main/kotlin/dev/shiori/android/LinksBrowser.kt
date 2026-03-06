@@ -276,18 +276,7 @@ internal fun resolveIncomingLinkIntent(intent: Intent?): IncomingLinkIntent {
         }
 
         Intent.ACTION_SEND_MULTIPLE -> {
-            val clipItems = buildList {
-                val clipData = intent.clipData
-                if (clipData != null) {
-                    repeat(clipData.itemCount) { index ->
-                        add(clipData.getItemAt(index).text)
-                    }
-                }
-            }
-            val url = extractFirstSupportedUrl(
-                intent.getCharSequenceArrayListExtra(Intent.EXTRA_TEXT).orEmpty() + clipItems,
-            )
-            if (url != null) IncomingLinkIntent.Supported(url) else IncomingLinkIntent.Unsupported
+            IncomingLinkIntent.Unsupported
         }
 
         Intent.ACTION_VIEW -> {

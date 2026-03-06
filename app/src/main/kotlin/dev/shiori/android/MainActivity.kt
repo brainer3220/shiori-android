@@ -89,6 +89,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingSharedUrl: String? = null
     private var pendingBrowserStatusMessage: String? = null
     private var lastHandledIntentKey: String? = null
+    private var lastHandledSharedUrl: String? = null
     private var openBrowserAfterValidation = false
     private val selectedLinkIds = linkedSetOf<Long>()
     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
@@ -120,6 +121,7 @@ class MainActivity : AppCompatActivity() {
         accessStatusOverrideMessage = savedInstanceState?.getString(KEY_ACCESS_STATUS_OVERRIDE)
         pendingBrowserStatusMessage = savedInstanceState?.getString(KEY_PENDING_BROWSER_STATUS)
         lastHandledIntentKey = savedInstanceState?.getString(KEY_LAST_HANDLED_INTENT)
+        lastHandledSharedUrl = savedInstanceState?.getString(KEY_LAST_HANDLED_SHARED_URL)
 
         loadStoredConfig()
         handleIncomingIntent(intent)
@@ -142,6 +144,7 @@ class MainActivity : AppCompatActivity() {
         outState.putString(KEY_ACCESS_STATUS_OVERRIDE, accessStatusOverrideMessage)
         outState.putString(KEY_PENDING_BROWSER_STATUS, pendingBrowserStatusMessage)
         outState.putString(KEY_LAST_HANDLED_INTENT, lastHandledIntentKey)
+        outState.putString(KEY_LAST_HANDLED_SHARED_URL, lastHandledSharedUrl)
     }
 
     private fun bindViews() {
@@ -898,7 +901,11 @@ class MainActivity : AppCompatActivity() {
             }
 
             is IncomingLinkIntent.Supported -> {
+                if (incomingLinkIntent.url == pendingSharedUrl || incomingLinkIntent.url == lastHandledSharedUrl) {
+                    return
+                }
                 pendingBrowserStatusMessage = null
+                lastHandledSharedUrl = incomingLinkIntent.url
                 pendingSharedUrl = incomingLinkIntent.url
                 if (isSavedConfigValid() && !hasUnsavedChanges()) {
                     startConnectionValidation(openBrowserOnSuccess = true)
@@ -1218,5 +1225,6 @@ class MainActivity : AppCompatActivity() {
         const val KEY_ACCESS_STATUS_OVERRIDE = "access_status_override"
         const val KEY_PENDING_BROWSER_STATUS = "pending_browser_status"
         const val KEY_LAST_HANDLED_INTENT = "last_handled_intent"
+        const val KEY_LAST_HANDLED_SHARED_URL = "last_handled_shared_url"
     }
 }
