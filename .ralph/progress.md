@@ -6,6 +6,45 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-06 17:53:33 KST] - US-005: Accept URLs from Android intents
+Thread: 
+Run: 20260306-160314-32261 (iteration 10)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-10.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-10.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 9e4a466 feat: accept shared URLs from Android intents
+- Post-commit status: `.ralph/activity.log`, `.ralph/progress.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+  - Command: `adb wait-for-device && while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do sleep 5; done` -> PASS
+- Files changed:
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+- What was implemented
+  - Registered `SEND`, `SEND_MULTIPLE`, and browsable `VIEW` intent filters so `MainActivity` can receive shared URLs and direct open-link intents from Android.
+  - Added intent parsing helpers that extract the first supported HTTP or HTTPS URL from shared text, multi-share payloads, clip data, and deep-link data while surfacing unsupported content gracefully.
+  - Reused the existing add-link save workflow by buffering an incoming shared URL, injecting it into the add-link form, and calling the same repository-backed save path used for manual entry.
+  - Preserved feedback for cold-launch shares, duplicate saves, validation errors, and missing API access with new status messages and state restoration for pending intent work.
+  - Added unit coverage for URL extraction plus emulator coverage for cold-launch share intents, unsupported shared text, and deep-link imports on `Wear_OS_Large_Round_API_33`.
+  - Reviewed the final changes for security, performance, and regression risk: only trimmed HTTP or HTTPS URLs are accepted from intents, shared imports reuse the existing authenticated save path without extra network loops, and the prior manual add-link and browsing flows remain covered by unit and instrumentation tests.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Treating external intents as a thin input layer over the existing form and repository keeps share-sheet behavior aligned with the in-app save flow.
+  - Gotchas encountered
+    - Running Gradle quality gates in parallel can corrupt Android intermediates in this repo; rerun `lintDebug` sequentially if resource compilation fails after a concurrent build.
+  - Useful context
+    - `connectedDebugAndroidTest` on the Wear emulator is enough to validate cold-launch intent handling because the instrumentation tests launch `MainActivity` with explicit `SEND` and `VIEW` intents.
+---
+
 ## [2026-03-06 17:30:35 KST] - US-004: Save links from inside the app
 Thread: 
 Run: 20260306-160314-32261 (iteration 7)

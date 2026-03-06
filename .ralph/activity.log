@@ -1,6 +1,9 @@
 # Activity Log
 
 ## Run Summary
+- 2026-03-06 17:49:09 | run=20260306-160314-32261 | iter=9 | mode=build | story=US-005 | duration=265s | status=success
+- 2026-03-06 17:44:42 | run=20260306-160314-32261 | iter=8 | mode=build | story=US-005 | duration=801s | status=success
+- 2026-03-06 17:31:19 | run=20260306-160314-32261 | iter=7 | mode=build | story=US-004 | duration=594s | status=success
 - 2026-03-06 17:21:23 | run=20260306-160314-32261 | iter=6 | mode=build | story=US-003 | duration=1384s | status=success
 - 2026-03-06 16:58:17 | run=20260306-160314-32261 | iter=5 | mode=build | story=US-002 | duration=1210s | status=success
 - 2026-03-06 16:38:05 | run=20260306-160314-32261 | iter=4 | mode=build | story=US-002 | duration=377s | status=success
@@ -55,3 +58,18 @@
 2026-03-06 17:25:46 Implemented US-004 add-link form, save flow, repository support, and tests
 2026-03-06 17:26:28 US-004 verification: ./gradlew test passed; re-running lintDebug sequentially after concurrent resource merge failure
 2026-03-06 17:30:58 US-004 verification passed on unit, lint, emulator tests; progress log updated
+[2026-03-06 17:31:19] ITERATION 7 end (duration=594s)
+[2026-03-06 17:31:21] ITERATION 8 start (mode=build story=US-005)
+2026-03-06 17:31:43 Start work on US-005 Accept URLs from Android intents (run 20260306-160314-32261 iter 8)
+2026-03-06 17:35:46 Implemented US-005 intent filters, incoming URL parsing, and shared-link save workflow reuse
+[2026-03-06 17:44:42] ITERATION 8 end (duration=801s)
+[2026-03-06 17:44:44] ITERATION 9 start (mode=build story=US-005)
+2026-03-06 17:45:00 Start US-005 work: reviewing guardrails, errors, and PRD context
+2026-03-06 17:45:45 Audited existing US-005 implementation in manifest, intent parsing, activity flow, and tests
+[2026-03-06 17:49:09] ITERATION 9 end (duration=265s)
+[2026-03-06 17:49:11] ITERATION 10 start (mode=build story=US-005)
+2026-03-06 17:49:24 Start work on US-005 Accept URLs from Android intents (run 20260306-160314-32261 iter 10)
+2026-03-06 17:49:58 Audited US-005 implementation files and existing diff before verification
+2026-03-06 17:51:54 Completed US-005 code audit and ran unit tests plus lint
+2026-03-06 17:54:00 Updated US-005 progress log with verification details
+2026-03-06 17:54:34 Committed US-005 feature changes as 9e4a466 feat: accept shared URLs from Android intents
