@@ -6,6 +6,48 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-06 23:13:05 KST] - US-001: Store API access
+Thread: 
+Run: 20260306-222712-39971 (iteration 3)
+Run log: /Users/brainer/Programming/shiori-android/docs/.ralph/runs/run-20260306-222712-39971-iter-3.log
+Run summary: /Users/brainer/Programming/shiori-android/docs/.ralph/runs/run-20260306-222712-39971-iter-3.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: 9bc6431 feat: validate access before opening links
+- Post-commit status: `docs/`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+  - Command: `adb wait-for-device && until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do sleep 5; done` -> PASS
+- Files changed:
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+  - `app/src/main/kotlin/dev/shiori/android/ApiAccess.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/main/res/layout/activity_main.xml`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/test/kotlin/dev/shiori/android/ApiAccessInputValidatorTest.kt`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinkListAdapter.kt`
+  - `app/src/main/res/layout/item_link.xml`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+- What was implemented
+  - Kept the access screen in front until saved credentials pass a live Shiori connection check, including cold launch, resumed browser state, and pending shared-link flows.
+  - Expanded server URL validation to accept `https://www.shiori.sh`, emulator loopback hosts, `.local` names, and private LAN HTTP hosts while continuing to reject malformed or insecure remote URLs.
+  - Preserved encrypted API-key storage and clear-key behavior while keeping the saved server URL intact, then added emulator coverage for launch-time validation success and failure states.
+  - Refined the Wear browser layout so the validated post-access flow and trash controls remain reachable during connected tests without breaking existing inbox, archive, and share-import coverage.
+  - Reviewed the final changes for security, performance, and regression risk: API keys remain normalized and stored only in encrypted preferences, launch validation performs a single lightweight authenticated request before opening link actions, and the full unit, lint, and emulator suite still passes after the access gating changes.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Treat launch-time access checks as the single gate into the browser screen so manual opens and share-import resumes cannot bypass saved-credential validation.
+  - Gotchas encountered
+    - Wear round-screen instrumentation can fail on clickable controls that are technically laid out but off-screen, so browser content benefits from a scroll container plus targeted auto-scroll when contextual actions appear lower in the page.
+  - Useful context
+    - `lintDebug` passes in this environment even though AndroidX lint jars emit Java class-version warnings on stdout.
+---
+
 ## [2026-03-06 17:53:33 KST] - US-005: Accept URLs from Android intents
 Thread: 
 Run: 20260306-160314-32261 (iteration 10)
