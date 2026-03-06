@@ -40,7 +40,7 @@ interface ShioriApiClient {
     suspend fun createLink(request: CreateLinkRequest): ShioriApiResult<CreateLinkResponse>
     suspend fun updateReadState(request: BulkReadStateRequest): ShioriApiResult<BulkReadStateResponse>
     suspend fun updateLink(id: String, request: UpdateLinkRequest): ShioriApiResult<LinkMutationResponse>
-    suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse>
+    suspend fun restoreLink(id: String): ShioriApiResult<LinkMutationResponse>
     suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse>
     suspend fun deleteLink(id: String): ShioriApiResult<DeleteLinkResponse>
 }
@@ -74,7 +74,7 @@ class DefaultShioriApiClient internal constructor(
         service.updateLink(id, request.toRequestBody())
     }
 
-    override suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse> = execute {
+    override suspend fun restoreLink(id: String): ShioriApiResult<LinkMutationResponse> = execute {
         service.restoreLink(id, UpdateLinkRequest(restore = true).toRequestBody())
     }
 

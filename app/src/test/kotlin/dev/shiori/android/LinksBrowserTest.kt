@@ -240,7 +240,7 @@ class LinksBrowserTest {
         val createResult = ShioriApiResult.Success(CreateLinkResponse(success = true, linkId = "9"))
         val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = 2))
         val singleUpdateResult = ShioriApiResult.Success(LinkMutationResponse(success = true, message = "Link updated", linkId = "8"))
-        val restoreResult = ShioriApiResult.Success(LinkResponse(id = "12", url = "https://example.com/12", title = "Restored title"))
+        val restoreResult = ShioriApiResult.Success(LinkMutationResponse(success = true, message = "Link restored", linkId = "12"))
         val deleteResult = ShioriApiResult.Success(DeleteLinkResponse(linkId = "13", message = "Link deleted"))
         val emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(deleted = 3, message = "Trash emptied"))
         var lastInboxQuery: LinksQuery? = null
@@ -279,7 +279,7 @@ class LinksBrowserTest {
             return singleUpdateResult
         }
 
-        override suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse> {
+        override suspend fun restoreLink(id: String): ShioriApiResult<LinkMutationResponse> {
             lastRestoredId = id
             return restoreResult
         }

@@ -98,7 +98,7 @@ interface LinksRepository {
     suspend fun restoreLink(
         config: ApiAccessConfig,
         id: String,
-    ): ShioriApiResult<LinkResponse>
+    ): ShioriApiResult<LinkMutationResponse>
 
     suspend fun deleteLink(
         config: ApiAccessConfig,
@@ -152,7 +152,7 @@ class DefaultLinksRepository(
     override suspend fun restoreLink(
         config: ApiAccessConfig,
         id: String,
-    ): ShioriApiResult<LinkResponse> = clientFactory.create(config).restoreLink(id)
+    ): ShioriApiResult<LinkMutationResponse> = clientFactory.create(config).restoreLink(id)
 
     override suspend fun deleteLink(
         config: ApiAccessConfig,
@@ -368,6 +368,12 @@ internal fun isLinkUrlValid(rawValue: String): Boolean {
 }
 
 internal fun LinkResponse.toBrowseDestination(): LinkBrowseDestination = if (read == true) {
+    LinkBrowseDestination.Archive
+} else {
+    LinkBrowseDestination.Inbox
+}
+
+internal fun LinkCardModel.toBrowseDestination(): LinkBrowseDestination = if (read == true) {
     LinkBrowseDestination.Archive
 } else {
     LinkBrowseDestination.Inbox

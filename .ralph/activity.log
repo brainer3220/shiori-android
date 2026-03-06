@@ -1,6 +1,7 @@
 # Activity Log
 
 ## Run Summary
+- 2026-03-07 00:59:30 | run=20260307-001840-72835 | iter=4 | mode=build | story=US-004 | duration=557s | status=success
 - 2026-03-07 00:50:10 | run=20260307-001840-72835 | iter=3 | mode=build | story=US-003 | duration=503s | status=success
 - 2026-03-07 00:41:45 | run=20260307-001840-72835 | iter=2 | mode=build | story=US-002 | duration=450s | status=success
 - 2026-03-07 00:34:13 | run=20260307-001840-72835 | iter=1 | mode=build | story=US-001 | duration=933s | status=success
@@ -147,3 +148,8 @@
 2026-03-07 00:57:09 US-004 verification complete: gradlew test, lintDebug, connectedDebugAndroidTest
 2026-03-07 00:58:39 Updated US-004 progress entry with commit 46e16f7 and verification details
 2026-03-07 00:59:17 Adjusted US-004 progress entry to reflect final commit set and remaining unrelated docs state
+[2026-03-07 00:59:30] ITERATION 4 end (duration=557s)
+[2026-03-07 00:59:32] ITERATION 5 start (mode=build story=US-005)
+2026-03-07 00:59:44 Start work on US-005 trash/restore/empty-trash flows
+2026-03-07 01:01:59 Implemented documented restore response handling and trash-flow tests for US-005
+2026-03-07 01:03:57 Completed US-005 verification: test, lintDebug, and connectedDebugAndroidTest

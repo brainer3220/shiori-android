@@ -394,12 +394,22 @@ class MainActivityTest {
     }
 
     @Test
-    fun restoreActionReturnsTrashedLinkToInbox() {
+    fun restoreActionReturnsTrashedReadLinkToArchiveAfterRefresh() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
             page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Archive,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 1,
+                links = listOf(link(id = "12", title = "Restore me", read = true, status = "ready")),
+            ),
         )
         linksRepository.enqueue(
             LinkBrowseDestination.Trash,
@@ -408,11 +418,21 @@ class MainActivityTest {
                 limit = 20,
                 offset = 0,
                 total = 1,
-                links = listOf(link(id = "12", title = "Restore me", read = false, status = "trashed")),
+                links = listOf(link(id = "12", title = "Restore me", read = true, status = "trashed")),
+            ),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Trash,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 0,
+                links = emptyList(),
             ),
         )
         linksRepository.restoreLinkResult = ShioriApiResult.Success(
-            link(id = "12", title = "Restore me", read = false, status = "ready"),
+            LinkMutationResponse(success = true, message = "Link restored", linkId = "12"),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -427,10 +447,96 @@ class MainActivityTest {
 
             invokePrivateMethod(scenario, "restoreLink", cardAt(scenario, 0))
 
-            waitForText(scenario, R.id.add_link_status_text, "Link restored. Showing it in your inbox.")
+            waitForText(scenario, R.id.add_link_status_text, "Link restored. Showing it in your archive.")
             waitForRecyclerCount(scenario, 1)
             assertLoadedTitles(scenario, "Restore me")
             assertEquals(listOf("12"), linksRepository.restoreRequests)
+            assertEquals(
+                listOf(
+                    Request(LinkBrowseDestination.Inbox, 20, 0),
+                    Request(LinkBrowseDestination.Trash, 20, 0),
+                    Request(LinkBrowseDestination.Archive, 20, 0),
+                    Request(LinkBrowseDestination.Trash, 20, 0),
+                ),
+                linksRepository.requests,
+            )
+        }
+    }
+
+    @Test
+    fun restoreNotFoundKeepsTrashListIntact() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Trash,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 1,
+                links = listOf(link(id = "14", title = "Missing trash item", read = false, status = "trashed")),
+            ),
+        )
+        linksRepository.restoreLinkResult = ShioriApiResult.Failure(ShioriApiError.NotFound)
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            clickButton(scenario, R.id.filter_trash_button)
+            waitForRecyclerCount(scenario, 1)
+
+            invokePrivateMethod(scenario, "restoreLink", cardAt(scenario, 0))
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori could not find that link anymore. Refresh and try again.",
+            )
+            waitForRecyclerCount(scenario, 1)
+            assertLoadedTitles(scenario, "Missing trash item")
+            assertEquals(
+                listOf(
+                    Request(LinkBrowseDestination.Inbox, 20, 0),
+                    Request(LinkBrowseDestination.Trash, 20, 0),
+                ),
+                linksRepository.requests,
+            )
+        }
+    }
+
+    @Test
+    fun emptyTrashCancelKeepsItemsAndSkipsDeleteCall() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Trash,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 1,
+                links = listOf(link(id = "15", title = "Trash item", read = true, status = "trashed")),
+            ),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            clickButton(scenario, R.id.filter_trash_button)
+            waitForRecyclerCount(scenario, 1)
+
+            onView(withId(R.id.empty_trash_button)).perform(click())
+            onView(withText(android.R.string.cancel)).perform(click())
+
+            waitForRecyclerCount(scenario, 1)
+            assertLoadedTitles(scenario, "Trash item")
+            assertEquals(0, linksRepository.emptyTrashCalls)
         }
     }
 
@@ -467,6 +573,45 @@ class MainActivityTest {
             waitForText(scenario, R.id.add_link_status_text, "Trash emptied. Removed 1 links.")
             waitForRecyclerCount(scenario, 0)
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertEquals(1, linksRepository.emptyTrashCalls)
+        }
+    }
+
+    @Test
+    fun emptyTrashRateLimitedKeepsItemsVisible() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Trash,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 1,
+                links = listOf(link(id = "16", title = "Rate limited trash item", read = true, status = "trashed")),
+            ),
+        )
+        linksRepository.emptyTrashResult = ShioriApiResult.Failure(ShioriApiError.RateLimited)
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            clickButton(scenario, R.id.filter_trash_button)
+            waitForRecyclerCount(scenario, 1)
+
+            onView(withId(R.id.empty_trash_button)).perform(click())
+            onView(withText(R.string.action_empty_trash)).perform(click())
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori rate limited this trash action. Wait a moment before trying again.",
+            )
+            waitForRecyclerCount(scenario, 1)
+            assertLoadedTitles(scenario, "Rate limited trash item")
             assertEquals(1, linksRepository.emptyTrashCalls)
         }
     }
@@ -1229,8 +1374,8 @@ class MainActivityTest {
         var updateLinkResult: ShioriApiResult<LinkMutationResponse> = ShioriApiResult.Success(
             LinkMutationResponse(success = true, message = "Link updated", linkId = "99"),
         )
-        var restoreLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
-            LinkResponse(id = "99", url = "https://example.com/99"),
+        var restoreLinkResult: ShioriApiResult<LinkMutationResponse> = ShioriApiResult.Success(
+            LinkMutationResponse(success = true, message = "Link restored", linkId = "99"),
         )
         var deleteLinkResult: ShioriApiResult<DeleteLinkResponse> = ShioriApiResult.Success(
             DeleteLinkResponse(linkId = "99", message = "Link deleted"),
@@ -1302,7 +1447,7 @@ class MainActivityTest {
         override suspend fun restoreLink(
             config: ApiAccessConfig,
             id: String,
-        ): ShioriApiResult<LinkResponse> {
+        ): ShioriApiResult<LinkMutationResponse> {
             restoreRequests += id
             return restoreLinkResult
         }

@@ -197,8 +197,9 @@ class ShioriApiClientTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
                 "{" +
-                    "\"id\":\"link-2\"," +
-                    "\"url\":\"https://example.com/2\"" +
+                    "\"success\":true," +
+                    "\"message\":\"Link restored\"," +
+                    "\"linkId\":\"link-2\"" +
                     "}"
             ),
         )
@@ -218,6 +219,7 @@ class ShioriApiClientTest {
         assertTrue(bulkResult is ShioriApiResult.Success)
         assertTrue(restoreResult is ShioriApiResult.Success)
         assertEquals(1, (bulkResult as ShioriApiResult.Success).value.updated)
+        assertEquals("link-2", (restoreResult as ShioriApiResult.Success).value.linkId)
     }
 
     @Test

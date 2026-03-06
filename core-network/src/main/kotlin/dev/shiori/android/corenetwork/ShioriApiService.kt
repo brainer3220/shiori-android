@@ -41,7 +41,7 @@ internal interface ShioriApiService {
     suspend fun restoreLink(
         @Path("id") id: String,
         @Body request: RequestBody,
-    ): Response<LinkResponse>
+    ): Response<LinkMutationResponse>
 
     @HTTP(method = "DELETE", path = "api/links", hasBody = false)
     suspend fun emptyTrash(): Response<EmptyTrashResponse>

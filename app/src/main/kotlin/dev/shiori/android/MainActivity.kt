@@ -557,8 +557,10 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = linksRepository.restoreLink(savedConfig, item.id)) {
                 is ShioriApiResult.Success -> {
-                    val restoredDestination = result.value.toBrowseDestination()
-                    applyUpdatedLink(result.value)
+                    val restoredDestination = item.toBrowseDestination()
+                    resetLinkState(LinkBrowseDestination.Trash)
+                    resetLinkState(restoredDestination)
+                    clearSelectedLinks(renderAfterClear = false)
                     isUpdatingLinks = false
                     addLinkStatusMessage = getString(
                         if (restoredDestination == LinkBrowseDestination.Archive) {
@@ -569,7 +571,8 @@ class MainActivity : AppCompatActivity() {
                     )
                     currentDestination = restoredDestination
                     renderBrowserState()
-                    ensureCurrentDestinationLoaded()
+                    fetchLinks(restoredDestination, reset = true)
+                    fetchLinks(LinkBrowseDestination.Trash, reset = true)
                 }
 
                 is ShioriApiResult.Failure -> {
