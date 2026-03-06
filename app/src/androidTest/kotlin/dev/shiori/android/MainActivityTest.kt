@@ -21,7 +21,9 @@ import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkResponse
+import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiResult
+import dev.shiori.android.corenetwork.UpdateLinkRequest
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -55,7 +57,7 @@ class MainActivityTest {
     @Test
     fun apiKeyCanBeSavedRestoredAndCleared() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            enterAccess("https://shiori.example.com", "test-api-key")
+            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
             onView(withId(R.id.save_button)).perform(scrollTo(), click())
             onView(withId(R.id.status_text)).check(matches(withText(R.string.message_saved_access)))
             onView(withId(R.id.continue_button)).check(matches(isEnabled()))
@@ -82,7 +84,7 @@ class MainActivityTest {
         AppDependencies.overrideCheckerForTests(FakeApiConnectionChecker(ApiValidationStatus.Unauthorized))
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            enterAccess("https://shiori.example.com", "test-api-key")
+            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
             onView(withId(R.id.save_button)).perform(scrollTo(), click())
             clickButton(scenario, R.id.validate_button)
             waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_unauthorized))
@@ -94,7 +96,7 @@ class MainActivityTest {
         AppDependencies.overrideCheckerForTests(FakeApiConnectionChecker(ApiValidationStatus.Failure))
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            enterAccess("https://shiori.example.com", "test-api-key")
+            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
             onView(withId(R.id.save_button)).perform(scrollTo(), click())
             clickButton(scenario, R.id.validate_button)
             waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_failure))
@@ -202,6 +204,121 @@ class MainActivityTest {
             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
             clickButton(scenario, R.id.filter_archive_button)
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+        }
+    }
+
+    @Test
+    fun singleReadToggleUpdatesCurrentListImmediately() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 6, title = "Toggle article", read = false))),
+        )
+        linksRepository.updateLinkResult = ShioriApiResult.Success(
+            link(id = 6, title = "Toggle article", read = true),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForRecyclerCount(scenario, 1)
+
+            invokePrivateMethod(scenario, "toggleLinkReadState", cardAt(scenario, 0))
+
+            waitForText(scenario, R.id.add_link_status_text, "Link marked as read.")
+            waitForRecyclerCount(scenario, 0)
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertEquals(listOf(6L to UpdateLinkRequest(read = true)), linksRepository.updateRequests)
+        }
+    }
+
+    @Test
+    fun bulkReadUpdateUsesPatchLinksForSelectedIds() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 2,
+                links = listOf(
+                    link(id = 7, title = "Bulk article 1", read = false),
+                    link(id = 8, title = "Bulk article 2", read = false),
+                ),
+            ),
+        )
+        linksRepository.bulkUpdateResult = ShioriApiResult.Success(
+            listOf(
+                link(id = 7, title = "Bulk article 1", read = true),
+                link(id = 8, title = "Bulk article 2", read = true),
+            ),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForRecyclerCount(scenario, 2)
+
+            invokePrivateMethod(scenario, "onLinkSelectionChanged", cardAt(scenario, 0), true)
+            invokePrivateMethod(scenario, "onLinkSelectionChanged", cardAt(scenario, 1), true)
+            clickButton(scenario, R.id.mark_selected_read_button)
+
+            waitForText(scenario, R.id.add_link_status_text, "Selected links marked as read.")
+            waitForRecyclerCount(scenario, 0)
+            assertEquals(listOf(BulkUpdateRequest(ids = listOf(7L, 8L), read = true)), linksRepository.bulkUpdateRequests)
+        }
+    }
+
+    @Test
+    fun editFlowUpdatesTitleAndClearsSummaryWithNull() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 9, title = "Editable article", read = false))),
+        )
+        linksRepository.updateLinkResult = ShioriApiResult.Success(
+            link(id = 9, title = "Edited title", read = false).copy(summary = null),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForRecyclerCount(scenario, 1)
+
+            invokePrivateMethod(
+                scenario,
+                "submitMetadataUpdate",
+                9L,
+                UpdateLinkRequest(title = "Edited title", summary = null, clearSummary = true),
+            )
+
+            waitForText(scenario, R.id.add_link_status_text, "Link details updated.")
+            assertLoadedTitles(scenario, "Edited title")
+            assertEquals(
+                listOf(9L to UpdateLinkRequest(title = "Edited title", summary = null, clearSummary = true)),
+                linksRepository.updateRequests,
+            )
+            assertFirstCard(scenario, expectedDomain = "example.com", expectedSummary = null, expectedStatus = "Unread  •  Ready")
+        }
+    }
+
+    @Test
+    fun conflictResponsesShowSpecificProcessingMessage() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 10, title = "Processing article", read = false))),
+        )
+        linksRepository.updateLinkResult = ShioriApiResult.Failure(ShioriApiError.Conflict)
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForRecyclerCount(scenario, 1)
+
+            invokePrivateMethod(scenario, "toggleLinkReadState", cardAt(scenario, 0))
+
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Shiori is still processing this link, so read state or metadata cannot change yet. Try again in a moment.",
+            )
         }
     }
 
@@ -378,11 +495,13 @@ class MainActivityTest {
         }
     }
 
-    private fun enterAccess(serverUrl: String, apiKey: String) {
-        onView(withId(R.id.server_url_input)).perform(scrollTo(), click(), replaceText(serverUrl))
-        closeSoftKeyboard()
-        onView(withId(R.id.api_key_input)).perform(scrollTo(), click(), replaceText(apiKey))
-        closeSoftKeyboard()
+    private fun enterAccess(
+        scenario: ActivityScenario<MainActivity>,
+        serverUrl: String,
+        apiKey: String,
+    ) {
+        setText(scenario, R.id.server_url_input, serverUrl)
+        setText(scenario, R.id.api_key_input, apiKey)
     }
 
     private fun waitForText(
@@ -440,6 +559,38 @@ class MainActivityTest {
         }
     }
 
+    private fun cardAt(
+        scenario: ActivityScenario<MainActivity>,
+        position: Int,
+    ): LinkCardModel {
+        var card: LinkCardModel? = null
+        scenario.onActivity { activity ->
+            card = (activity.findViewById<RecyclerView>(R.id.links_list).adapter as LinkListAdapter)
+                .currentItems()[position]
+        }
+        return requireNotNull(card)
+    }
+
+    private fun invokePrivateMethod(
+        scenario: ActivityScenario<MainActivity>,
+        methodName: String,
+        vararg args: Any,
+    ) {
+        scenario.onActivity { activity ->
+            val parameterTypes = args.map {
+                when (it) {
+                    is Boolean -> Boolean::class.javaPrimitiveType!!
+                    is Long -> Long::class.javaPrimitiveType!!
+                    is Int -> Int::class.javaPrimitiveType!!
+                    else -> it::class.java
+                }
+            }.toTypedArray()
+            val method = MainActivity::class.java.getDeclaredMethod(methodName, *parameterTypes)
+            method.isAccessible = true
+            method.invoke(activity, *args)
+        }
+    }
+
     private fun waitForRecyclerCount(
         scenario: ActivityScenario<MainActivity>,
         expectedCount: Int,
@@ -468,7 +619,7 @@ class MainActivityTest {
     private fun assertFirstCard(
         scenario: ActivityScenario<MainActivity>,
         expectedDomain: String,
-        expectedSummary: String,
+        expectedSummary: String?,
         expectedStatus: String,
     ) {
         val latch = CountDownLatch(1)
@@ -565,9 +716,15 @@ class MainActivityTest {
     private class FakeLinksRepository : LinksRepository {
         val requests = CopyOnWriteArrayList<Request>()
         val savedRequests = CopyOnWriteArrayList<CreateLinkRequest>()
+        val bulkUpdateRequests = CopyOnWriteArrayList<BulkUpdateRequest>()
+        val updateRequests = CopyOnWriteArrayList<Pair<Long, UpdateLinkRequest>>()
         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
             CreateLinkResponse(link = LinkResponse(id = 99, url = "https://example.com/99", read = false)),
+        )
+        var bulkUpdateResult: ShioriApiResult<List<LinkResponse>> = ShioriApiResult.Success(emptyList())
+        var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
+            LinkResponse(id = 99, url = "https://example.com/99", read = false),
         )
 
         fun enqueue(
@@ -610,11 +767,34 @@ class MainActivityTest {
             savedRequests += request
             return saveResult
         }
+
+        override suspend fun updateReadState(
+            config: ApiAccessConfig,
+            ids: List<Long>,
+            read: Boolean,
+        ): ShioriApiResult<List<LinkResponse>> {
+            bulkUpdateRequests += BulkUpdateRequest(ids = ids, read = read)
+            return bulkUpdateResult
+        }
+
+        override suspend fun updateLink(
+            config: ApiAccessConfig,
+            id: Long,
+            request: UpdateLinkRequest,
+        ): ShioriApiResult<LinkResponse> {
+            updateRequests += id to request
+            return updateLinkResult
+        }
     }
 
     private data class Request(
         val destination: LinkBrowseDestination,
         val limit: Int,
         val offset: Int,
+    )
+
+    private data class BulkUpdateRequest(
+        val ids: List<Long>,
+        val read: Boolean,
     )
 }

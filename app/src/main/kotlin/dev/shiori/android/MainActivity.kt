@@ -2,10 +2,12 @@ package dev.shiori.android
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.CheckBox
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -21,6 +23,7 @@ import com.google.android.material.textfield.TextInputLayout
 import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiResult
+import dev.shiori.android.corenetwork.UpdateLinkRequest
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -54,19 +57,29 @@ class MainActivity : AppCompatActivity() {
     private lateinit var addLinkButton: MaterialButton
     private lateinit var linksList: RecyclerView
     private lateinit var loadMoreButton: MaterialButton
+    private lateinit var linkSelectionStatusText: TextView
+    private lateinit var markSelectedReadButton: MaterialButton
+    private lateinit var markSelectedUnreadButton: MaterialButton
+    private lateinit var clearSelectionButton: MaterialButton
 
-    private val linksAdapter = LinkListAdapter()
+    private val linksAdapter = LinkListAdapter(
+        onSelectionChanged = ::onLinkSelectionChanged,
+        onReadToggleClicked = ::toggleLinkReadState,
+        onEditClicked = ::showEditLinkDialog,
+    )
 
     private var savedConfig = ApiAccessConfig()
     private var validationStatus = ApiValidationStatus.Idle
     private var isWorking = false
     private var isSavingLink = false
+    private var isUpdatingLinks = false
     private var currentScreen = Screen.Access
     private var currentDestination = LinkBrowseDestination.Inbox
     private var addLinkStatusMessage: String? = null
     private var accessStatusOverrideMessage: String? = null
     private var pendingSharedUrl: String? = null
     private var lastHandledIntentKey: String? = null
+    private val selectedLinkIds = linkedSetOf<Long>()
     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,6 +154,10 @@ class MainActivity : AppCompatActivity() {
         addLinkButton = findViewById(R.id.add_link_button)
         linksList = findViewById(R.id.links_list)
         loadMoreButton = findViewById(R.id.load_more_button)
+        linkSelectionStatusText = findViewById(R.id.link_selection_status_text)
+        markSelectedReadButton = findViewById(R.id.mark_selected_read_button)
+        markSelectedUnreadButton = findViewById(R.id.mark_selected_unread_button)
+        clearSelectionButton = findViewById(R.id.clear_selection_button)
     }
 
     private fun bindEvents() {
@@ -216,6 +233,18 @@ class MainActivity : AppCompatActivity() {
 
         addLinkButton.setOnClickListener {
             saveLink()
+        }
+
+        markSelectedReadButton.setOnClickListener {
+            updateSelectedLinksReadState(read = true)
+        }
+
+        markSelectedUnreadButton.setOnClickListener {
+            updateSelectedLinksReadState(read = false)
+        }
+
+        clearSelectionButton.setOnClickListener {
+            clearSelectedLinks()
         }
 
         loadMoreButton.setOnClickListener {
@@ -351,6 +380,270 @@ class MainActivity : AppCompatActivity() {
         fetchLinks(currentDestination, reset = true)
     }
 
+    private fun onLinkSelectionChanged(item: LinkCardModel, isSelected: Boolean) {
+        if (!isLinkActionAvailable()) {
+            return
+        }
+
+        if (isSelected) {
+            selectedLinkIds.add(item.id)
+        } else {
+            selectedLinkIds.remove(item.id)
+        }
+        renderBrowserState()
+    }
+
+    private fun clearSelectedLinks(renderAfterClear: Boolean = true) {
+        if (selectedLinkIds.isEmpty()) {
+            return
+        }
+
+        selectedLinkIds.clear()
+        if (renderAfterClear) {
+            renderBrowserState()
+        }
+    }
+
+    private fun pruneSelectedLinks() {
+        val visibleIds = currentLinkState().items.mapTo(mutableSetOf()) { it.id }
+        selectedLinkIds.retainAll(visibleIds)
+    }
+
+    private fun updateSelectedLinksReadState(read: Boolean) {
+        if (!isLinkActionAvailable()) {
+            addLinkStatusMessage = getString(R.string.message_selection_disabled_in_trash)
+            renderBrowserState()
+            return
+        }
+        if (selectedLinkIds.isEmpty()) {
+            addLinkStatusMessage = getString(R.string.message_no_selected_links)
+            renderBrowserState()
+            return
+        }
+
+        val ids = selectedLinkIds.toList()
+        isUpdatingLinks = true
+        addLinkStatusMessage = getString(R.string.message_link_updating)
+        renderBrowserState()
+
+        lifecycleScope.launch {
+            when (val result = linksRepository.updateReadState(savedConfig, ids, read)) {
+                is ShioriApiResult.Success -> {
+                    if (result.value.isNotEmpty()) {
+                        applyUpdatedLinks(result.value)
+                    } else {
+                        applyLocalReadState(ids, read)
+                    }
+                    clearSelectedLinks(renderAfterClear = false)
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = getString(
+                        if (read) R.string.message_links_marked_read else R.string.message_links_marked_unread,
+                    )
+                    renderBrowserState()
+                }
+
+                is ShioriApiResult.Failure -> {
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = result.error.toUpdateMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
+    private fun toggleLinkReadState(item: LinkCardModel) {
+        if (!isLinkActionAvailable() || isUpdatingLinks) {
+            return
+        }
+
+        val targetRead = item.read != true
+        isUpdatingLinks = true
+        addLinkStatusMessage = getString(R.string.message_link_updating)
+        renderBrowserState()
+
+        lifecycleScope.launch {
+            when (
+                val result = linksRepository.updateLink(
+                    savedConfig,
+                    item.id,
+                    UpdateLinkRequest(read = targetRead),
+                )
+            ) {
+                is ShioriApiResult.Success -> {
+                    applyUpdatedLink(result.value)
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = getString(
+                        if (targetRead) R.string.message_link_read_updated else R.string.message_link_unread_updated,
+                    )
+                    renderBrowserState()
+                }
+
+                is ShioriApiResult.Failure -> {
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = result.error.toUpdateMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
+    private fun showEditLinkDialog(item: LinkCardModel) {
+        if (!isLinkActionAvailable() || isUpdatingLinks) {
+            return
+        }
+
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_link, null)
+        val titleInput = dialogView.findViewById<TextInputEditText>(R.id.edit_link_title_input)
+        val summaryInput = dialogView.findViewById<TextInputEditText>(R.id.edit_link_summary_input)
+        val clearSummaryCheckbox = dialogView.findViewById<CheckBox>(R.id.edit_link_clear_summary_checkbox)
+
+        titleInput.setText(item.rawTitle.orEmpty())
+        summaryInput.setText(item.summary.orEmpty())
+        clearSummaryCheckbox.setOnCheckedChangeListener { _, isChecked ->
+            summaryInput.isEnabled = !isChecked
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.title_edit_link)
+            .setView(dialogView)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.action_save_changes, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val requestedTitle = normalizeLinkTitle(titleInput.text?.toString().orEmpty()).takeIf { value ->
+                    value.isNotEmpty()
+                }
+                val requestedSummary = if (clearSummaryCheckbox.isChecked) {
+                    null
+                } else {
+                    summaryInput.text?.toString()?.trim()?.takeIf { value -> value.isNotEmpty() } ?: item.summary
+                }
+
+                if (requestedTitle == item.rawTitle && requestedSummary == item.summary) {
+                    dialog.dismiss()
+                    return@setOnClickListener
+                }
+
+                dialog.dismiss()
+                submitMetadataUpdate(
+                    itemId = item.id,
+                    request = UpdateLinkRequest(
+                        title = requestedTitle,
+                        summary = requestedSummary,
+                        clearSummary = clearSummaryCheckbox.isChecked,
+                    ),
+                )
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun submitMetadataUpdate(itemId: Long, request: UpdateLinkRequest) {
+        isUpdatingLinks = true
+        addLinkStatusMessage = getString(R.string.message_link_updating)
+        renderBrowserState()
+
+        lifecycleScope.launch {
+            when (val result = linksRepository.updateLink(savedConfig, itemId, request)) {
+                is ShioriApiResult.Success -> {
+                    applyUpdatedLink(result.value)
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = getString(R.string.message_link_metadata_updated)
+                    renderBrowserState()
+                }
+
+                is ShioriApiResult.Failure -> {
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = result.error.toUpdateMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
+    private fun applyUpdatedLinks(updatedLinks: List<LinkResponse>) {
+        updatedLinks.forEach(::applyUpdatedLink)
+    }
+
+    private fun applyUpdatedLink(updatedLink: LinkResponse) {
+        val updatedCard = updatedLink.toCardModel()
+        LinkBrowseDestination.values().forEach { destination ->
+            val state = linkStates.getValue(destination)
+            val existingIndex = state.items.indexOfFirst { it.id == updatedCard.id }
+            val shouldInclude = matchesDestination(updatedLink, destination)
+            val updatedItems = when {
+                shouldInclude && existingIndex >= 0 -> state.items.toMutableList().apply { set(existingIndex, updatedCard) }
+                shouldInclude && existingIndex < 0 && state.hasLoadedOnce && destination != LinkBrowseDestination.Trash -> listOf(updatedCard) + state.items
+                !shouldInclude && existingIndex >= 0 -> state.items.filterNot { it.id == updatedCard.id }
+                else -> state.items
+            }
+
+            if (updatedItems != state.items) {
+                linkStates[destination] = state.copy(
+                    items = updatedItems,
+                    message = if (updatedItems.isEmpty() && state.hasLoadedOnce) {
+                        getString(R.string.message_links_empty)
+                    } else {
+                        null
+                    },
+                    total = state.total?.let { total ->
+                        when {
+                            shouldInclude && existingIndex < 0 -> total + 1
+                            !shouldInclude && existingIndex >= 0 -> (total - 1).coerceAtLeast(0)
+                            else -> total
+                        }
+                    },
+                )
+            }
+        }
+
+        pruneSelectedLinks()
+    }
+
+    private fun applyLocalReadState(ids: List<Long>, read: Boolean) {
+        val idSet = ids.toSet()
+        LinkBrowseDestination.values().forEach { destination ->
+            val state = linkStates.getValue(destination)
+            val updatedItems = state.items.mapNotNull { item ->
+                if (!idSet.contains(item.id)) {
+                    item
+                } else {
+                    val updatedItem = item.copy(
+                        read = read,
+                        readState = if (read) "Read" else "Unread",
+                    )
+                    if (matchesDestination(updatedItem, destination)) updatedItem else null
+                }
+            }
+
+            if (updatedItems != state.items) {
+                linkStates[destination] = state.copy(
+                    items = updatedItems,
+                    message = if (updatedItems.isEmpty() && state.hasLoadedOnce) getString(R.string.message_links_empty) else null,
+                )
+            }
+        }
+
+        pruneSelectedLinks()
+    }
+
+    private fun isLinkActionAvailable(): Boolean = currentDestination != LinkBrowseDestination.Trash
+
+    private fun matchesDestination(link: LinkResponse, destination: LinkBrowseDestination): Boolean = when (destination) {
+        LinkBrowseDestination.Inbox -> link.status != "trashed" && link.read != true
+        LinkBrowseDestination.Archive -> link.status != "trashed" && link.read == true
+        LinkBrowseDestination.Trash -> link.status == "trashed"
+    }
+
+    private fun matchesDestination(link: LinkCardModel, destination: LinkBrowseDestination): Boolean = when (destination) {
+        LinkBrowseDestination.Inbox -> link.read != true
+        LinkBrowseDestination.Archive -> link.read == true
+        LinkBrowseDestination.Trash -> false
+    }
+
     private fun validateConnection() {
         if (!isSavedConfigValid() || hasUnsavedChanges()) {
             render()
@@ -446,6 +739,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        clearSelectedLinks(renderAfterClear = false)
         currentDestination = destination
         renderBrowserState()
         ensureCurrentDestinationLoaded()
@@ -546,6 +840,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun resetLinkStates() {
+        selectedLinkIds.clear()
         LinkBrowseDestination.values().forEach { destination ->
             linkStates[destination] = LinkListUiState()
         }
@@ -602,8 +897,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val state = currentLinkState()
+        pruneSelectedLinks()
         val rawLinkUrl = addLinkUrlInput.text?.toString().orEmpty()
         val isLinkUrlValid = isLinkUrlValid(rawLinkUrl)
+        val linkActionsAvailable = isLinkActionAvailable()
         addLinkUrlLayout.error = when {
             rawLinkUrl.isBlank() || isLinkUrlValid -> null
             else -> getString(R.string.error_link_url)
@@ -615,7 +912,21 @@ class MainActivity : AppCompatActivity() {
         addLinkStatusText.visibility = if (addLinkStatusMessage.isNullOrBlank()) View.GONE else View.VISIBLE
         addLinkStatusText.text = addLinkStatusMessage
 
-        linksAdapter.submitItems(state.items)
+        linkSelectionStatusText.text = when {
+            !linkActionsAvailable -> getString(R.string.message_selection_disabled_in_trash)
+            selectedLinkIds.isNotEmpty() -> getString(R.string.message_selection_count, selectedLinkIds.size)
+            else -> getString(R.string.message_selection_idle)
+        }
+        markSelectedReadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
+        markSelectedUnreadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
+        clearSelectionButton.isEnabled = selectedLinkIds.isNotEmpty()
+
+        linksAdapter.submitItems(
+            newItems = state.items,
+            selectedIds = selectedLinkIds,
+            itemActionsEnabled = linkActionsAvailable && !isUpdatingLinks,
+            selectionEnabled = linkActionsAvailable,
+        )
 
         browserProgress.visibility = if (state.isInitialLoading) View.VISIBLE else View.GONE
         linksList.visibility = if (state.items.isEmpty() && state.isInitialLoading) View.INVISIBLE else View.VISIBLE

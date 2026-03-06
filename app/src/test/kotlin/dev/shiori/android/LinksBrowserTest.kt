@@ -7,6 +7,7 @@ import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.ShioriApiResult
+import dev.shiori.android.corenetwork.UpdateLinkRequest
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -34,19 +35,19 @@ class LinksBrowserTest {
     @Test
     fun `mergeLinkCards keeps first position while refreshing duplicates`() {
         val existing = listOf(
-            LinkCardModel(1, "One", "example.com", null, null, "Unread", null, null),
-            LinkCardModel(2, "Two", "example.com", null, null, "Unread", null, null),
+            LinkCardModel(1, "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel(2, "https://example.com/2", "Two", "Two", "example.com", null, false, null, "Unread", null, null),
         )
         val incoming = listOf(
-            LinkCardModel(2, "Two updated", "example.com", null, null, "Read", null, null),
-            LinkCardModel(3, "Three", "example.com", null, null, "Unread", null, null),
+            LinkCardModel(2, "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
+            LinkCardModel(3, "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
         )
 
         assertEquals(
             listOf(
-                LinkCardModel(1, "One", "example.com", null, null, "Unread", null, null),
-                LinkCardModel(2, "Two updated", "example.com", null, null, "Read", null, null),
-                LinkCardModel(3, "Three", "example.com", null, null, "Unread", null, null),
+                LinkCardModel(1, "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
+                LinkCardModel(2, "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
+                LinkCardModel(3, "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
             ),
             mergeLinkCards(existing, incoming),
         )
@@ -82,6 +83,32 @@ class LinksBrowserTest {
 
         assertSame(client.createResult, result)
         assertEquals(request, client.lastCreateRequest)
+    }
+
+    @Test
+    fun `repository forwards bulk read updates to api client`() = runTest {
+        val client = FakeShioriApiClient()
+        val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
+        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+
+        val result = repository.updateReadState(config, ids = listOf(2, 3), read = true)
+
+        assertEquals(ShioriApiResult.Success(client.updateResult.value.updated), result)
+        assertEquals(dev.shiori.android.corenetwork.BulkReadStateRequest(ids = listOf(2, 3), read = true), client.lastBulkRequest)
+    }
+
+    @Test
+    fun `repository forwards single link updates to api client`() = runTest {
+        val client = FakeShioriApiClient()
+        val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
+        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+        val request = UpdateLinkRequest(title = "Updated title", summary = null, read = true)
+
+        val result = repository.updateLink(config, id = 8, request = request)
+
+        assertSame(client.singleUpdateResult, result)
+        assertEquals(8L, client.lastUpdatedId)
+        assertEquals(request, client.lastUpdateRequest)
     }
 
     @Test
@@ -143,9 +170,14 @@ class LinksBrowserTest {
         val inboxResult = ShioriApiResult.Success(LinkListResponse())
         val trashResult = ShioriApiResult.Success(LinkListResponse())
         val createResult = ShioriApiResult.Success(CreateLinkResponse(link = LinkResponse(id = 9, url = "https://example.com/article")))
+        val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = listOf(LinkResponse(id = 2, url = "https://example.com/2", read = true))))
+        val singleUpdateResult = ShioriApiResult.Success(LinkResponse(id = 8, url = "https://example.com/8", title = "Updated title", read = true))
         var lastInboxQuery: LinksQuery? = null
         var lastTrashQuery: LinksQuery? = null
         var lastCreateRequest: CreateLinkRequest? = null
+        var lastBulkRequest: dev.shiori.android.corenetwork.BulkReadStateRequest? = null
+        var lastUpdatedId: Long? = null
+        var lastUpdateRequest: UpdateLinkRequest? = null
 
         override suspend fun getLinks(query: LinksQuery): ShioriApiResult<LinkListResponse> {
             lastInboxQuery = query
@@ -162,9 +194,16 @@ class LinksBrowserTest {
             return createResult
         }
 
-        override suspend fun updateReadState(request: dev.shiori.android.corenetwork.BulkReadStateRequest) = throw UnsupportedOperationException()
+        override suspend fun updateReadState(request: dev.shiori.android.corenetwork.BulkReadStateRequest): ShioriApiResult<dev.shiori.android.corenetwork.BulkReadStateResponse> {
+            lastBulkRequest = request
+            return updateResult
+        }
 
-        override suspend fun updateLink(id: Long, request: dev.shiori.android.corenetwork.UpdateLinkRequest) = throw UnsupportedOperationException()
+        override suspend fun updateLink(id: Long, request: dev.shiori.android.corenetwork.UpdateLinkRequest): ShioriApiResult<LinkResponse> {
+            lastUpdatedId = id
+            lastUpdateRequest = request
+            return singleUpdateResult
+        }
 
         override suspend fun restoreLink(id: Long) = throw UnsupportedOperationException()
 

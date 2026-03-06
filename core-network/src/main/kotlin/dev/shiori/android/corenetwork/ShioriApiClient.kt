@@ -1,11 +1,16 @@
 package dev.shiori.android.corenetwork
 
 import java.io.IOException
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response as OkHttpResponse
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.JsonWriter
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import okio.Buffer
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -66,7 +71,7 @@ class DefaultShioriApiClient internal constructor(
     }
 
     override suspend fun updateLink(id: Long, request: UpdateLinkRequest): ShioriApiResult<LinkResponse> = execute {
-        service.updateLink(id, request)
+        service.updateLink(id, request.toRequestBody())
     }
 
     override suspend fun restoreLink(id: Long): ShioriApiResult<LinkResponse> = updateLink(
@@ -150,6 +155,40 @@ fun createShioriApiClient(
 }
 
 private fun String.ensureTrailingSlash(): String = if (endsWith('/')) this else "$this/"
+
+private fun UpdateLinkRequest.toRequestBody(): RequestBody {
+    val buffer = Buffer()
+    val writer = JsonWriter.of(buffer)
+
+    writer.beginObject()
+    title?.let {
+        writer.name("title")
+        writer.value(it)
+    }
+    if (clearSummary) {
+        val previousSerializeNulls = writer.serializeNulls
+        writer.serializeNulls = true
+        writer.name("summary")
+        writer.nullValue()
+        writer.serializeNulls = previousSerializeNulls
+    } else {
+        summary?.let {
+            writer.name("summary")
+            writer.value(it)
+        }
+    }
+    read?.let {
+        writer.name("read")
+        writer.value(it)
+    }
+    restore?.let {
+        writer.name("restore")
+        writer.value(it)
+    }
+    writer.endObject()
+
+    return buffer.readByteString().toRequestBody("application/json; charset=utf-8".toMediaType())
+}
 
 internal fun Int.toDomainError(): ShioriApiError = when (this) {
     400 -> ShioriApiError.Validation

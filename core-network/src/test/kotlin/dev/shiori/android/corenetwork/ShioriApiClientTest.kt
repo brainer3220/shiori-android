@@ -143,6 +143,40 @@ class ShioriApiClientTest {
     }
 
     @Test
+    fun `single link update sends metadata patch body`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                "{" +
+                    "\"id\":12," +
+                    "\"url\":\"https://example.com/12\"," +
+                    "\"title\":\"Edited title\"," +
+                    "\"summary\":null," +
+                    "\"read\":true" +
+                    "}"
+            ),
+        )
+
+        val result = client.updateLink(
+            id = 12,
+            request = UpdateLinkRequest(
+                title = "Edited title",
+                summary = null,
+                clearSummary = true,
+                read = true,
+            ),
+        )
+
+        val request = server.takeRequest()
+        val body = request.body.readUtf8()
+
+        assertEquals("PATCH", request.method)
+        assertEquals("/api/links/12", request.path)
+        assertTrue(body.contains("\"title\":\"Edited title\""))
+        assertTrue(body, body.contains("\"summary\":null"))
+        assertTrue(result is ShioriApiResult.Success)
+    }
+
+    @Test
     fun `trash endpoints send correct paths and methods`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(

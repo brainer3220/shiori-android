@@ -22,9 +22,12 @@ enum class LinkBrowseDestination {
 
 data class LinkCardModel(
     val id: Long,
+    val url: String,
     val title: String,
+    val rawTitle: String?,
     val domain: String,
     val summary: String?,
+    val read: Boolean?,
     val status: String?,
     val readState: String?,
     val createdAt: String?,
@@ -73,6 +76,18 @@ interface LinksRepository {
         config: ApiAccessConfig,
         request: CreateLinkRequest,
     ): ShioriApiResult<CreateLinkResponse>
+
+    suspend fun updateReadState(
+        config: ApiAccessConfig,
+        ids: List<Long>,
+        read: Boolean,
+    ): ShioriApiResult<List<LinkResponse>>
+
+    suspend fun updateLink(
+        config: ApiAccessConfig,
+        id: Long,
+        request: dev.shiori.android.corenetwork.UpdateLinkRequest,
+    ): ShioriApiResult<LinkResponse>
 }
 
 class DefaultLinksRepository(
@@ -97,6 +112,24 @@ class DefaultLinksRepository(
         config: ApiAccessConfig,
         request: CreateLinkRequest,
     ): ShioriApiResult<CreateLinkResponse> = clientFactory.create(config).createLink(request)
+
+    override suspend fun updateReadState(
+        config: ApiAccessConfig,
+        ids: List<Long>,
+        read: Boolean,
+    ): ShioriApiResult<List<LinkResponse>> {
+        val result = clientFactory.create(config).updateReadState(dev.shiori.android.corenetwork.BulkReadStateRequest(ids = ids, read = read))
+        return when (result) {
+            is ShioriApiResult.Success -> ShioriApiResult.Success(result.value.updated)
+            is ShioriApiResult.Failure -> result
+        }
+    }
+
+    override suspend fun updateLink(
+        config: ApiAccessConfig,
+        id: Long,
+        request: dev.shiori.android.corenetwork.UpdateLinkRequest,
+    ): ShioriApiResult<LinkResponse> = clientFactory.create(config).updateLink(id, request)
 }
 
 internal fun LinkBrowseDestination.toLinksQuery(limit: Int, offset: Int): LinksQuery = when (this) {
@@ -134,9 +167,12 @@ internal fun mergeLinkCards(
 
 internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
     id = id,
+    url = url,
     title = title?.takeIf { it.isNotBlank() } ?: url,
+    rawTitle = title?.takeIf { it.isNotBlank() },
     domain = domain?.takeIf { it.isNotBlank() } ?: url.toDomainFallback(),
     summary = summary?.takeIf { it.isNotBlank() },
+    read = read,
     status = status?.replaceFirstChar { char ->
         if (char.isLowerCase()) {
             char.titlecase(Locale.getDefault())
@@ -169,6 +205,17 @@ internal fun ShioriApiError.toSaveMessage(): String = when (this) {
     is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
     is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
     is ShioriApiError.Unknown -> "An unexpected error interrupted link saving. Try again."
+}
+
+internal fun ShioriApiError.toUpdateMessage(): String = when (this) {
+    ShioriApiError.Validation -> "Shiori rejected that link update. Check the values and try again."
+    ShioriApiError.Unauthorized -> "Your API key is no longer authorized. Update it in API access."
+    ShioriApiError.NotFound -> "Shiori could not find that link anymore. Refresh and try again."
+    ShioriApiError.Conflict -> "Shiori is still processing this link, so read state or metadata cannot change yet. Try again in a moment."
+    ShioriApiError.RateLimited -> "Shiori rate limited this update. Wait a moment before trying again."
+    is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
+    is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
+    is ShioriApiError.Unknown -> "An unexpected error interrupted this link update. Try again."
 }
 
 internal fun normalizeLinkUrl(rawValue: String): String = rawValue.trim()

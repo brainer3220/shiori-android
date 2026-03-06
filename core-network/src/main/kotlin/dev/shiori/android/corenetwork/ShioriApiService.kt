@@ -1,5 +1,6 @@
 package dev.shiori.android.corenetwork
 
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -33,7 +34,7 @@ internal interface ShioriApiService {
     @PATCH("api/links/{id}")
     suspend fun updateLink(
         @Path("id") id: Long,
-        @Body request: UpdateLinkRequest,
+        @Body request: RequestBody,
     ): Response<LinkResponse>
 
     @HTTP(method = "DELETE", path = "api/links", hasBody = false)

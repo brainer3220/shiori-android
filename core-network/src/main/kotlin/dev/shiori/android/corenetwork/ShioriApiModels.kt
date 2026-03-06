@@ -25,6 +25,7 @@ data class BulkReadStateRequest(
 data class UpdateLinkRequest(
     val title: String? = null,
     val summary: String? = null,
+    val clearSummary: Boolean = false,
     val read: Boolean? = null,
     val restore: Boolean? = null,
 )
