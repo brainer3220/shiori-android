@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "shiori-android"
+include(":app")
 include(":core-network")

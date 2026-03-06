@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shiori Android</string>
+    <string name="title_api_access">Connect your Shiori account</string>
+    <string name="subtitle_api_access">Save your server URL and API key securely before you try any link actions.</string>
+    <string name="hint_server_url">Shiori server URL</string>
+    <string name="hint_api_key">API key</string>
+    <string name="action_save_access">Save API access</string>
+    <string name="action_validate_access">Validate connection</string>
+    <string name="action_open_links">Open links</string>
+    <string name="action_clear_key">Clear API key</string>
+    <string name="message_missing_access">Enter your Shiori server URL and a valid-looking API key to unlock link actions.</string>
+    <string name="message_unsaved_changes">Save your changes before you validate the connection or open links.</string>
+    <string name="message_saved_access">API access is saved securely. Validate it before your first sync.</string>
+    <string name="message_validating">Checking your Shiori connection…</string>
+    <string name="message_validation_success">Connection confirmed. Link actions are unlocked.</string>
+    <string name="message_validation_unauthorized">Shiori rejected this API key. Replace it and try validation again.</string>
+    <string name="message_validation_failure">Could not reach your Shiori server. Check the URL or network and try again.</string>
+    <string name="message_links_locked">Link browsing ships in US-003. This button stays locked until API access is configured.</string>
+    <string name="error_server_url">Enter an HTTPS URL, or use localhost over HTTP for emulator testing.</string>
+    <string name="error_api_key">Enter a valid-looking API key with no spaces.</string>
+</resources>
