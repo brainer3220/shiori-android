@@ -39,10 +39,10 @@ interface ShioriApiClient {
     suspend fun getTrashLinks(query: LinksQuery = LinksQuery(trash = true)): ShioriApiResult<LinkListResponse>
     suspend fun createLink(request: CreateLinkRequest): ShioriApiResult<CreateLinkResponse>
     suspend fun updateReadState(request: BulkReadStateRequest): ShioriApiResult<BulkReadStateResponse>
-    suspend fun updateLink(id: Long, request: UpdateLinkRequest): ShioriApiResult<LinkResponse>
-    suspend fun restoreLink(id: Long): ShioriApiResult<LinkResponse>
+    suspend fun updateLink(id: String, request: UpdateLinkRequest): ShioriApiResult<LinkResponse>
+    suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse>
     suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse>
-    suspend fun deleteLink(id: Long): ShioriApiResult<DeleteLinkResponse>
+    suspend fun deleteLink(id: String): ShioriApiResult<DeleteLinkResponse>
 }
 
 class DefaultShioriApiClient internal constructor(
@@ -70,11 +70,11 @@ class DefaultShioriApiClient internal constructor(
         service.updateLinks(request)
     }
 
-    override suspend fun updateLink(id: Long, request: UpdateLinkRequest): ShioriApiResult<LinkResponse> = execute {
+    override suspend fun updateLink(id: String, request: UpdateLinkRequest): ShioriApiResult<LinkResponse> = execute {
         service.updateLink(id, request.toRequestBody())
     }
 
-    override suspend fun restoreLink(id: Long): ShioriApiResult<LinkResponse> = updateLink(
+    override suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse> = updateLink(
         id = id,
         request = UpdateLinkRequest(restore = true),
     )
@@ -85,7 +85,7 @@ class DefaultShioriApiClient internal constructor(
         service.emptyTrash()
     }
 
-    override suspend fun deleteLink(id: Long): ShioriApiResult<DeleteLinkResponse> = executeWithFallback(
+    override suspend fun deleteLink(id: String): ShioriApiResult<DeleteLinkResponse> = executeWithFallback(
         fallback = DeleteLinkResponse(message = "Link deleted"),
     ) {
         service.deleteLink(id)

@@ -16,7 +16,7 @@ class LinkListAdapter(
     private val onRestoreClicked: (LinkCardModel) -> Unit = {},
 ) : RecyclerView.Adapter<LinkListAdapter.LinkViewHolder>() {
     private val items = mutableListOf<LinkCardModel>()
-    private var selectedIds: Set<Long> = emptySet()
+    private var selectedIds: Set<String> = emptySet()
     private var itemActionsEnabled: Boolean = true
     private var selectionEnabled: Boolean = true
     private var destination: LinkBrowseDestination = LinkBrowseDestination.Inbox
@@ -25,7 +25,7 @@ class LinkListAdapter(
 
     fun submitItems(
         newItems: List<LinkCardModel>,
-        selectedIds: Set<Long>,
+        selectedIds: Set<String>,
         itemActionsEnabled: Boolean,
         selectionEnabled: Boolean,
         destination: LinkBrowseDestination,

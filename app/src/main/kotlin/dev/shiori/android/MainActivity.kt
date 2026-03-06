@@ -26,6 +26,7 @@ import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.UpdateLinkRequest
+import dev.shiori.android.corenetwork.read
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -91,7 +92,7 @@ class MainActivity : AppCompatActivity() {
     private var lastHandledIntentKey: String? = null
     private var lastHandledSharedUrl: String? = null
     private var openBrowserAfterValidation = false
-    private val selectedLinkIds = linkedSetOf<Long>()
+    private val selectedLinkIds = linkedSetOf<String>()
     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -606,7 +607,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = linksRepository.emptyTrash(savedConfig)) {
                 is ShioriApiResult.Success -> {
-                    val removedCount = result.value.removedCount ?: currentLinkState().items.size
+                    val removedCount = result.value.deleted ?: currentLinkState().items.size
                     updateLinkState(LinkBrowseDestination.Trash) {
                         it.copy(
                             items = emptyList(),
@@ -688,7 +689,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun submitMetadataUpdate(itemId: Long, request: UpdateLinkRequest) {
+    private fun submitMetadataUpdate(itemId: String, request: UpdateLinkRequest) {
         isUpdatingLinks = true
         addLinkStatusMessage = getString(R.string.message_link_updating)
         renderBrowserState()
@@ -750,7 +751,7 @@ class MainActivity : AppCompatActivity() {
         pruneSelectedLinks()
     }
 
-    private fun removeLinkFromActiveLists(id: Long) {
+    private fun removeLinkFromActiveLists(id: String) {
         listOf(LinkBrowseDestination.Inbox, LinkBrowseDestination.Archive).forEach { destination ->
             val state = linkStates.getValue(destination)
             val updatedItems = state.items.filterNot { it.id == id }
@@ -774,7 +775,7 @@ class MainActivity : AppCompatActivity() {
         linkStates[destination] = LinkListUiState()
     }
 
-    private fun applyLocalReadState(ids: List<Long>, read: Boolean) {
+    private fun applyLocalReadState(ids: List<String>, read: Boolean) {
         val idSet = ids.toSet()
         LinkBrowseDestination.values().forEach { destination ->
             val state = linkStates.getValue(destination)

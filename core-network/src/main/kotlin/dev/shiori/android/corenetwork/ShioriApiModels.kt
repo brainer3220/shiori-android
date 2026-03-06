@@ -17,7 +17,7 @@ data class CreateLinkRequest(
 )
 
 data class BulkReadStateRequest(
-    val ids: List<Long>,
+    val ids: List<String>,
     val read: Boolean,
 )
 
@@ -44,36 +44,52 @@ data class CreateLinkResponse(
 )
 
 data class BulkReadStateResponse(
-    val updated: List<LinkResponse> = emptyList(),
+    val updated: Int? = null,
 )
 
 data class DeleteLinkResponse(
-    val deleted: Boolean = true,
+    @Json(name = "linkId")
+    val linkId: String? = null,
     val message: String? = null,
 )
 
 data class EmptyTrashResponse(
-    @Json(name = "removed_count")
-    val removedCount: Int? = null,
+    val deleted: Int? = null,
     val message: String? = null,
 )
 
 data class LinkResponse(
-    val id: Long,
+    val id: String,
     val url: String,
     val title: String? = null,
     val summary: String? = null,
     val domain: String? = null,
-    val read: Boolean? = null,
     val status: String? = null,
-    val tags: List<String> = emptyList(),
+    @Json(name = "favicon_url")
+    val faviconUrl: String? = null,
     @Json(name = "image_url")
     val imageUrl: String? = null,
+    val source: String? = null,
     @Json(name = "created_at")
     val createdAt: String? = null,
     @Json(name = "updated_at")
     val updatedAt: String? = null,
+    @Json(name = "read_at")
+    val readAt: String? = null,
+    @Json(name = "hn_url")
+    val hnUrl: String? = null,
+    @Json(name = "file_storage_path")
+    val fileStoragePath: String? = null,
+    @Json(name = "file_type")
+    val fileType: String? = null,
+    @Json(name = "file_mime_type")
+    val fileMimeType: String? = null,
+    @Json(name = "notion_page_id")
+    val notionPageId: String? = null,
 )
+
+val LinkResponse.read: Boolean
+    get() = readAt != null
 
 sealed interface ShioriApiError {
     object Validation : ShioriApiError

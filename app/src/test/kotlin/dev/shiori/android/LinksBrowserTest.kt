@@ -37,19 +37,19 @@ class LinksBrowserTest {
     @Test
     fun `mergeLinkCards keeps first position while refreshing duplicates`() {
         val existing = listOf(
-            LinkCardModel(1, "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
-            LinkCardModel(2, "https://example.com/2", "Two", "Two", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel("2", "https://example.com/2", "Two", "Two", "example.com", null, false, null, "Unread", null, null),
         )
         val incoming = listOf(
-            LinkCardModel(2, "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
-            LinkCardModel(3, "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel("2", "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
+            LinkCardModel("3", "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
         )
 
         assertEquals(
             listOf(
-                LinkCardModel(1, "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
-                LinkCardModel(2, "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
-                LinkCardModel(3, "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
+                LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
+                LinkCardModel("2", "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
+                LinkCardModel("3", "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
             ),
             mergeLinkCards(existing, incoming),
         )
@@ -112,10 +112,10 @@ class LinksBrowserTest {
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
         val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
 
-        val result = repository.updateReadState(config, ids = listOf(2, 3), read = true)
+        val result = repository.updateReadState(config, ids = listOf("2", "3"), read = true)
 
-        assertEquals(ShioriApiResult.Success(client.updateResult.value.updated), result)
-        assertEquals(dev.shiori.android.corenetwork.BulkReadStateRequest(ids = listOf(2, 3), read = true), client.lastBulkRequest)
+        assertEquals(ShioriApiResult.Success(emptyList<LinkResponse>()), result)
+        assertEquals(dev.shiori.android.corenetwork.BulkReadStateRequest(ids = listOf("2", "3"), read = true), client.lastBulkRequest)
     }
 
     @Test
@@ -125,10 +125,10 @@ class LinksBrowserTest {
         val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
         val request = UpdateLinkRequest(title = "Updated title", summary = null, read = true)
 
-        val result = repository.updateLink(config, id = 8, request = request)
+        val result = repository.updateLink(config, id = "8", request = request)
 
         assertSame(client.singleUpdateResult, result)
-        assertEquals(8L, client.lastUpdatedId)
+        assertEquals("8", client.lastUpdatedId)
         assertEquals(request, client.lastUpdateRequest)
     }
 
@@ -138,15 +138,15 @@ class LinksBrowserTest {
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
         val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
 
-        val restoreResult = repository.restoreLink(config, id = 12)
-        val deleteResult = repository.deleteLink(config, id = 13)
+        val restoreResult = repository.restoreLink(config, id = "12")
+        val deleteResult = repository.deleteLink(config, id = "13")
         val emptyTrashResult = repository.emptyTrash(config)
 
         assertSame(client.restoreResult, restoreResult)
         assertSame(client.deleteResult, deleteResult)
         assertSame(client.emptyTrashResult, emptyTrashResult)
-        assertEquals(12L, client.lastRestoredId)
-        assertEquals(13L, client.lastDeletedId)
+        assertEquals("12", client.lastRestoredId)
+        assertEquals("13", client.lastDeletedId)
         assertTrue(client.emptyTrashCalled)
     }
 
@@ -170,9 +170,9 @@ class LinksBrowserTest {
 
     @Test
     fun `saved link destination follows read state`() {
-        assertEquals(LinkBrowseDestination.Inbox, LinkResponse(id = 1, url = "https://example.com", read = false).toBrowseDestination())
-        assertEquals(LinkBrowseDestination.Inbox, LinkResponse(id = 1, url = "https://example.com", read = null).toBrowseDestination())
-        assertEquals(LinkBrowseDestination.Archive, LinkResponse(id = 1, url = "https://example.com", read = true).toBrowseDestination())
+        assertEquals(LinkBrowseDestination.Inbox, LinkResponse(id = "1", url = "https://example.com", readAt = null).toBrowseDestination())
+        assertEquals(LinkBrowseDestination.Inbox, LinkResponse(id = "1", url = "https://example.com").toBrowseDestination())
+        assertEquals(LinkBrowseDestination.Archive, LinkResponse(id = "1", url = "https://example.com", readAt = "2026-03-07T10:00:00Z").toBrowseDestination())
     }
 
     @Test
@@ -209,19 +209,19 @@ class LinksBrowserTest {
         val inboxResult = ShioriApiResult.Success(LinkListResponse())
         val trashResult = ShioriApiResult.Success(LinkListResponse())
         val createResult = ShioriApiResult.Success(CreateLinkResponse(success = true, linkId = "9"))
-        val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = listOf(LinkResponse(id = 2, url = "https://example.com/2", read = true))))
-        val singleUpdateResult = ShioriApiResult.Success(LinkResponse(id = 8, url = "https://example.com/8", title = "Updated title", read = true))
-        val restoreResult = ShioriApiResult.Success(LinkResponse(id = 12, url = "https://example.com/12", title = "Restored title", read = false))
-        val deleteResult = ShioriApiResult.Success(DeleteLinkResponse(deleted = true, message = "Link deleted"))
-        val emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(removedCount = 3, message = "Trash emptied"))
+        val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = 2))
+        val singleUpdateResult = ShioriApiResult.Success(LinkResponse(id = "8", url = "https://example.com/8", title = "Updated title", readAt = "2026-03-07T10:00:00Z"))
+        val restoreResult = ShioriApiResult.Success(LinkResponse(id = "12", url = "https://example.com/12", title = "Restored title"))
+        val deleteResult = ShioriApiResult.Success(DeleteLinkResponse(linkId = "13", message = "Link deleted"))
+        val emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(deleted = 3, message = "Trash emptied"))
         var lastInboxQuery: LinksQuery? = null
         var lastTrashQuery: LinksQuery? = null
         var lastCreateRequest: CreateLinkRequest? = null
         var lastBulkRequest: dev.shiori.android.corenetwork.BulkReadStateRequest? = null
-        var lastUpdatedId: Long? = null
+        var lastUpdatedId: String? = null
         var lastUpdateRequest: UpdateLinkRequest? = null
-        var lastRestoredId: Long? = null
-        var lastDeletedId: Long? = null
+        var lastRestoredId: String? = null
+        var lastDeletedId: String? = null
         var emptyTrashCalled: Boolean = false
 
         override suspend fun getLinks(query: LinksQuery): ShioriApiResult<LinkListResponse> {
@@ -244,13 +244,13 @@ class LinksBrowserTest {
             return updateResult
         }
 
-        override suspend fun updateLink(id: Long, request: dev.shiori.android.corenetwork.UpdateLinkRequest): ShioriApiResult<LinkResponse> {
+        override suspend fun updateLink(id: String, request: dev.shiori.android.corenetwork.UpdateLinkRequest): ShioriApiResult<LinkResponse> {
             lastUpdatedId = id
             lastUpdateRequest = request
             return singleUpdateResult
         }
 
-        override suspend fun restoreLink(id: Long): ShioriApiResult<LinkResponse> {
+        override suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse> {
             lastRestoredId = id
             return restoreResult
         }
@@ -260,7 +260,7 @@ class LinksBrowserTest {
             return emptyTrashResult
         }
 
-        override suspend fun deleteLink(id: Long): ShioriApiResult<DeleteLinkResponse> {
+        override suspend fun deleteLink(id: String): ShioriApiResult<DeleteLinkResponse> {
             lastDeletedId = id
             return deleteResult
         }

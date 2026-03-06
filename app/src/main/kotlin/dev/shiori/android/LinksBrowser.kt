@@ -13,6 +13,7 @@ import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.createShioriApiClient
+import dev.shiori.android.corenetwork.read
 import java.net.URI
 import java.util.Locale
 
@@ -23,7 +24,7 @@ enum class LinkBrowseDestination {
 }
 
 data class LinkCardModel(
-    val id: Long,
+    val id: String,
     val url: String,
     val title: String,
     val rawTitle: String?,
@@ -81,24 +82,24 @@ interface LinksRepository {
 
     suspend fun updateReadState(
         config: ApiAccessConfig,
-        ids: List<Long>,
+        ids: List<String>,
         read: Boolean,
     ): ShioriApiResult<List<LinkResponse>>
 
     suspend fun updateLink(
         config: ApiAccessConfig,
-        id: Long,
+        id: String,
         request: dev.shiori.android.corenetwork.UpdateLinkRequest,
     ): ShioriApiResult<LinkResponse>
 
     suspend fun restoreLink(
         config: ApiAccessConfig,
-        id: Long,
+        id: String,
     ): ShioriApiResult<LinkResponse>
 
     suspend fun deleteLink(
         config: ApiAccessConfig,
-        id: Long,
+        id: String,
     ): ShioriApiResult<DeleteLinkResponse>
 
     suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse>
@@ -129,30 +130,30 @@ class DefaultLinksRepository(
 
     override suspend fun updateReadState(
         config: ApiAccessConfig,
-        ids: List<Long>,
+        ids: List<String>,
         read: Boolean,
     ): ShioriApiResult<List<LinkResponse>> {
         val result = clientFactory.create(config).updateReadState(dev.shiori.android.corenetwork.BulkReadStateRequest(ids = ids, read = read))
         return when (result) {
-            is ShioriApiResult.Success -> ShioriApiResult.Success(result.value.updated)
+            is ShioriApiResult.Success -> ShioriApiResult.Success(emptyList())
             is ShioriApiResult.Failure -> result
         }
     }
 
     override suspend fun updateLink(
         config: ApiAccessConfig,
-        id: Long,
+        id: String,
         request: dev.shiori.android.corenetwork.UpdateLinkRequest,
     ): ShioriApiResult<LinkResponse> = clientFactory.create(config).updateLink(id, request)
 
     override suspend fun restoreLink(
         config: ApiAccessConfig,
-        id: Long,
+        id: String,
     ): ShioriApiResult<LinkResponse> = clientFactory.create(config).restoreLink(id)
 
     override suspend fun deleteLink(
         config: ApiAccessConfig,
-        id: Long,
+        id: String,
     ): ShioriApiResult<DeleteLinkResponse> = clientFactory.create(config).deleteLink(id)
 
     override suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse> =
@@ -186,7 +187,7 @@ internal fun mergeLinkCards(
     existing: List<LinkCardModel>,
     incoming: List<LinkCardModel>,
 ): List<LinkCardModel> {
-    val merged = LinkedHashMap<Long, LinkCardModel>(existing.size + incoming.size)
+    val merged = LinkedHashMap<String, LinkCardModel>(existing.size + incoming.size)
     existing.forEach { merged[it.id] = it }
     incoming.forEach { merged[it.id] = it }
     return merged.values.toList()
@@ -207,7 +208,7 @@ internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
             char.toString()
         }
     },
-    readState = read?.let { if (it) "Read" else "Unread" },
+    readState = if (read) "Read" else "Unread",
     createdAt = createdAt.toTimestampLabel("Saved"),
     updatedAt = updatedAt.toTimestampLabel("Updated"),
 )

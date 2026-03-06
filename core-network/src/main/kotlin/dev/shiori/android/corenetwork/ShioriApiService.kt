@@ -33,7 +33,7 @@ internal interface ShioriApiService {
 
     @PATCH("api/links/{id}")
     suspend fun updateLink(
-        @Path("id") id: Long,
+        @Path("id") id: String,
         @Body request: RequestBody,
     ): Response<LinkResponse>
 
@@ -42,6 +42,6 @@ internal interface ShioriApiService {
 
     @DELETE("api/links/{id}")
     suspend fun deleteLink(
-        @Path("id") id: Long,
+        @Path("id") id: String,
     ): Response<DeleteLinkResponse>
 }

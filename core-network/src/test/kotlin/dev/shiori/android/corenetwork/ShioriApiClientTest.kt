@@ -35,26 +35,34 @@ class ShioriApiClientTest {
     }
 
     @Test
-    fun `getLinks sends bearer authorization and query params`() = runTest {
+    fun `getLinks parses documented string ids and optional null fields`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
                 """
                 {
+                  "success": true,
                   "links": [
                     {
-                      "id": 1,
-                      "url": "https://example.com",
-                      "title": "Example",
-                      "summary": "Saved link",
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "url": "https://example.com/article",
+                      "title": "Example Article",
                       "domain": "example.com",
-                      "read": false,
-                      "status": "ready",
-                      "tags": ["android"]
+                      "summary": "A brief AI-generated summary of the article.",
+                      "favicon_url": null,
+                      "image_url": null,
+                      "status": "created",
+                      "source": "api",
+                      "created_at": "2026-02-21T12:00:00.000Z",
+                      "updated_at": "2026-02-21T12:00:00.000Z",
+                      "read_at": null,
+                      "hn_url": null,
+                      "file_storage_path": null,
+                      "file_type": null,
+                      "file_mime_type": null,
+                      "notion_page_id": null
                     }
                   ],
-                  "limit": 20,
-                  "offset": 40,
-                  "total": 100
+                  "total": 142
                 }
                 """.trimIndent(),
             ),
@@ -67,6 +75,37 @@ class ShioriApiClientTest {
         assertEquals("Bearer test-api-key", request.getHeader("Authorization"))
         assertEquals("/api/links?limit=20&offset=40&read=false&sort=created_at", request.path)
         assertTrue(result is ShioriApiResult.Success)
+        val response = (result as ShioriApiResult.Success).value
+        assertEquals(142, response.total)
+        assertEquals("550e8400-e29b-41d4-a716-446655440000", response.links.single().id)
+        assertEquals(null, response.links.single().faviconUrl)
+        assertEquals(null, response.links.single().readAt)
+    }
+
+    @Test
+    fun `getLinks accepts missing undocumented fields and non numeric ids`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """
+                {
+                  "links": [
+                    {
+                      "id": "not-a-number",
+                      "url": "https://example.com/missing-fields"
+                    }
+                  ],
+                  "total": 1
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        val result = client.getLinks()
+
+        assertTrue(result is ShioriApiResult.Success)
+        val link = (result as ShioriApiResult.Success).value.links.single()
+        assertEquals("not-a-number", link.id)
+        assertEquals(false, link.read)
     }
 
     @Test
@@ -108,41 +147,39 @@ class ShioriApiClientTest {
     }
 
     @Test
-    fun `bulk update and restore use documented patch endpoints`() = runTest {
+    fun `bulk update and restore use documented patch endpoints with string ids`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
                 "{" +
-                    "\"updated\":[{" +
-                    "\"id\":2," +
-                    "\"url\":\"https://example.com/2\"," +
-                    "\"read\":true" +
-                    "}]}"
+                    "\"success\":true," +
+                    "\"updated\":1" +
+                    "}"
             ),
         )
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
                 "{" +
-                    "\"id\":2," +
-                    "\"url\":\"https://example.com/2\"," +
-                    "\"restore\":true" +
+                    "\"id\":\"link-2\"," +
+                    "\"url\":\"https://example.com/2\"" +
                     "}"
             ),
         )
 
-        val bulkResult = client.updateReadState(BulkReadStateRequest(ids = listOf(2), read = true))
-        val restoreResult = client.restoreLink(2)
+        val bulkResult = client.updateReadState(BulkReadStateRequest(ids = listOf("link-2"), read = true))
+        val restoreResult = client.restoreLink("link-2")
 
         val bulkRequest = server.takeRequest()
         val restoreRequest = server.takeRequest()
 
         assertEquals("PATCH", bulkRequest.method)
         assertEquals("/api/links", bulkRequest.path)
-        assertTrue(bulkRequest.body.readUtf8().contains("\"ids\":[2]"))
+        assertTrue(bulkRequest.body.readUtf8().contains("\"ids\":[\"link-2\"]"))
         assertEquals("PATCH", restoreRequest.method)
-        assertEquals("/api/links/2", restoreRequest.path)
+        assertEquals("/api/links/link-2", restoreRequest.path)
         assertTrue(restoreRequest.body.readUtf8().contains("\"restore\":true"))
         assertTrue(bulkResult is ShioriApiResult.Success)
         assertTrue(restoreResult is ShioriApiResult.Success)
+        assertEquals(1, (bulkResult as ShioriApiResult.Success).value.updated)
     }
 
     @Test
@@ -150,17 +187,17 @@ class ShioriApiClientTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
                 "{" +
-                    "\"id\":12," +
+                    "\"id\":\"link-12\"," +
                     "\"url\":\"https://example.com/12\"," +
                     "\"title\":\"Edited title\"," +
                     "\"summary\":null," +
-                    "\"read\":true" +
+                    "\"read_at\":\"2026-03-07T12:00:00Z\"" +
                     "}"
             ),
         )
 
         val result = client.updateLink(
-            id = 12,
+            id = "link-12",
             request = UpdateLinkRequest(
                 title = "Edited title",
                 summary = null,
@@ -173,10 +210,11 @@ class ShioriApiClientTest {
         val body = request.body.readUtf8()
 
         assertEquals("PATCH", request.method)
-        assertEquals("/api/links/12", request.path)
+        assertEquals("/api/links/link-12", request.path)
         assertTrue(body.contains("\"title\":\"Edited title\""))
         assertTrue(body, body.contains("\"summary\":null"))
         assertTrue(result is ShioriApiResult.Success)
+        assertEquals("link-12", (result as ShioriApiResult.Success).value.id)
     }
 
     @Test
@@ -185,19 +223,19 @@ class ShioriApiClientTest {
             MockResponse().setResponseCode(200).setBody(
                 "{" +
                     "\"links\":[{" +
-                    "\"id\":9," +
+                    "\"id\":\"link-9\"," +
                     "\"url\":\"https://example.com/trashed\"" +
                     "}]," +
                     "\"total\":1" +
                     "}"
             ),
         )
-        server.enqueue(MockResponse().setResponseCode(204))
-        server.enqueue(MockResponse().setResponseCode(204))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{\"success\":true,\"deleted\":12}"))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{\"success\":true,\"message\":\"Link deleted successfully\",\"linkId\":\"link-9\"}"))
 
         val trashResult = client.getTrashLinks()
         val emptyTrashResult = client.emptyTrash()
-        val deleteLinkResult = client.deleteLink(9)
+        val deleteLinkResult = client.deleteLink("link-9")
 
         val trashRequest = server.takeRequest()
         val emptyTrashRequest = server.takeRequest()
@@ -207,10 +245,12 @@ class ShioriApiClientTest {
         assertEquals("DELETE", emptyTrashRequest.method)
         assertEquals("/api/links", emptyTrashRequest.path)
         assertEquals("DELETE", deleteLinkRequest.method)
-        assertEquals("/api/links/9", deleteLinkRequest.path)
+        assertEquals("/api/links/link-9", deleteLinkRequest.path)
         assertTrue(trashResult is ShioriApiResult.Success)
         assertTrue(emptyTrashResult is ShioriApiResult.Success)
         assertTrue(deleteLinkResult is ShioriApiResult.Success)
+        assertEquals(12, (emptyTrashResult as ShioriApiResult.Success).value.deleted)
+        assertEquals("link-9", (deleteLinkResult as ShioriApiResult.Success).value.linkId)
     }
 
     @Test

@@ -146,8 +146,8 @@ class MainActivityTest {
                 offset = 0,
                 total = 3,
                 links = listOf(
-                    link(id = 1, title = "Inbox article 1", read = false),
-                    link(id = 2, title = "Inbox article 2", read = false),
+                    link(id = "1", title = "Inbox article 1", read = false),
+                    link(id = "2", title = "Inbox article 2", read = false),
                 ),
             ),
         )
@@ -159,8 +159,8 @@ class MainActivityTest {
                 offset = 2,
                 total = 3,
                 links = listOf(
-                    link(id = 2, title = "Inbox article 2 refreshed", read = false),
-                    link(id = 3, title = "Inbox article 3", read = false),
+                    link(id = "2", title = "Inbox article 2 refreshed", read = false),
+                    link(id = "3", title = "Inbox article 3", read = false),
                 ),
             ),
         )
@@ -171,7 +171,7 @@ class MainActivityTest {
                 limit = 20,
                 offset = 0,
                 total = 1,
-                links = listOf(link(id = 4, title = "Archived article", read = true)),
+                links = listOf(link(id = "4", title = "Archived article", read = true)),
             ),
         )
         linksRepository.enqueue(
@@ -181,7 +181,7 @@ class MainActivityTest {
                 limit = 20,
                 offset = 0,
                 total = 1,
-                links = listOf(link(id = 5, title = "Trashed article", read = true, status = "trashed")),
+                links = listOf(link(id = "5", title = "Trashed article", read = true, status = "trashed")),
             ),
         )
 
@@ -224,7 +224,7 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 1, title = "Inbox article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "1", title = "Inbox article", read = false))),
         )
         linksRepository.enqueue(
             LinkBrowseDestination.Archive,
@@ -245,10 +245,10 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 6, title = "Toggle article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "6", title = "Toggle article", read = false))),
         )
         linksRepository.updateLinkResult = ShioriApiResult.Success(
-            link(id = 6, title = "Toggle article", read = true),
+            link(id = "6", title = "Toggle article", read = true),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -259,7 +259,7 @@ class MainActivityTest {
             waitForText(scenario, R.id.add_link_status_text, "Link marked as read.")
             waitForRecyclerCount(scenario, 0)
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
-            assertEquals(listOf(6L to UpdateLinkRequest(read = true)), linksRepository.updateRequests)
+            assertEquals(listOf("6" to UpdateLinkRequest(read = true)), linksRepository.updateRequests)
         }
     }
 
@@ -274,15 +274,15 @@ class MainActivityTest {
                 offset = 0,
                 total = 2,
                 links = listOf(
-                    link(id = 7, title = "Bulk article 1", read = false),
-                    link(id = 8, title = "Bulk article 2", read = false),
+                    link(id = "7", title = "Bulk article 1", read = false),
+                    link(id = "8", title = "Bulk article 2", read = false),
                 ),
             ),
         )
         linksRepository.bulkUpdateResult = ShioriApiResult.Success(
             listOf(
-                link(id = 7, title = "Bulk article 1", read = true),
-                link(id = 8, title = "Bulk article 2", read = true),
+                link(id = "7", title = "Bulk article 1", read = true),
+                link(id = "8", title = "Bulk article 2", read = true),
             ),
         )
 
@@ -295,7 +295,7 @@ class MainActivityTest {
 
             waitForText(scenario, R.id.add_link_status_text, "Selected links marked as read.")
             waitForRecyclerCount(scenario, 0)
-            assertEquals(listOf(BulkUpdateRequest(ids = listOf(7L, 8L), read = true)), linksRepository.bulkUpdateRequests)
+            assertEquals(listOf(BulkUpdateRequest(ids = listOf("7", "8"), read = true)), linksRepository.bulkUpdateRequests)
         }
     }
 
@@ -305,10 +305,10 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 9, title = "Editable article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "9", title = "Editable article", read = false))),
         )
         linksRepository.updateLinkResult = ShioriApiResult.Success(
-            link(id = 9, title = "Edited title", read = false).copy(summary = null),
+            link(id = "9", title = "Edited title", read = false).copy(summary = null),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -317,14 +317,14 @@ class MainActivityTest {
             invokePrivateMethod(
                 scenario,
                 "submitMetadataUpdate",
-                9L,
+                "9",
                 UpdateLinkRequest(title = "Edited title", summary = null, clearSummary = true),
             )
 
             waitForText(scenario, R.id.add_link_status_text, "Link details updated.")
             assertLoadedTitles(scenario, "Edited title")
             assertEquals(
-                listOf(9L to UpdateLinkRequest(title = "Edited title", summary = null, clearSummary = true)),
+                listOf("9" to UpdateLinkRequest(title = "Edited title", summary = null, clearSummary = true)),
                 linksRepository.updateRequests,
             )
             assertFirstCard(scenario, expectedDomain = "example.com", expectedSummary = null, expectedStatus = "Unread  •  Ready")
@@ -337,7 +337,7 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 10, title = "Processing article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "10", title = "Processing article", read = false))),
         )
         linksRepository.updateLinkResult = ShioriApiResult.Failure(ShioriApiError.Conflict)
 
@@ -360,7 +360,7 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 11, title = "Delete me", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "11", title = "Delete me", read = false))),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -371,7 +371,7 @@ class MainActivityTest {
             waitForText(scenario, R.id.add_link_status_text, "Link moved to trash.")
             waitForRecyclerCount(scenario, 0)
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
-            assertEquals(listOf(11L), linksRepository.deleteRequests)
+            assertEquals(listOf("11"), linksRepository.deleteRequests)
         }
     }
 
@@ -390,11 +390,11 @@ class MainActivityTest {
                 limit = 20,
                 offset = 0,
                 total = 1,
-                links = listOf(link(id = 12, title = "Restore me", read = false, status = "trashed")),
+                links = listOf(link(id = "12", title = "Restore me", read = false, status = "trashed")),
             ),
         )
         linksRepository.restoreLinkResult = ShioriApiResult.Success(
-            link(id = 12, title = "Restore me", read = false, status = "ready"),
+            link(id = "12", title = "Restore me", read = false, status = "ready"),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -412,7 +412,7 @@ class MainActivityTest {
             waitForText(scenario, R.id.add_link_status_text, "Link restored. Showing it in your inbox.")
             waitForRecyclerCount(scenario, 1)
             assertLoadedTitles(scenario, "Restore me")
-            assertEquals(listOf(12L), linksRepository.restoreRequests)
+            assertEquals(listOf("12"), linksRepository.restoreRequests)
         }
     }
 
@@ -431,10 +431,10 @@ class MainActivityTest {
                 limit = 20,
                 offset = 0,
                 total = 1,
-                links = listOf(link(id = 13, title = "Trash item", read = true, status = "trashed")),
+                links = listOf(link(id = "13", title = "Trash item", read = true, status = "trashed")),
             ),
         )
-        linksRepository.emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(removedCount = 1, message = "Trash emptied"))
+        linksRepository.emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(deleted = 1, message = "Trash emptied"))
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
@@ -459,7 +459,7 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 1, title = "Inbox article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "1", title = "Inbox article", read = false))),
         )
         linksRepository.saveResult = ShioriApiResult.Success(
             CreateLinkResponse(
@@ -471,7 +471,7 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 20, title = "Existing article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "20", title = "Existing article", read = false))),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -513,12 +513,12 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 30, title = "Shared article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "30", title = "Shared article", read = false))),
         )
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 30, title = "Shared article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "30", title = "Shared article", read = false))),
         )
         linksRepository.saveResult = ShioriApiResult.Success(
             CreateLinkResponse(
@@ -790,12 +790,12 @@ class MainActivityTest {
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 40, title = "Viewed article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "40", title = "Viewed article", read = false))),
         )
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 40, title = "Viewed article", read = false))),
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "40", title = "Viewed article", read = false))),
         )
         linksRepository.saveResult = ShioriApiResult.Success(
             CreateLinkResponse(
@@ -1040,7 +1040,7 @@ class MainActivityTest {
     ) = ShioriApiResult.Success(LinkListResponse(links = links, limit = limit, offset = offset, total = total))
 
     private fun link(
-        id: Long,
+        id: String,
         title: String,
         read: Boolean,
         status: String = "ready",
@@ -1050,10 +1050,10 @@ class MainActivityTest {
         title = title,
         summary = "Summary $id",
         domain = "example.com",
-        read = read,
         status = status,
         createdAt = "2026-03-06T10:00:00Z",
         updatedAt = "2026-03-06T11:00:00Z",
+        readAt = if (read) "2026-03-06T12:00:00Z" else null,
     )
 
     private class RecordingApiConnectionChecker(
@@ -1089,25 +1089,25 @@ class MainActivityTest {
         val requests = CopyOnWriteArrayList<Request>()
         val savedRequests = CopyOnWriteArrayList<CreateLinkRequest>()
         val bulkUpdateRequests = CopyOnWriteArrayList<BulkUpdateRequest>()
-        val updateRequests = CopyOnWriteArrayList<Pair<Long, UpdateLinkRequest>>()
-        val restoreRequests = CopyOnWriteArrayList<Long>()
-        val deleteRequests = CopyOnWriteArrayList<Long>()
+        val updateRequests = CopyOnWriteArrayList<Pair<String, UpdateLinkRequest>>()
+        val restoreRequests = CopyOnWriteArrayList<String>()
+        val deleteRequests = CopyOnWriteArrayList<String>()
         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
             CreateLinkResponse(success = true, linkId = "99"),
         )
         var bulkUpdateResult: ShioriApiResult<List<LinkResponse>> = ShioriApiResult.Success(emptyList())
         var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
-            LinkResponse(id = 99, url = "https://example.com/99", read = false),
+            LinkResponse(id = "99", url = "https://example.com/99"),
         )
         var restoreLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
-            LinkResponse(id = 99, url = "https://example.com/99", read = false),
+            LinkResponse(id = "99", url = "https://example.com/99"),
         )
         var deleteLinkResult: ShioriApiResult<DeleteLinkResponse> = ShioriApiResult.Success(
-            DeleteLinkResponse(deleted = true, message = "Link deleted"),
+            DeleteLinkResponse(linkId = "99", message = "Link deleted"),
         )
         var emptyTrashResult: ShioriApiResult<EmptyTrashResponse> = ShioriApiResult.Success(
-            EmptyTrashResponse(removedCount = 0, message = "Trash emptied"),
+            EmptyTrashResponse(deleted = 0, message = "Trash emptied"),
         )
         var emptyTrashCalls: Int = 0
 
@@ -1154,7 +1154,7 @@ class MainActivityTest {
 
         override suspend fun updateReadState(
             config: ApiAccessConfig,
-            ids: List<Long>,
+            ids: List<String>,
             read: Boolean,
         ): ShioriApiResult<List<LinkResponse>> {
             bulkUpdateRequests += BulkUpdateRequest(ids = ids, read = read)
@@ -1163,7 +1163,7 @@ class MainActivityTest {
 
         override suspend fun updateLink(
             config: ApiAccessConfig,
-            id: Long,
+            id: String,
             request: UpdateLinkRequest,
         ): ShioriApiResult<LinkResponse> {
             updateRequests += id to request
@@ -1172,7 +1172,7 @@ class MainActivityTest {
 
         override suspend fun restoreLink(
             config: ApiAccessConfig,
-            id: Long,
+            id: String,
         ): ShioriApiResult<LinkResponse> {
             restoreRequests += id
             return restoreLinkResult
@@ -1180,7 +1180,7 @@ class MainActivityTest {
 
         override suspend fun deleteLink(
             config: ApiAccessConfig,
-            id: Long,
+            id: String,
         ): ShioriApiResult<DeleteLinkResponse> {
             deleteRequests += id
             return deleteLinkResult
@@ -1199,7 +1199,7 @@ class MainActivityTest {
     )
 
     private data class BulkUpdateRequest(
-        val ids: List<Long>,
+        val ids: List<String>,
         val read: Boolean,
     )
 }
