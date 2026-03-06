@@ -1,0 +1,11 @@
+.gradle/
+.gradle-dist/
+build/
+local.properties
+*.iml
+.idea/
+.agents/
+.ralph/.tmp/
+.ralph/runs/
+.ralph/errors.log
+.ralph/guardrails.md

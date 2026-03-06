@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+LOG_FILE="${APP_HOME}/.ralph/activity.log"
+
+if [ "$#" -lt 2 ] || [ "$1" != "log" ]; then
+  printf 'Usage: %s log "message"\n' "$0" >&2
+  exit 1
+fi
+
+shift
+mkdir -p "$(dirname -- "${LOG_FILE}")"
+printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "${LOG_FILE}"

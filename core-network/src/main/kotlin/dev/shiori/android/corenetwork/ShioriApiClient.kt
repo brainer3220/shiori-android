@@ -1,0 +1,162 @@
+package dev.shiori.android.corenetwork
+
+import java.io.IOException
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Response as OkHttpResponse
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
+
+fun interface ApiKeyProvider {
+    fun getApiKey(): String?
+}
+
+class BearerAuthInterceptor(
+    private val apiKeyProvider: ApiKeyProvider,
+) : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): OkHttpResponse {
+        val apiKey = apiKeyProvider.getApiKey()?.trim().orEmpty()
+        val request = chain.request().newBuilder().apply {
+            if (apiKey.isNotEmpty()) {
+                header("Authorization", "Bearer $apiKey")
+            }
+        }.build()
+
+        return chain.proceed(request)
+    }
+}
+
+interface ShioriApiClient {
+    suspend fun getLinks(query: LinksQuery = LinksQuery()): ShioriApiResult<LinkListResponse>
+    suspend fun getTrashLinks(query: LinksQuery = LinksQuery(trash = true)): ShioriApiResult<LinkListResponse>
+    suspend fun createLink(request: CreateLinkRequest): ShioriApiResult<CreateLinkResponse>
+    suspend fun updateReadState(request: BulkReadStateRequest): ShioriApiResult<BulkReadStateResponse>
+    suspend fun updateLink(id: Long, request: UpdateLinkRequest): ShioriApiResult<LinkResponse>
+    suspend fun restoreLink(id: Long): ShioriApiResult<LinkResponse>
+    suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse>
+    suspend fun deleteLink(id: Long): ShioriApiResult<DeleteLinkResponse>
+}
+
+class DefaultShioriApiClient internal constructor(
+    private val service: ShioriApiService,
+) : ShioriApiClient {
+
+    override suspend fun getLinks(query: LinksQuery): ShioriApiResult<LinkListResponse> = execute {
+        service.getLinks(
+            limit = query.limit,
+            offset = query.offset,
+            read = query.read,
+            sort = query.sort,
+            trash = query.trash.takeIf { it },
+        )
+    }
+
+    override suspend fun getTrashLinks(query: LinksQuery): ShioriApiResult<LinkListResponse> =
+        getLinks(query.copy(trash = true))
+
+    override suspend fun createLink(request: CreateLinkRequest): ShioriApiResult<CreateLinkResponse> = execute {
+        service.createLink(request)
+    }
+
+    override suspend fun updateReadState(request: BulkReadStateRequest): ShioriApiResult<BulkReadStateResponse> = execute {
+        service.updateLinks(request)
+    }
+
+    override suspend fun updateLink(id: Long, request: UpdateLinkRequest): ShioriApiResult<LinkResponse> = execute {
+        service.updateLink(id, request)
+    }
+
+    override suspend fun restoreLink(id: Long): ShioriApiResult<LinkResponse> = updateLink(
+        id = id,
+        request = UpdateLinkRequest(restore = true),
+    )
+
+    override suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse> = executeWithFallback(
+        fallback = EmptyTrashResponse(message = "Trash emptied"),
+    ) {
+        service.emptyTrash()
+    }
+
+    override suspend fun deleteLink(id: Long): ShioriApiResult<DeleteLinkResponse> = executeWithFallback(
+        fallback = DeleteLinkResponse(message = "Link deleted"),
+    ) {
+        service.deleteLink(id)
+    }
+
+    private suspend fun <T : Any> execute(
+        block: suspend () -> Response<T>,
+    ): ShioriApiResult<T> {
+        return try {
+            val response = block()
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    ShioriApiResult.Success(body)
+                } else {
+                    ShioriApiResult.Failure(ShioriApiError.Server(response.code()))
+                }
+            } else {
+                ShioriApiResult.Failure(response.code().toDomainError())
+            }
+        } catch (exception: IOException) {
+            ShioriApiResult.Failure(ShioriApiError.Network(exception))
+        } catch (exception: Throwable) {
+            ShioriApiResult.Failure(ShioriApiError.Unknown(exception))
+        }
+    }
+
+    private suspend fun <T : Any> executeWithFallback(
+        fallback: T,
+        block: suspend () -> Response<T>,
+    ): ShioriApiResult<T> {
+        return try {
+            val response = block()
+            if (response.isSuccessful) {
+                ShioriApiResult.Success(response.body() ?: fallback)
+            } else {
+                ShioriApiResult.Failure(response.code().toDomainError())
+            }
+        } catch (exception: IOException) {
+            ShioriApiResult.Failure(ShioriApiError.Network(exception))
+        } catch (exception: Throwable) {
+            ShioriApiResult.Failure(ShioriApiError.Unknown(exception))
+        }
+    }
+}
+
+fun createShioriApiClient(
+    baseUrl: String,
+    apiKeyProvider: ApiKeyProvider,
+    okHttpClient: OkHttpClient? = null,
+    moshi: Moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build(),
+): ShioriApiClient {
+    val client = (okHttpClient ?: OkHttpClient.Builder().build())
+        .newBuilder()
+        .addInterceptor(BearerAuthInterceptor(apiKeyProvider))
+        .build()
+
+    val retrofit = Retrofit.Builder()
+        .baseUrl(baseUrl.ensureTrailingSlash())
+        .client(client)
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
+        .build()
+
+    return DefaultShioriApiClient(retrofit.create(ShioriApiService::class.java))
+}
+
+private fun String.ensureTrailingSlash(): String = if (endsWith('/')) this else "$this/"
+
+internal fun Int.toDomainError(): ShioriApiError = when (this) {
+    400 -> ShioriApiError.Validation
+    401 -> ShioriApiError.Unauthorized
+    404 -> ShioriApiError.NotFound
+    409 -> ShioriApiError.Conflict
+    429 -> ShioriApiError.RateLimited
+    500 -> ShioriApiError.Server(this)
+    else -> ShioriApiError.Server(this)
+}
