@@ -6,6 +6,45 @@ Started: 2026년  3월  6일 금요일 22시 20분 12초 KST
 
 ---
 
+## [2026-03-06 23:40:09] - US-004: Auto-save shared URLs and show result
+Thread: 
+Run: 20260306-222712-39971 (iteration 6)
+Run log: /Users/brainer/Programming/shiori-android/docs/.ralph/runs/run-20260306-222712-39971-iter-6.log
+Run summary: /Users/brainer/Programming/shiori-android/docs/.ralph/runs/run-20260306-222712-39971-iter-6.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: c2af1dd test: cover shared auto-save result messages
+- Post-commit status: `.ralph/activity.log`, `docs/.ralph/activity.log`, `docs/.ralph/errors.log`, `docs/.ralph/runs/run-20260306-222712-39971-iter-5.log`, `docs/.ralph/.tmp/prompt-20260306-222712-39971-6.md`, `docs/.ralph/.tmp/story-20260306-222712-39971-6.json`, `docs/.ralph/.tmp/story-20260306-222712-39971-6.md`, `docs/.ralph/runs/run-20260306-222712-39971-iter-5.md`, `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`
+- Verification:
+  - Command: `./gradlew clean test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+- Files changed:
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `docs/.ralph/progress.md`
+  - `.ralph/activity.log`
+  - `docs/.ralph/activity.log`
+  - `docs/.ralph/errors.log`
+  - `docs/.ralph/.tmp/prompt-20260306-222712-39971-6.md`
+  - `docs/.ralph/.tmp/story-20260306-222712-39971-6.json`
+  - `docs/.ralph/.tmp/story-20260306-222712-39971-6.md`
+  - `docs/.ralph/runs/run-20260306-222712-39971-iter-5.log`
+  - `docs/.ralph/runs/run-20260306-222712-39971-iter-5.md`
+  - `docs/.ralph/runs/run-20260306-222712-39971-iter-6.log`
+- What was implemented
+  - Expanded `MainActivityTest` to cover shared auto-save failures for unauthorized, conflict, rate-limited, and network responses while asserting the imported request still uses the existing save workflow with `title = null` and `read = false`.
+  - Re-verified the required cold-launch share import, deep-link import, missing access, and unsupported shared content paths remain covered in instrumentation tests.
+  - Confirmed the implementation still routes shared URLs through the main add-link flow, refreshes the inbox after save, and surfaces user-visible status text for success and duplicate outcomes.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Shared-import coverage is easiest to extend by driving `MainActivity` with real share intents and stubbing `FakeLinksRepository.saveResult` per API outcome.
+  - Gotchas encountered
+    - `./gradlew test` was flaky after earlier parallel Gradle work; `./gradlew clean test` ran reliably.
+    - `./gradlew lintDebug` still passes, but AndroidX lint jars emit Java runtime compatibility warnings during analysis in this environment.
+  - Useful context
+    - The repo-level `ralph` helper at `/Users/brainer/Programming/shiori-android/ralph` appends to the tracked root `.ralph/activity.log`.
+---
+
 ## [2026-03-06 23:33:29] - US-003: Handle shared URLs from Android
 Thread: 
 Run: 20260306-222712-39971 (iteration 5)
