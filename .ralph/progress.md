@@ -6,6 +6,45 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-06 17:20:33 KST] - US-003: Browse inbox, archive, and trash links
+Thread: 
+Run: 20260306-160314-32261 (iteration 6)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-6.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260306-160314-32261-iter-6.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: c9cd9f4 feat: add link browsing filters and pagination
+- Post-commit status: `.ralph/activity.log`, `.ralph/progress.md`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+- Files changed:
+  - `app/build.gradle.kts`
+  - `app/src/main/kotlin/dev/shiori/android/ApiAccess.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinkListAdapter.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/main/kotlin/dev/shiori/android/MainActivity.kt`
+  - `app/src/main/res/layout/activity_main.xml`
+  - `app/src/main/res/layout/item_link.xml`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+- What was implemented
+  - Replaced the placeholder open-links action with a dedicated browser screen that loads inbox, archive, and trash lists from Shiori once API access is configured.
+  - Added per-filter browsing state, `limit`/`offset` pagination, read and sort query mapping for inbox and archive, trash query handling, and duplicate-safe page merging so switching filters keeps each list stable.
+  - Rendered link cards with title, domain, summary, status, timestamps, and read state, plus loading, empty, retry, and load-more states sized to the Wear emulator.
+  - Added unit coverage for query mapping and merge behavior plus emulator coverage for browsing, filter switching, empty states, pagination, and preserved tab state.
+  - Reviewed the final changes for security, performance, and regression risk: API credentials stay in the existing encrypted store flow, list loading remains page-based with cached per-filter state instead of redundant reloads, and the prior API-access setup path remains covered by updated instrumentation tests.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Keeping a separate `LinkListUiState` per destination avoids accidental reloads and preserves the user's place when switching between inbox, archive, and trash.
+  - Gotchas encountered
+    - The round Wear emulator can hide RecyclerView rows that are present in the adapter, so instrumentation assertions are more reliable when they inspect adapter state instead of only visible text.
+  - Useful context
+    - `connectedDebugAndroidTest` on `Wear_OS_Large_Round_API_33` is a practical way to verify this UI flow end to end even without a separate browser-based frontend.
+---
+
 ## [2026-03-06 16:57:31 KST] - US-002: Let the user configure API access
 Thread: 
 Run: 20260306-160314-32261 (iteration 5)
