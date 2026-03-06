@@ -6,6 +6,8 @@ import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.ShioriApiClient
+import dev.shiori.android.corenetwork.DeleteLinkResponse
+import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.UpdateLinkRequest
 import kotlinx.coroutines.test.runTest
@@ -112,6 +114,24 @@ class LinksBrowserTest {
     }
 
     @Test
+    fun `repository forwards trash actions to api client`() = runTest {
+        val client = FakeShioriApiClient()
+        val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
+        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+
+        val restoreResult = repository.restoreLink(config, id = 12)
+        val deleteResult = repository.deleteLink(config, id = 13)
+        val emptyTrashResult = repository.emptyTrash(config)
+
+        assertSame(client.restoreResult, restoreResult)
+        assertSame(client.deleteResult, deleteResult)
+        assertSame(client.emptyTrashResult, emptyTrashResult)
+        assertEquals(12L, client.lastRestoredId)
+        assertEquals(13L, client.lastDeletedId)
+        assertTrue(client.emptyTrashCalled)
+    }
+
+    @Test
     fun `link save validation accepts only http and https urls with hosts`() {
         assertTrue(isLinkUrlValid("https://example.com/article"))
         assertTrue(isLinkUrlValid("http://localhost:8080/preview"))
@@ -172,12 +192,18 @@ class LinksBrowserTest {
         val createResult = ShioriApiResult.Success(CreateLinkResponse(link = LinkResponse(id = 9, url = "https://example.com/article")))
         val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = listOf(LinkResponse(id = 2, url = "https://example.com/2", read = true))))
         val singleUpdateResult = ShioriApiResult.Success(LinkResponse(id = 8, url = "https://example.com/8", title = "Updated title", read = true))
+        val restoreResult = ShioriApiResult.Success(LinkResponse(id = 12, url = "https://example.com/12", title = "Restored title", read = false))
+        val deleteResult = ShioriApiResult.Success(DeleteLinkResponse(deleted = true, message = "Link deleted"))
+        val emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(removedCount = 3, message = "Trash emptied"))
         var lastInboxQuery: LinksQuery? = null
         var lastTrashQuery: LinksQuery? = null
         var lastCreateRequest: CreateLinkRequest? = null
         var lastBulkRequest: dev.shiori.android.corenetwork.BulkReadStateRequest? = null
         var lastUpdatedId: Long? = null
         var lastUpdateRequest: UpdateLinkRequest? = null
+        var lastRestoredId: Long? = null
+        var lastDeletedId: Long? = null
+        var emptyTrashCalled: Boolean = false
 
         override suspend fun getLinks(query: LinksQuery): ShioriApiResult<LinkListResponse> {
             lastInboxQuery = query
@@ -205,10 +231,19 @@ class LinksBrowserTest {
             return singleUpdateResult
         }
 
-        override suspend fun restoreLink(id: Long) = throw UnsupportedOperationException()
+        override suspend fun restoreLink(id: Long): ShioriApiResult<LinkResponse> {
+            lastRestoredId = id
+            return restoreResult
+        }
 
-        override suspend fun emptyTrash() = throw UnsupportedOperationException()
+        override suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse> {
+            emptyTrashCalled = true
+            return emptyTrashResult
+        }
 
-        override suspend fun deleteLink(id: Long) = throw UnsupportedOperationException()
+        override suspend fun deleteLink(id: Long): ShioriApiResult<DeleteLinkResponse> {
+            lastDeletedId = id
+            return deleteResult
+        }
     }
 }

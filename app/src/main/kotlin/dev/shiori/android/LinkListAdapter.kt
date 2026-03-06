@@ -12,11 +12,14 @@ class LinkListAdapter(
     private val onSelectionChanged: (LinkCardModel, Boolean) -> Unit = { _, _ -> },
     private val onReadToggleClicked: (LinkCardModel) -> Unit = {},
     private val onEditClicked: (LinkCardModel) -> Unit = {},
+    private val onDeleteClicked: (LinkCardModel) -> Unit = {},
+    private val onRestoreClicked: (LinkCardModel) -> Unit = {},
 ) : RecyclerView.Adapter<LinkListAdapter.LinkViewHolder>() {
     private val items = mutableListOf<LinkCardModel>()
     private var selectedIds: Set<Long> = emptySet()
     private var itemActionsEnabled: Boolean = true
     private var selectionEnabled: Boolean = true
+    private var destination: LinkBrowseDestination = LinkBrowseDestination.Inbox
 
     fun currentItems(): List<LinkCardModel> = items.toList()
 
@@ -25,12 +28,14 @@ class LinkListAdapter(
         selectedIds: Set<Long>,
         itemActionsEnabled: Boolean,
         selectionEnabled: Boolean,
+        destination: LinkBrowseDestination,
     ) {
         items.clear()
         items.addAll(newItems)
         this.selectedIds = selectedIds
         this.itemActionsEnabled = itemActionsEnabled
         this.selectionEnabled = selectionEnabled
+        this.destination = destination
         notifyDataSetChanged()
     }
 
@@ -45,9 +50,12 @@ class LinkListAdapter(
             selected = selectedIds.contains(items[position].id),
             itemActionsEnabled = itemActionsEnabled,
             selectionEnabled = selectionEnabled,
+            destination = destination,
             onSelectionChanged = onSelectionChanged,
             onReadToggleClicked = onReadToggleClicked,
             onEditClicked = onEditClicked,
+            onDeleteClicked = onDeleteClicked,
+            onRestoreClicked = onRestoreClicked,
         )
     }
 
@@ -62,15 +70,19 @@ class LinkListAdapter(
         private val timestampsText: TextView = itemView.findViewById(R.id.link_timestamps_text)
         private val toggleReadButton: MaterialButton = itemView.findViewById(R.id.link_toggle_read_button)
         private val editButton: MaterialButton = itemView.findViewById(R.id.link_edit_button)
+        private val deleteButton: MaterialButton = itemView.findViewById(R.id.link_delete_button)
 
         fun bind(
             item: LinkCardModel,
             selected: Boolean,
             itemActionsEnabled: Boolean,
             selectionEnabled: Boolean,
+            destination: LinkBrowseDestination,
             onSelectionChanged: (LinkCardModel, Boolean) -> Unit,
             onReadToggleClicked: (LinkCardModel) -> Unit,
             onEditClicked: (LinkCardModel) -> Unit,
+            onDeleteClicked: (LinkCardModel) -> Unit,
+            onRestoreClicked: (LinkCardModel) -> Unit,
         ) {
             titleText.text = item.title
             domainText.text = item.domain
@@ -94,18 +106,30 @@ class LinkListAdapter(
                 onSelectionChanged(item, isChecked)
             }
 
-            toggleReadButton.text = if (item.read == true) {
+            toggleReadButton.text = if (destination == LinkBrowseDestination.Trash) {
+                itemView.context.getString(R.string.action_restore_link)
+            } else if (item.read == true) {
                 itemView.context.getString(R.string.action_mark_unread)
             } else {
                 itemView.context.getString(R.string.action_mark_read)
             }
             toggleReadButton.isEnabled = itemActionsEnabled
-            toggleReadButton.visibility = if (itemActionsEnabled || selectionEnabled) View.VISIBLE else View.GONE
-            toggleReadButton.setOnClickListener { onReadToggleClicked(item) }
+            toggleReadButton.visibility = View.VISIBLE
+            toggleReadButton.setOnClickListener {
+                if (destination == LinkBrowseDestination.Trash) {
+                    onRestoreClicked(item)
+                } else {
+                    onReadToggleClicked(item)
+                }
+            }
 
             editButton.isEnabled = itemActionsEnabled
-            editButton.visibility = if (itemActionsEnabled || selectionEnabled) View.VISIBLE else View.GONE
+            editButton.visibility = if (destination == LinkBrowseDestination.Trash) View.GONE else View.VISIBLE
             editButton.setOnClickListener { onEditClicked(item) }
+
+            deleteButton.isEnabled = itemActionsEnabled
+            deleteButton.visibility = if (destination == LinkBrowseDestination.Trash) View.GONE else View.VISIBLE
+            deleteButton.setOnClickListener { onDeleteClicked(item) }
         }
     }
 }

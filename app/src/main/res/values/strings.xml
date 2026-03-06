@@ -12,6 +12,9 @@
     <string name="action_edit_access">API access</string>
     <string name="action_save_link">Save link</string>
     <string name="action_edit_link">Edit</string>
+    <string name="action_restore_link">Restore</string>
+    <string name="action_move_to_trash">Move to trash</string>
+    <string name="action_empty_trash">Empty trash</string>
     <string name="action_mark_read">Mark read</string>
     <string name="action_mark_unread">Mark unread</string>
     <string name="action_mark_selected_read">Mark selected read</string>
@@ -26,6 +29,8 @@
     <string name="subtitle_links_browser">Browse unread inbox items, archived links, and trash without losing your place.</string>
     <string name="title_add_link">Save a link</string>
     <string name="title_edit_link">Edit link details</string>
+    <string name="title_move_to_trash">Move link to trash?</string>
+    <string name="title_empty_trash">Empty trash permanently?</string>
     <string name="subtitle_add_link">Paste a URL, add an optional title, and choose whether it should start in your archive.</string>
     <string name="hint_link_url">Link URL</string>
     <string name="hint_link_title">Custom title (optional)</string>
@@ -49,10 +54,17 @@
     <string name="message_links_count_with_total">Loaded %1$d of %2$d links.</string>
     <string name="message_link_saving">Saving link…</string>
     <string name="message_link_updating">Updating link…</string>
+    <string name="message_link_deleting">Moving link to trash…</string>
+    <string name="message_link_restoring">Restoring link…</string>
+    <string name="message_trash_emptying">Emptying trash…</string>
     <string name="message_link_saved_inbox">Link saved. Showing it in your inbox.</string>
     <string name="message_link_saved_archive">Link saved. Showing it in your archive.</string>
     <string name="message_link_duplicate_inbox">That link already exists. Showing the saved copy in your inbox.</string>
     <string name="message_link_duplicate_archive">That link already exists. Showing the saved copy in your archive.</string>
+    <string name="message_link_moved_to_trash">Link moved to trash.</string>
+    <string name="message_link_restored_inbox">Link restored. Showing it in your inbox.</string>
+    <string name="message_link_restored_archive">Link restored. Showing it in your archive.</string>
+    <string name="message_trash_emptied">Trash emptied. Removed %1$d links.</string>
     <string name="message_link_read_updated">Link marked as read.</string>
     <string name="message_link_unread_updated">Link marked as unread.</string>
     <string name="message_links_marked_read">Selected links marked as read.</string>
@@ -62,10 +74,13 @@
     <string name="message_selection_disabled_in_trash">Read state and metadata edits are only available for inbox and archive links.</string>
     <string name="message_selection_count">%1$d selected for bulk updates.</string>
     <string name="message_selection_idle">Select links to update read state in bulk, or use actions on an individual item.</string>
+    <string name="message_trash_retention">Items stay in trash for 7 days before Shiori deletes them automatically.</string>
+    <string name="message_confirm_move_to_trash">Move "%1$s" to trash? You can restore it from trash for up to 7 days.</string>
+    <string name="message_confirm_empty_trash">This permanently deletes every trashed link right away. This action cannot be undone.</string>
     <string name="message_shared_link_received">Saving the shared URL to Shiori…</string>
     <string name="message_shared_link_requires_access">Save valid API access before importing the shared URL.</string>
     <string name="message_shared_link_unsupported">This share did not include a supported HTTP or HTTPS URL.</string>
-    <string name="error_server_url">Enter an HTTPS URL, or use localhost over HTTP for emulator testing.</string>
+    <string name="error_server_url">Enter an HTTPS URL, or use a local development host over HTTP while testing.</string>
     <string name="error_api_key">Enter a valid-looking API key with no spaces.</string>
     <string name="error_link_url">Enter a full HTTP or HTTPS URL.</string>
 </resources>

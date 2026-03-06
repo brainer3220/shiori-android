@@ -7,10 +7,14 @@ import org.junit.Test
 
 class ApiAccessInputValidatorTest {
     @Test
-    fun `accepts secure remote urls and emulator localhost urls`() {
+    fun `accepts production base url and local development hosts`() {
+        assertTrue(ApiAccessInputValidator.isServerUrlValid("https://www.shiori.sh"))
         assertTrue(ApiAccessInputValidator.isServerUrlValid("https://shiori.example.com"))
         assertTrue(ApiAccessInputValidator.isServerUrlValid("http://10.0.2.2:8080"))
+        assertTrue(ApiAccessInputValidator.isServerUrlValid("http://10.0.3.2:8080"))
         assertTrue(ApiAccessInputValidator.isServerUrlValid("http://localhost:8080/"))
+        assertTrue(ApiAccessInputValidator.isServerUrlValid("http://192.168.1.50:8080"))
+        assertTrue(ApiAccessInputValidator.isServerUrlValid("http://shiori.local:8080"))
     }
 
     @Test

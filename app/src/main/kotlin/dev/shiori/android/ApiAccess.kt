@@ -55,9 +55,30 @@ object ApiAccessInputValidator {
 
         return when (scheme) {
             "https" -> true
-            "http" -> host == "localhost" || host == "127.0.0.1" || host == "10.0.2.2"
+            "http" -> isLocalDevelopmentHost(host)
             else -> false
         }
+    }
+
+    private fun isLocalDevelopmentHost(host: String): Boolean {
+        if (host == "localhost" || host == "127.0.0.1" || host == "10.0.2.2" || host == "10.0.3.2") {
+            return true
+        }
+
+        if (host.endsWith(".local")) {
+            return true
+        }
+
+        val octets = host.split('.')
+        if (octets.size != 4 || octets.any { part -> part.toIntOrNull() == null }) {
+            return false
+        }
+
+        val first = octets[0].toInt()
+        val second = octets[1].toInt()
+        return first == 10 ||
+            (first == 172 && second in 16..31) ||
+            (first == 192 && second == 168)
     }
 
     fun isApiKeyValidLooking(rawValue: String): Boolean {

@@ -8,6 +8,8 @@ import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.ShioriApiClient
+import dev.shiori.android.corenetwork.DeleteLinkResponse
+import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.createShioriApiClient
@@ -88,6 +90,18 @@ interface LinksRepository {
         id: Long,
         request: dev.shiori.android.corenetwork.UpdateLinkRequest,
     ): ShioriApiResult<LinkResponse>
+
+    suspend fun restoreLink(
+        config: ApiAccessConfig,
+        id: Long,
+    ): ShioriApiResult<LinkResponse>
+
+    suspend fun deleteLink(
+        config: ApiAccessConfig,
+        id: Long,
+    ): ShioriApiResult<DeleteLinkResponse>
+
+    suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse>
 }
 
 class DefaultLinksRepository(
@@ -130,6 +144,19 @@ class DefaultLinksRepository(
         id: Long,
         request: dev.shiori.android.corenetwork.UpdateLinkRequest,
     ): ShioriApiResult<LinkResponse> = clientFactory.create(config).updateLink(id, request)
+
+    override suspend fun restoreLink(
+        config: ApiAccessConfig,
+        id: Long,
+    ): ShioriApiResult<LinkResponse> = clientFactory.create(config).restoreLink(id)
+
+    override suspend fun deleteLink(
+        config: ApiAccessConfig,
+        id: Long,
+    ): ShioriApiResult<DeleteLinkResponse> = clientFactory.create(config).deleteLink(id)
+
+    override suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse> =
+        clientFactory.create(config).emptyTrash()
 }
 
 internal fun LinkBrowseDestination.toLinksQuery(limit: Int, offset: Int): LinksQuery = when (this) {
@@ -216,6 +243,17 @@ internal fun ShioriApiError.toUpdateMessage(): String = when (this) {
     is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
     is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
     is ShioriApiError.Unknown -> "An unexpected error interrupted this link update. Try again."
+}
+
+internal fun ShioriApiError.toDeleteMessage(): String = when (this) {
+    ShioriApiError.Validation -> "Shiori rejected that trash action. Refresh and try again."
+    ShioriApiError.Unauthorized -> "Your API key is no longer authorized. Update it in API access."
+    ShioriApiError.NotFound -> "Shiori could not find that link anymore. Refresh and try again."
+    ShioriApiError.Conflict -> "Shiori is still processing this link, so this trash action cannot finish yet. Try again in a moment."
+    ShioriApiError.RateLimited -> "Shiori rate limited this trash action. Wait a moment before trying again."
+    is ShioriApiError.Server -> "Shiori returned an unexpected server error (${statusCode})."
+    is ShioriApiError.Network -> "Could not reach your Shiori server. Check the connection and try again."
+    is ShioriApiError.Unknown -> "An unexpected error interrupted this trash action. Try again."
 }
 
 internal fun normalizeLinkUrl(rawValue: String): String = rawValue.trim()

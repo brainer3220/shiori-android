@@ -19,6 +19,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.CreateLinkResponse
+import dev.shiori.android.corenetwork.DeleteLinkResponse
+import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiError
@@ -39,13 +41,16 @@ import org.junit.runner.RunWith
 class MainActivityTest {
     private lateinit var store: FakeApiAccessStore
     private lateinit var linksRepository: FakeLinksRepository
+    private lateinit var checker: RecordingApiConnectionChecker
 
     @Before
     fun setUp() {
         store = FakeApiAccessStore()
         linksRepository = FakeLinksRepository()
+        checker = RecordingApiConnectionChecker(ApiValidationStatus.Success)
         AppDependencies.resetForTests()
         AppDependencies.overrideStoreForTests(store)
+        AppDependencies.overrideCheckerForTests(checker)
         AppDependencies.overrideLinksRepositoryForTests(linksRepository)
     }
 
@@ -81,7 +86,7 @@ class MainActivityTest {
 
     @Test
     fun validationSurfacesUnauthorizedResponses() {
-        AppDependencies.overrideCheckerForTests(FakeApiConnectionChecker(ApiValidationStatus.Unauthorized))
+        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Unauthorized))
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             enterAccess(scenario, "https://shiori.example.com", "test-api-key")
@@ -93,13 +98,40 @@ class MainActivityTest {
 
     @Test
     fun validationSurfacesGenericFailures() {
-        AppDependencies.overrideCheckerForTests(FakeApiConnectionChecker(ApiValidationStatus.Failure))
+        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Failure))
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             enterAccess(scenario, "https://shiori.example.com", "test-api-key")
             onView(withId(R.id.save_button)).perform(scrollTo(), click())
             clickButton(scenario, R.id.validate_button)
             waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_failure))
+        }
+    }
+
+    @Test
+    fun savedAccessIsValidatedBeforeBrowserOpensOnLaunch() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertEquals(1, checker.calls.size)
+            assertEquals(ApiAccessConfig("https://shiori.example.com", "test-api-key"), checker.calls.single())
+        }
+    }
+
+    @Test
+    fun savedAccessStaysOnAccessScreenWhenLaunchValidationFails() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Unauthorized))
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_unauthorized))
+            onView(withId(R.id.access_screen)).check(matches(isDisplayed()))
         }
     }
 
@@ -319,6 +351,105 @@ class MainActivityTest {
                 R.id.add_link_status_text,
                 "Shiori is still processing this link, so read state or metadata cannot change yet. Try again in a moment.",
             )
+        }
+    }
+
+    @Test
+    fun deleteActionMovesLinkOutOfActiveList() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 11, title = "Delete me", read = false))),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForRecyclerCount(scenario, 1)
+
+            invokePrivateMethod(scenario, "deleteLink", cardAt(scenario, 0))
+
+            waitForText(scenario, R.id.add_link_status_text, "Link moved to trash.")
+            waitForRecyclerCount(scenario, 0)
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertEquals(listOf(11L), linksRepository.deleteRequests)
+        }
+    }
+
+    @Test
+    fun restoreActionReturnsTrashedLinkToInbox() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Trash,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 1,
+                links = listOf(link(id = 12, title = "Restore me", read = false, status = "trashed")),
+            ),
+        )
+        linksRepository.restoreLinkResult = ShioriApiResult.Success(
+            link(id = 12, title = "Restore me", read = false, status = "ready"),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            clickButton(scenario, R.id.filter_trash_button)
+            waitForRecyclerCount(scenario, 1)
+            waitForText(
+                scenario,
+                R.id.trash_retention_text,
+                "Items stay in trash for 7 days before Shiori deletes them automatically.",
+            )
+
+            invokePrivateMethod(scenario, "restoreLink", cardAt(scenario, 0))
+
+            waitForText(scenario, R.id.add_link_status_text, "Link restored. Showing it in your inbox.")
+            waitForRecyclerCount(scenario, 1)
+            assertLoadedTitles(scenario, "Restore me")
+            assertEquals(listOf(12L), linksRepository.restoreRequests)
+        }
+    }
+
+    @Test
+    fun emptyTrashRequiresConfirmationAndClearsItems() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Trash,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 1,
+                links = listOf(link(id = 13, title = "Trash item", read = true, status = "trashed")),
+            ),
+        )
+        linksRepository.emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(removedCount = 1, message = "Trash emptied"))
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            clickButton(scenario, R.id.filter_trash_button)
+            waitForRecyclerCount(scenario, 1)
+
+            onView(withId(R.id.empty_trash_button)).perform(click())
+            onView(withText("This permanently deletes every trashed link right away. This action cannot be undone."))
+                .check(matches(isDisplayed()))
+            onView(withText(R.string.action_empty_trash)).perform(click())
+
+            waitForText(scenario, R.id.add_link_status_text, "Trash emptied. Removed 1 links.")
+            waitForRecyclerCount(scenario, 0)
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertEquals(1, linksRepository.emptyTrashCalls)
         }
     }
 
@@ -689,10 +820,15 @@ class MainActivityTest {
         updatedAt = "2026-03-06T11:00:00Z",
     )
 
-    private class FakeApiConnectionChecker(
+    private class RecordingApiConnectionChecker(
         private val result: ApiValidationStatus,
     ) : ApiConnectionChecker {
-        override suspend fun validate(serverUrl: String, apiKey: String): ApiValidationStatus = result
+        val calls = CopyOnWriteArrayList<ApiAccessConfig>()
+
+        override suspend fun validate(serverUrl: String, apiKey: String): ApiValidationStatus {
+            calls += ApiAccessConfig(serverUrl, apiKey)
+            return result
+        }
     }
 
     private class FakeApiAccessStore(
@@ -718,6 +854,8 @@ class MainActivityTest {
         val savedRequests = CopyOnWriteArrayList<CreateLinkRequest>()
         val bulkUpdateRequests = CopyOnWriteArrayList<BulkUpdateRequest>()
         val updateRequests = CopyOnWriteArrayList<Pair<Long, UpdateLinkRequest>>()
+        val restoreRequests = CopyOnWriteArrayList<Long>()
+        val deleteRequests = CopyOnWriteArrayList<Long>()
         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
             CreateLinkResponse(link = LinkResponse(id = 99, url = "https://example.com/99", read = false)),
@@ -726,6 +864,16 @@ class MainActivityTest {
         var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
             LinkResponse(id = 99, url = "https://example.com/99", read = false),
         )
+        var restoreLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
+            LinkResponse(id = 99, url = "https://example.com/99", read = false),
+        )
+        var deleteLinkResult: ShioriApiResult<DeleteLinkResponse> = ShioriApiResult.Success(
+            DeleteLinkResponse(deleted = true, message = "Link deleted"),
+        )
+        var emptyTrashResult: ShioriApiResult<EmptyTrashResponse> = ShioriApiResult.Success(
+            EmptyTrashResponse(removedCount = 0, message = "Trash emptied"),
+        )
+        var emptyTrashCalls: Int = 0
 
         fun enqueue(
             destination: LinkBrowseDestination,
@@ -784,6 +932,27 @@ class MainActivityTest {
         ): ShioriApiResult<LinkResponse> {
             updateRequests += id to request
             return updateLinkResult
+        }
+
+        override suspend fun restoreLink(
+            config: ApiAccessConfig,
+            id: Long,
+        ): ShioriApiResult<LinkResponse> {
+            restoreRequests += id
+            return restoreLinkResult
+        }
+
+        override suspend fun deleteLink(
+            config: ApiAccessConfig,
+            id: Long,
+        ): ShioriApiResult<DeleteLinkResponse> {
+            deleteRequests += id
+            return deleteLinkResult
+        }
+
+        override suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse> {
+            emptyTrashCalls += 1
+            return emptyTrashResult
         }
     }
 

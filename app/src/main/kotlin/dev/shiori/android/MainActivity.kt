@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.NestedScrollView
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,6 +48,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var inboxButton: MaterialButton
     private lateinit var archiveButton: MaterialButton
     private lateinit var trashButton: MaterialButton
+    private lateinit var addLinkHeadingText: TextView
+    private lateinit var addLinkSubtitleText: TextView
     private lateinit var browserStateText: TextView
     private lateinit var browserProgress: ProgressBar
     private lateinit var addLinkUrlLayout: TextInputLayout
@@ -57,7 +60,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var addLinkButton: MaterialButton
     private lateinit var linksList: RecyclerView
     private lateinit var loadMoreButton: MaterialButton
+    private lateinit var trashRetentionText: TextView
+    private lateinit var emptyTrashButton: MaterialButton
     private lateinit var linkSelectionStatusText: TextView
+    private lateinit var linkSelectionActionsRow: View
     private lateinit var markSelectedReadButton: MaterialButton
     private lateinit var markSelectedUnreadButton: MaterialButton
     private lateinit var clearSelectionButton: MaterialButton
@@ -66,6 +72,8 @@ class MainActivity : AppCompatActivity() {
         onSelectionChanged = ::onLinkSelectionChanged,
         onReadToggleClicked = ::toggleLinkReadState,
         onEditClicked = ::showEditLinkDialog,
+        onDeleteClicked = ::confirmDeleteLink,
+        onRestoreClicked = ::restoreLink,
     )
 
     private var savedConfig = ApiAccessConfig()
@@ -78,7 +86,9 @@ class MainActivity : AppCompatActivity() {
     private var addLinkStatusMessage: String? = null
     private var accessStatusOverrideMessage: String? = null
     private var pendingSharedUrl: String? = null
+    private var pendingBrowserStatusMessage: String? = null
     private var lastHandledIntentKey: String? = null
+    private var openBrowserAfterValidation = false
     private val selectedLinkIds = linkedSetOf<Long>()
     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
 
@@ -102,14 +112,19 @@ class MainActivity : AppCompatActivity() {
         setupLinksList()
 
         currentScreen = savedInstanceState?.getString(KEY_SCREEN)?.let(Screen::valueOf) ?: Screen.Access
+        val resumeBrowserAfterValidation = currentScreen == Screen.Browser
         currentDestination = savedInstanceState?.getString(KEY_DESTINATION)?.let(LinkBrowseDestination::valueOf)
             ?: LinkBrowseDestination.Inbox
         pendingSharedUrl = savedInstanceState?.getString(KEY_PENDING_SHARED_URL)
         accessStatusOverrideMessage = savedInstanceState?.getString(KEY_ACCESS_STATUS_OVERRIDE)
+        pendingBrowserStatusMessage = savedInstanceState?.getString(KEY_PENDING_BROWSER_STATUS)
         lastHandledIntentKey = savedInstanceState?.getString(KEY_LAST_HANDLED_INTENT)
 
         loadStoredConfig()
         handleIncomingIntent(intent)
+        if (resumeBrowserAfterValidation && isSavedConfigValid() && !hasUnsavedChanges() && currentScreen != Screen.Browser) {
+            startConnectionValidation(openBrowserOnSuccess = true)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -124,6 +139,7 @@ class MainActivity : AppCompatActivity() {
         outState.putString(KEY_DESTINATION, currentDestination.name)
         outState.putString(KEY_PENDING_SHARED_URL, pendingSharedUrl)
         outState.putString(KEY_ACCESS_STATUS_OVERRIDE, accessStatusOverrideMessage)
+        outState.putString(KEY_PENDING_BROWSER_STATUS, pendingBrowserStatusMessage)
         outState.putString(KEY_LAST_HANDLED_INTENT, lastHandledIntentKey)
     }
 
@@ -144,6 +160,8 @@ class MainActivity : AppCompatActivity() {
         inboxButton = findViewById(R.id.filter_inbox_button)
         archiveButton = findViewById(R.id.filter_archive_button)
         trashButton = findViewById(R.id.filter_trash_button)
+        addLinkHeadingText = findViewById(R.id.add_link_heading_text)
+        addLinkSubtitleText = findViewById(R.id.add_link_subtitle_text)
         browserStateText = findViewById(R.id.browser_state_text)
         browserProgress = findViewById(R.id.browser_progress)
         addLinkUrlLayout = findViewById(R.id.add_link_url_layout)
@@ -154,7 +172,10 @@ class MainActivity : AppCompatActivity() {
         addLinkButton = findViewById(R.id.add_link_button)
         linksList = findViewById(R.id.links_list)
         loadMoreButton = findViewById(R.id.load_more_button)
+        trashRetentionText = findViewById(R.id.trash_retention_text)
+        emptyTrashButton = findViewById(R.id.empty_trash_button)
         linkSelectionStatusText = findViewById(R.id.link_selection_status_text)
+        linkSelectionActionsRow = findViewById(R.id.link_selection_actions_row)
         markSelectedReadButton = findViewById(R.id.mark_selected_read_button)
         markSelectedUnreadButton = findViewById(R.id.mark_selected_unread_button)
         clearSelectionButton = findViewById(R.id.clear_selection_button)
@@ -255,6 +276,10 @@ class MainActivity : AppCompatActivity() {
                 fetchLinks(currentDestination, reset = false)
             }
         }
+
+        emptyTrashButton.setOnClickListener {
+            confirmEmptyTrash()
+        }
     }
 
     private fun setupLinksList() {
@@ -267,17 +292,9 @@ class MainActivity : AppCompatActivity() {
         serverUrlInput.setText(savedConfig.serverUrl)
         apiKeyInput.setText(savedConfig.apiKey)
         validationStatus = ApiValidationStatus.Idle
-
-        if (!isSavedConfigValid()) {
-            currentScreen = Screen.Access
-        } else if (currentScreen != Screen.Access || !hasUnsavedChanges()) {
-            currentScreen = Screen.Browser
-        }
+        currentScreen = Screen.Access
 
         render()
-        if (currentScreen == Screen.Browser) {
-            ensureCurrentDestinationLoaded()
-        }
     }
 
     private fun currentDraft(): ApiAccessConfig = ApiAccessConfig(
@@ -313,7 +330,7 @@ class MainActivity : AppCompatActivity() {
         render()
 
         if (pendingSharedUrl != null && isSavedConfigValid()) {
-            openBrowser()
+            startConnectionValidation(openBrowserOnSuccess = true)
         }
     }
 
@@ -487,6 +504,133 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun confirmDeleteLink(item: LinkCardModel) {
+        if (!isLinkActionAvailable() || isUpdatingLinks) {
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.title_move_to_trash)
+            .setMessage(getString(R.string.message_confirm_move_to_trash, item.title))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.action_move_to_trash) { _, _ ->
+                deleteLink(item)
+            }
+            .show()
+    }
+
+    private fun deleteLink(item: LinkCardModel) {
+        isUpdatingLinks = true
+        addLinkStatusMessage = getString(R.string.message_link_deleting)
+        renderBrowserState()
+
+        lifecycleScope.launch {
+            when (val result = linksRepository.deleteLink(savedConfig, item.id)) {
+                is ShioriApiResult.Success -> {
+                    removeLinkFromActiveLists(item.id)
+                    resetLinkState(LinkBrowseDestination.Trash)
+                    clearSelectedLinks(renderAfterClear = false)
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = getString(R.string.message_link_moved_to_trash)
+                    renderBrowserState()
+                }
+
+                is ShioriApiResult.Failure -> {
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = result.error.toDeleteMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
+    private fun restoreLink(item: LinkCardModel) {
+        if (currentDestination != LinkBrowseDestination.Trash || isUpdatingLinks) {
+            return
+        }
+
+        isUpdatingLinks = true
+        addLinkStatusMessage = getString(R.string.message_link_restoring)
+        renderBrowserState()
+
+        lifecycleScope.launch {
+            when (val result = linksRepository.restoreLink(savedConfig, item.id)) {
+                is ShioriApiResult.Success -> {
+                    val restoredDestination = result.value.toBrowseDestination()
+                    applyUpdatedLink(result.value)
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = getString(
+                        if (restoredDestination == LinkBrowseDestination.Archive) {
+                            R.string.message_link_restored_archive
+                        } else {
+                            R.string.message_link_restored_inbox
+                        },
+                    )
+                    currentDestination = restoredDestination
+                    renderBrowserState()
+                    ensureCurrentDestinationLoaded()
+                }
+
+                is ShioriApiResult.Failure -> {
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = result.error.toDeleteMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
+    private fun confirmEmptyTrash() {
+        if (currentDestination != LinkBrowseDestination.Trash || isUpdatingLinks) {
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.title_empty_trash)
+            .setMessage(R.string.message_confirm_empty_trash)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.action_empty_trash) { _, _ ->
+                emptyTrash()
+            }
+            .show()
+    }
+
+    private fun emptyTrash() {
+        isUpdatingLinks = true
+        addLinkStatusMessage = getString(R.string.message_trash_emptying)
+        renderBrowserState()
+
+        lifecycleScope.launch {
+            when (val result = linksRepository.emptyTrash(savedConfig)) {
+                is ShioriApiResult.Success -> {
+                    val removedCount = result.value.removedCount ?: currentLinkState().items.size
+                    updateLinkState(LinkBrowseDestination.Trash) {
+                        it.copy(
+                            items = emptyList(),
+                            isInitialLoading = false,
+                            isLoadingMore = false,
+                            hasLoadedOnce = true,
+                            endReached = true,
+                            nextOffset = 0,
+                            total = 0,
+                            message = getString(R.string.message_links_empty),
+                        )
+                    }
+                    clearSelectedLinks(renderAfterClear = false)
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = getString(R.string.message_trash_emptied, removedCount)
+                    renderBrowserState()
+                }
+
+                is ShioriApiResult.Failure -> {
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = result.error.toDeleteMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
     private fun showEditLinkDialog(item: LinkCardModel) {
         if (!isLinkActionAvailable() || isUpdatingLinks) {
             return
@@ -603,6 +747,30 @@ class MainActivity : AppCompatActivity() {
         pruneSelectedLinks()
     }
 
+    private fun removeLinkFromActiveLists(id: Long) {
+        listOf(LinkBrowseDestination.Inbox, LinkBrowseDestination.Archive).forEach { destination ->
+            val state = linkStates.getValue(destination)
+            val updatedItems = state.items.filterNot { it.id == id }
+            if (updatedItems != state.items) {
+                linkStates[destination] = state.copy(
+                    items = updatedItems,
+                    message = if (updatedItems.isEmpty() && state.hasLoadedOnce) {
+                        getString(R.string.message_links_empty)
+                    } else {
+                        null
+                    },
+                    total = state.total?.let { (it - 1).coerceAtLeast(0) },
+                )
+            }
+        }
+
+        pruneSelectedLinks()
+    }
+
+    private fun resetLinkState(destination: LinkBrowseDestination) {
+        linkStates[destination] = LinkListUiState()
+    }
+
     private fun applyLocalReadState(ids: List<Long>, read: Boolean) {
         val idSet = ids.toSet()
         LinkBrowseDestination.values().forEach { destination ->
@@ -645,11 +813,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun validateConnection() {
+        startConnectionValidation(openBrowserOnSuccess = false)
+    }
+
+    private fun startConnectionValidation(openBrowserOnSuccess: Boolean) {
         if (!isSavedConfigValid() || hasUnsavedChanges()) {
             render()
             return
         }
 
+        if (openBrowserOnSuccess) {
+            openBrowserAfterValidation = true
+        }
+
+        if (isWorking) {
+            return
+        }
+
+        accessStatusOverrideMessage = null
+        currentScreen = Screen.Access
         isWorking = true
         validationStatus = ApiValidationStatus.Checking
         render()
@@ -660,7 +842,15 @@ class MainActivity : AppCompatActivity() {
                 apiKey = savedConfig.apiKey,
             )
             isWorking = false
-            render()
+            if (validationStatus == ApiValidationStatus.Success && openBrowserAfterValidation) {
+                openBrowserAfterValidation = false
+                openBrowserValidated()
+            } else {
+                if (validationStatus != ApiValidationStatus.Success) {
+                    openBrowserAfterValidation = false
+                }
+                render()
+            }
         }
     }
 
@@ -670,26 +860,48 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        if (validationStatus != ApiValidationStatus.Success) {
+            startConnectionValidation(openBrowserOnSuccess = true)
+            return
+        }
+
+        openBrowserValidated()
+    }
+
+    private fun openBrowserValidated() {
         accessStatusOverrideMessage = null
         currentScreen = Screen.Browser
+        pendingBrowserStatusMessage?.let {
+            addLinkStatusMessage = it
+            pendingBrowserStatusMessage = null
+        }
         render()
         ensureCurrentDestinationLoaded()
         consumePendingSharedUrl()
     }
 
     private fun handleIncomingIntent(intent: Intent?) {
-        val intentKey = buildIncomingIntentKey(intent) ?: return
-        if (intentKey == lastHandledIntentKey) {
-            return
+        val intentKey = buildIncomingIntentKey(intent)
+        if (intentKey != null) {
+            if (intentKey == lastHandledIntentKey) {
+                return
+            }
+            lastHandledIntentKey = intentKey
         }
 
-        lastHandledIntentKey = intentKey
         when (val incomingLinkIntent = resolveIncomingLinkIntent(intent)) {
-            IncomingLinkIntent.None -> Unit
+            IncomingLinkIntent.None -> {
+                pendingBrowserStatusMessage = null
+                if (isSavedConfigValid() && !hasUnsavedChanges() && currentScreen != Screen.Browser) {
+                    startConnectionValidation(openBrowserOnSuccess = true)
+                }
+            }
+
             is IncomingLinkIntent.Supported -> {
+                pendingBrowserStatusMessage = null
                 pendingSharedUrl = incomingLinkIntent.url
                 if (isSavedConfigValid() && !hasUnsavedChanges()) {
-                    openBrowser()
+                    startConnectionValidation(openBrowserOnSuccess = true)
                 } else {
                     currentScreen = Screen.Access
                     accessStatusOverrideMessage = getString(R.string.message_shared_link_requires_access)
@@ -700,11 +912,8 @@ class MainActivity : AppCompatActivity() {
             IncomingLinkIntent.Unsupported -> {
                 pendingSharedUrl = null
                 if (isSavedConfigValid() && !hasUnsavedChanges()) {
-                    currentScreen = Screen.Browser
-                    addLinkStatusMessage = getString(R.string.message_shared_link_unsupported)
-                    accessStatusOverrideMessage = null
-                    render()
-                    ensureCurrentDestinationLoaded()
+                    pendingBrowserStatusMessage = getString(R.string.message_shared_link_unsupported)
+                    startConnectionValidation(openBrowserOnSuccess = true)
                 } else {
                     currentScreen = Screen.Access
                     accessStatusOverrideMessage = getString(R.string.message_shared_link_unsupported)
@@ -901,6 +1110,22 @@ class MainActivity : AppCompatActivity() {
         val rawLinkUrl = addLinkUrlInput.text?.toString().orEmpty()
         val isLinkUrlValid = isLinkUrlValid(rawLinkUrl)
         val linkActionsAvailable = isLinkActionAvailable()
+        val isTrashDestination = currentDestination == LinkBrowseDestination.Trash
+
+        val addLinkVisibility = if (isTrashDestination) View.GONE else View.VISIBLE
+        addLinkHeadingText.visibility = addLinkVisibility
+        addLinkSubtitleText.visibility = addLinkVisibility
+        addLinkUrlLayout.visibility = addLinkVisibility
+        addLinkUrlInput.visibility = addLinkVisibility
+        findViewById<View>(R.id.add_link_title_layout).visibility = addLinkVisibility
+        addLinkTitleInput.visibility = addLinkVisibility
+        addLinkReadCheckbox.visibility = addLinkVisibility
+        addLinkButton.visibility = addLinkVisibility
+
+        linkSelectionStatusText.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
+        linkSelectionActionsRow.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
+        clearSelectionButton.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
+
         addLinkUrlLayout.error = when {
             rawLinkUrl.isBlank() || isLinkUrlValid -> null
             else -> getString(R.string.error_link_url)
@@ -917,6 +1142,16 @@ class MainActivity : AppCompatActivity() {
             selectedLinkIds.isNotEmpty() -> getString(R.string.message_selection_count, selectedLinkIds.size)
             else -> getString(R.string.message_selection_idle)
         }
+        trashRetentionText.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.INVISIBLE
+        emptyTrashButton.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.INVISIBLE
+        emptyTrashButton.isEnabled = currentDestination == LinkBrowseDestination.Trash &&
+            !isUpdatingLinks &&
+            state.items.isNotEmpty()
+        if (isTrashDestination) {
+            (browserScreen as? NestedScrollView)?.post {
+                (browserScreen as? NestedScrollView)?.smoothScrollTo(0, emptyTrashButton.top)
+            }
+        }
         markSelectedReadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
         markSelectedUnreadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
         clearSelectionButton.isEnabled = selectedLinkIds.isNotEmpty()
@@ -924,8 +1159,9 @@ class MainActivity : AppCompatActivity() {
         linksAdapter.submitItems(
             newItems = state.items,
             selectedIds = selectedLinkIds,
-            itemActionsEnabled = linkActionsAvailable && !isUpdatingLinks,
+            itemActionsEnabled = !isUpdatingLinks,
             selectionEnabled = linkActionsAvailable,
+            destination = currentDestination,
         )
 
         browserProgress.visibility = if (state.isInitialLoading) View.VISIBLE else View.GONE
@@ -980,6 +1216,7 @@ class MainActivity : AppCompatActivity() {
         const val KEY_DESTINATION = "destination"
         const val KEY_PENDING_SHARED_URL = "pending_shared_url"
         const val KEY_ACCESS_STATUS_OVERRIDE = "access_status_override"
+        const val KEY_PENDING_BROWSER_STATUS = "pending_browser_status"
         const val KEY_LAST_HANDLED_INTENT = "last_handled_intent"
     }
 }
