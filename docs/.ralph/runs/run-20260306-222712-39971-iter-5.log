@@ -2523,3 +2523,16 @@ index a878006..c7df668 100644
 +[0m
 +<promise>COMPLETE</promise>
 [0m
+[0m$ [0mgit add -A && git commit -m "docs: record US-003 progress" && git status --porcelain && git show -s --format="%h %s" HEAD
+[main 0fb762b] docs: record US-003 progress
+ 10 files changed, 2815 insertions(+)
+ create mode 100644 docs/.ralph/.tmp/prompt-20260306-222712-39971-5.md
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-5.json
+ create mode 100644 docs/.ralph/.tmp/story-20260306-222712-39971-5.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-4.md
+ create mode 100644 docs/.ralph/runs/run-20260306-222712-39971-iter-5.log
+0fb762b docs: record US-003 progress
+[0m
+[0m$ [0mgit status --short
+M docs/.ralph/runs/run-20260306-222712-39971-iter-5.log
+[0m
