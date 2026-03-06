@@ -22,6 +22,7 @@ import dev.shiori.android.corenetwork.CreateLinkResponse
 import dev.shiori.android.corenetwork.DeleteLinkResponse
 import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.LinkListResponse
+import dev.shiori.android.corenetwork.LinkMutationResponse
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiResult
@@ -240,15 +241,20 @@ class MainActivityTest {
     }
 
     @Test
-    fun singleReadToggleUpdatesCurrentListImmediately() {
+    fun singleReadToggleReloadsCurrentListAfterDocumentedPatchResponse() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
             page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "6", title = "Toggle article", read = false))),
         )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
         linksRepository.updateLinkResult = ShioriApiResult.Success(
-            link(id = "6", title = "Toggle article", read = true),
+            LinkMutationResponse(success = true, message = "Link updated", linkId = "6"),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -307,8 +313,18 @@ class MainActivityTest {
             0,
             page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "9", title = "Editable article", read = false))),
         )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(
+                limit = 20,
+                offset = 0,
+                total = 1,
+                links = listOf(link(id = "9", title = "Edited title", read = false).copy(summary = null)),
+            ),
+        )
         linksRepository.updateLinkResult = ShioriApiResult.Success(
-            link(id = "9", title = "Edited title", read = false).copy(summary = null),
+            LinkMutationResponse(success = true, message = "Link updated", linkId = "9"),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -351,6 +367,8 @@ class MainActivityTest {
                 R.id.add_link_status_text,
                 "Shiori is still processing this link, so read state or metadata cannot change yet. Try again in a moment.",
             )
+            assertFirstCard(scenario, expectedDomain = "example.com", expectedSummary = "Summary 10", expectedStatus = "Unread  •  Ready")
+            assertEquals(listOf(Request(LinkBrowseDestination.Inbox, 20, 0)), linksRepository.requests)
         }
     }
 
@@ -1208,8 +1226,8 @@ class MainActivityTest {
             CreateLinkResponse(success = true, linkId = "99"),
         )
         var bulkUpdateResult: ShioriApiResult<List<LinkResponse>> = ShioriApiResult.Success(emptyList())
-        var updateLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
-            LinkResponse(id = "99", url = "https://example.com/99"),
+        var updateLinkResult: ShioriApiResult<LinkMutationResponse> = ShioriApiResult.Success(
+            LinkMutationResponse(success = true, message = "Link updated", linkId = "99"),
         )
         var restoreLinkResult: ShioriApiResult<LinkResponse> = ShioriApiResult.Success(
             LinkResponse(id = "99", url = "https://example.com/99"),
@@ -1276,7 +1294,7 @@ class MainActivityTest {
             config: ApiAccessConfig,
             id: String,
             request: UpdateLinkRequest,
-        ): ShioriApiResult<LinkResponse> {
+        ): ShioriApiResult<LinkMutationResponse> {
             updateRequests += id to request
             return updateLinkResult
         }

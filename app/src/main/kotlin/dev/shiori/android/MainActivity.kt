@@ -489,12 +489,11 @@ class MainActivity : AppCompatActivity() {
                 )
             ) {
                 is ShioriApiResult.Success -> {
-                    applyUpdatedLink(result.value)
                     isUpdatingLinks = false
                     addLinkStatusMessage = getString(
                         if (targetRead) R.string.message_link_read_updated else R.string.message_link_unread_updated,
                     )
-                    renderBrowserState()
+                    fetchLinks(currentDestination, reset = true)
                 }
 
                 is ShioriApiResult.Failure -> {
@@ -661,10 +660,12 @@ class MainActivity : AppCompatActivity() {
                 val requestedTitle = normalizeLinkTitle(titleInput.text?.toString().orEmpty()).takeIf { value ->
                     value.isNotEmpty()
                 }
-                val requestedSummary = if (clearSummaryCheckbox.isChecked) {
+                val trimmedSummary = summaryInput.text?.toString()?.trim().orEmpty()
+                val shouldClearSummary = clearSummaryCheckbox.isChecked || (item.summary != null && trimmedSummary.isEmpty())
+                val requestedSummary = if (shouldClearSummary) {
                     null
                 } else {
-                    summaryInput.text?.toString()?.trim()?.takeIf { value -> value.isNotEmpty() } ?: item.summary
+                    trimmedSummary.takeIf { value -> value.isNotEmpty() } ?: item.summary
                 }
 
                 if (requestedTitle == item.rawTitle && requestedSummary == item.summary) {
@@ -678,7 +679,7 @@ class MainActivity : AppCompatActivity() {
                     request = UpdateLinkRequest(
                         title = requestedTitle,
                         summary = requestedSummary,
-                        clearSummary = clearSummaryCheckbox.isChecked,
+                        clearSummary = shouldClearSummary,
                     ),
                 )
             }
@@ -695,10 +696,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             when (val result = linksRepository.updateLink(savedConfig, itemId, request)) {
                 is ShioriApiResult.Success -> {
-                    applyUpdatedLink(result.value)
                     isUpdatingLinks = false
                     addLinkStatusMessage = getString(R.string.message_link_metadata_updated)
-                    renderBrowserState()
+                    fetchLinks(currentDestination, reset = true)
                 }
 
                 is ShioriApiResult.Failure -> {

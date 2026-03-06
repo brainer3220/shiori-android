@@ -2,14 +2,15 @@ package dev.shiori.android
 
 import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.CreateLinkResponse
+import dev.shiori.android.corenetwork.DeleteLinkResponse
+import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.LinkListResponse
+import dev.shiori.android.corenetwork.LinkMutationResponse
 import dev.shiori.android.corenetwork.LinkReadFilter
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinkSortOrder
 import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.ShioriApiClient
-import dev.shiori.android.corenetwork.DeleteLinkResponse
-import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.UpdateLinkRequest
 import kotlinx.coroutines.test.runTest
@@ -238,7 +239,7 @@ class LinksBrowserTest {
         val trashResult = ShioriApiResult.Success(LinkListResponse())
         val createResult = ShioriApiResult.Success(CreateLinkResponse(success = true, linkId = "9"))
         val updateResult = ShioriApiResult.Success(dev.shiori.android.corenetwork.BulkReadStateResponse(updated = 2))
-        val singleUpdateResult = ShioriApiResult.Success(LinkResponse(id = "8", url = "https://example.com/8", title = "Updated title", readAt = "2026-03-07T10:00:00Z"))
+        val singleUpdateResult = ShioriApiResult.Success(LinkMutationResponse(success = true, message = "Link updated", linkId = "8"))
         val restoreResult = ShioriApiResult.Success(LinkResponse(id = "12", url = "https://example.com/12", title = "Restored title"))
         val deleteResult = ShioriApiResult.Success(DeleteLinkResponse(linkId = "13", message = "Link deleted"))
         val emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(deleted = 3, message = "Trash emptied"))
@@ -272,7 +273,7 @@ class LinksBrowserTest {
             return updateResult
         }
 
-        override suspend fun updateLink(id: String, request: dev.shiori.android.corenetwork.UpdateLinkRequest): ShioriApiResult<LinkResponse> {
+        override suspend fun updateLink(id: String, request: dev.shiori.android.corenetwork.UpdateLinkRequest): ShioriApiResult<LinkMutationResponse> {
             lastUpdatedId = id
             lastUpdateRequest = request
             return singleUpdateResult

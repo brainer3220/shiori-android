@@ -4,16 +4,17 @@ import android.content.Intent
 import dev.shiori.android.corenetwork.ApiKeyProvider
 import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.CreateLinkResponse
-import dev.shiori.android.corenetwork.LinkListResponse
-import dev.shiori.android.corenetwork.LinkResponse
-import dev.shiori.android.corenetwork.LinksQuery
-import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.DeleteLinkResponse
 import dev.shiori.android.corenetwork.EmptyTrashResponse
+import dev.shiori.android.corenetwork.LinkListResponse
+import dev.shiori.android.corenetwork.LinkMutationResponse
 import dev.shiori.android.corenetwork.LinkReadFilter
+import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.ShioriApiError
+import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.LinkSortOrder
+import dev.shiori.android.corenetwork.LinksQuery
 import dev.shiori.android.corenetwork.createShioriApiClient
 import dev.shiori.android.corenetwork.read
 import java.net.URI
@@ -92,7 +93,7 @@ interface LinksRepository {
         config: ApiAccessConfig,
         id: String,
         request: dev.shiori.android.corenetwork.UpdateLinkRequest,
-    ): ShioriApiResult<LinkResponse>
+    ): ShioriApiResult<LinkMutationResponse>
 
     suspend fun restoreLink(
         config: ApiAccessConfig,
@@ -146,7 +147,7 @@ class DefaultLinksRepository(
         config: ApiAccessConfig,
         id: String,
         request: dev.shiori.android.corenetwork.UpdateLinkRequest,
-    ): ShioriApiResult<LinkResponse> = clientFactory.create(config).updateLink(id, request)
+    ): ShioriApiResult<LinkMutationResponse> = clientFactory.create(config).updateLink(id, request)
 
     override suspend fun restoreLink(
         config: ApiAccessConfig,

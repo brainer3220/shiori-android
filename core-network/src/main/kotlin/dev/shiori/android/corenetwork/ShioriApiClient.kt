@@ -39,7 +39,7 @@ interface ShioriApiClient {
     suspend fun getTrashLinks(query: LinksQuery = LinksQuery(trash = true)): ShioriApiResult<LinkListResponse>
     suspend fun createLink(request: CreateLinkRequest): ShioriApiResult<CreateLinkResponse>
     suspend fun updateReadState(request: BulkReadStateRequest): ShioriApiResult<BulkReadStateResponse>
-    suspend fun updateLink(id: String, request: UpdateLinkRequest): ShioriApiResult<LinkResponse>
+    suspend fun updateLink(id: String, request: UpdateLinkRequest): ShioriApiResult<LinkMutationResponse>
     suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse>
     suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse>
     suspend fun deleteLink(id: String): ShioriApiResult<DeleteLinkResponse>
@@ -70,14 +70,13 @@ class DefaultShioriApiClient internal constructor(
         service.updateLinks(request)
     }
 
-    override suspend fun updateLink(id: String, request: UpdateLinkRequest): ShioriApiResult<LinkResponse> = execute {
+    override suspend fun updateLink(id: String, request: UpdateLinkRequest): ShioriApiResult<LinkMutationResponse> = execute {
         service.updateLink(id, request.toRequestBody())
     }
 
-    override suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse> = updateLink(
-        id = id,
-        request = UpdateLinkRequest(restore = true),
-    )
+    override suspend fun restoreLink(id: String): ShioriApiResult<LinkResponse> = execute {
+        service.restoreLink(id, UpdateLinkRequest(restore = true).toRequestBody())
+    }
 
     override suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse> = executeWithFallback(
         fallback = EmptyTrashResponse(message = "Trash emptied"),

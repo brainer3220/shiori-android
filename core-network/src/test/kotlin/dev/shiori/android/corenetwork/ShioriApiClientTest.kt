@@ -225,11 +225,9 @@ class ShioriApiClientTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
                 "{" +
-                    "\"id\":\"link-12\"," +
-                    "\"url\":\"https://example.com/12\"," +
-                    "\"title\":\"Edited title\"," +
-                    "\"summary\":null," +
-                    "\"read_at\":\"2026-03-07T12:00:00Z\"" +
+                    "\"success\":true," +
+                    "\"message\":\"Link updated\"," +
+                    "\"linkId\":\"link-12\"" +
                     "}"
             ),
         )
@@ -252,7 +250,7 @@ class ShioriApiClientTest {
         assertTrue(body.contains("\"title\":\"Edited title\""))
         assertTrue(body, body.contains("\"summary\":null"))
         assertTrue(result is ShioriApiResult.Success)
-        assertEquals("link-12", (result as ShioriApiResult.Success).value.id)
+        assertEquals("link-12", (result as ShioriApiResult.Success).value.linkId)
     }
 
     @Test

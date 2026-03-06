@@ -58,6 +58,13 @@ data class BulkReadStateResponse(
     val updated: Int? = null,
 )
 
+data class LinkMutationResponse(
+    val success: Boolean = true,
+    val message: String? = null,
+    @Json(name = "linkId")
+    val linkId: String,
+)
+
 data class DeleteLinkResponse(
     @Json(name = "linkId")
     val linkId: String? = null,
