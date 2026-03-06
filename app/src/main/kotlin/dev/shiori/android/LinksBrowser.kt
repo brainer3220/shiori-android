@@ -1,5 +1,6 @@
 package dev.shiori.android
 
+import android.content.Intent
 import dev.shiori.android.corenetwork.ApiKeyProvider
 import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.CreateLinkResponse
@@ -40,6 +41,14 @@ data class LinkListUiState(
     val total: Int? = null,
     val message: String? = null,
 )
+
+internal sealed interface IncomingLinkIntent {
+    object None : IncomingLinkIntent
+
+    data class Supported(val url: String) : IncomingLinkIntent
+
+    object Unsupported : IncomingLinkIntent
+}
 
 fun interface ShioriApiClientFactory {
     fun create(config: ApiAccessConfig): ShioriApiClient
@@ -166,6 +175,105 @@ internal fun normalizeLinkUrl(rawValue: String): String = rawValue.trim()
 
 internal fun normalizeLinkTitle(rawValue: String): String = rawValue.trim()
 
+internal fun resolveIncomingLinkIntent(intent: Intent?): IncomingLinkIntent {
+    intent ?: return IncomingLinkIntent.None
+
+    return when (intent.action) {
+        Intent.ACTION_SEND -> {
+            val url = extractFirstSupportedUrl(
+                listOf(
+                    intent.getCharSequenceExtra(Intent.EXTRA_TEXT),
+                    intent.clipData?.getItemAt(0)?.text,
+                    intent.dataString,
+                ),
+            )
+            if (url != null) IncomingLinkIntent.Supported(url) else IncomingLinkIntent.Unsupported
+        }
+
+        Intent.ACTION_SEND_MULTIPLE -> {
+            val clipItems = buildList {
+                val clipData = intent.clipData
+                if (clipData != null) {
+                    repeat(clipData.itemCount) { index ->
+                        add(clipData.getItemAt(index).text)
+                    }
+                }
+            }
+            val url = extractFirstSupportedUrl(
+                intent.getCharSequenceArrayListExtra(Intent.EXTRA_TEXT).orEmpty() + clipItems,
+            )
+            if (url != null) IncomingLinkIntent.Supported(url) else IncomingLinkIntent.Unsupported
+        }
+
+        Intent.ACTION_VIEW -> {
+            val url = extractFirstSupportedUrl(listOf(intent.dataString))
+            if (url != null) IncomingLinkIntent.Supported(url) else IncomingLinkIntent.Unsupported
+        }
+
+        else -> IncomingLinkIntent.None
+    }
+}
+
+internal fun buildIncomingIntentKey(intent: Intent?): String? {
+    intent ?: return null
+    val action = intent.action ?: return null
+    if (
+        action != Intent.ACTION_SEND &&
+        action != Intent.ACTION_SEND_MULTIPLE &&
+        action != Intent.ACTION_VIEW
+    ) {
+        return null
+    }
+
+    val multipleText = intent.getCharSequenceArrayListExtra(Intent.EXTRA_TEXT)
+        ?.joinToString(separator = "|") { it.toString() }
+        .orEmpty()
+    val clipText = buildString {
+        val clipData = intent.clipData
+        if (clipData != null) {
+            repeat(clipData.itemCount) { index ->
+                append(clipData.getItemAt(index).text?.toString().orEmpty())
+                append('|')
+            }
+        }
+    }
+
+    return listOf(
+        action,
+        intent.dataString.orEmpty(),
+        intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty(),
+        multipleText,
+        clipText,
+    ).joinToString(separator = "\n")
+}
+
+internal fun extractFirstSupportedUrl(candidates: Iterable<CharSequence?>): String? {
+    candidates.forEach { candidate ->
+        val text = candidate?.toString().orEmpty()
+        val supportedUrl = findSupportedUrlInText(text)
+        if (supportedUrl != null) {
+            return supportedUrl
+        }
+    }
+    return null
+}
+
+internal fun findSupportedUrlInText(text: String): String? {
+    val normalized = normalizeLinkUrl(text)
+    if (isLinkUrlValid(normalized)) {
+        return normalized
+    }
+
+    URL_PATTERN.findAll(text).forEach { match ->
+        val candidate = match.value.trimEnd('.', ',', ';', ':', ')', ']', '}')
+        if (isLinkUrlValid(candidate)) {
+            return candidate
+        }
+    }
+
+    return null
+}
+
 internal fun isLinkUrlValid(rawValue: String): Boolean {
     val value = normalizeLinkUrl(rawValue)
     if (value.isEmpty()) {
@@ -198,3 +306,5 @@ private fun String.toDomainFallback(): String {
     val uri = runCatching { URI(this) }.getOrNull()
     return uri?.host?.takeIf { it.isNotBlank() } ?: this
 }
+
+private val URL_PATTERN = Regex("https?://[^\\s]+", RegexOption.IGNORE_CASE)

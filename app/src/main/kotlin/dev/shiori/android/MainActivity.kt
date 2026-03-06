@@ -1,5 +1,6 @@
 package dev.shiori.android
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
@@ -63,6 +64,9 @@ class MainActivity : AppCompatActivity() {
     private var currentScreen = Screen.Access
     private var currentDestination = LinkBrowseDestination.Inbox
     private var addLinkStatusMessage: String? = null
+    private var accessStatusOverrideMessage: String? = null
+    private var pendingSharedUrl: String? = null
+    private var lastHandledIntentKey: String? = null
     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,14 +91,27 @@ class MainActivity : AppCompatActivity() {
         currentScreen = savedInstanceState?.getString(KEY_SCREEN)?.let(Screen::valueOf) ?: Screen.Access
         currentDestination = savedInstanceState?.getString(KEY_DESTINATION)?.let(LinkBrowseDestination::valueOf)
             ?: LinkBrowseDestination.Inbox
+        pendingSharedUrl = savedInstanceState?.getString(KEY_PENDING_SHARED_URL)
+        accessStatusOverrideMessage = savedInstanceState?.getString(KEY_ACCESS_STATUS_OVERRIDE)
+        lastHandledIntentKey = savedInstanceState?.getString(KEY_LAST_HANDLED_INTENT)
 
         loadStoredConfig()
+        handleIncomingIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncomingIntent(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(KEY_SCREEN, currentScreen.name)
         outState.putString(KEY_DESTINATION, currentDestination.name)
+        outState.putString(KEY_PENDING_SHARED_URL, pendingSharedUrl)
+        outState.putString(KEY_ACCESS_STATUS_OVERRIDE, accessStatusOverrideMessage)
+        outState.putString(KEY_LAST_HANDLED_INTENT, lastHandledIntentKey)
     }
 
     private fun bindViews() {
@@ -129,11 +146,13 @@ class MainActivity : AppCompatActivity() {
     private fun bindEvents() {
         serverUrlInput.doAfterTextChanged {
             if (!isWorking) {
+                accessStatusOverrideMessage = null
                 render()
             }
         }
         apiKeyInput.doAfterTextChanged {
             if (!isWorking) {
+                accessStatusOverrideMessage = null
                 render()
             }
         }
@@ -263,6 +282,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         render()
+
+        if (pendingSharedUrl != null && isSavedConfigValid()) {
+            openBrowser()
+        }
     }
 
     private fun currentLinkDraft(): CreateLinkRequest = CreateLinkRequest(
@@ -354,9 +377,67 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        accessStatusOverrideMessage = null
         currentScreen = Screen.Browser
         render()
         ensureCurrentDestinationLoaded()
+        consumePendingSharedUrl()
+    }
+
+    private fun handleIncomingIntent(intent: Intent?) {
+        val intentKey = buildIncomingIntentKey(intent) ?: return
+        if (intentKey == lastHandledIntentKey) {
+            return
+        }
+
+        lastHandledIntentKey = intentKey
+        when (val incomingLinkIntent = resolveIncomingLinkIntent(intent)) {
+            IncomingLinkIntent.None -> Unit
+            is IncomingLinkIntent.Supported -> {
+                pendingSharedUrl = incomingLinkIntent.url
+                if (isSavedConfigValid() && !hasUnsavedChanges()) {
+                    openBrowser()
+                } else {
+                    currentScreen = Screen.Access
+                    accessStatusOverrideMessage = getString(R.string.message_shared_link_requires_access)
+                    render()
+                }
+            }
+
+            IncomingLinkIntent.Unsupported -> {
+                pendingSharedUrl = null
+                if (isSavedConfigValid() && !hasUnsavedChanges()) {
+                    currentScreen = Screen.Browser
+                    addLinkStatusMessage = getString(R.string.message_shared_link_unsupported)
+                    accessStatusOverrideMessage = null
+                    render()
+                    ensureCurrentDestinationLoaded()
+                } else {
+                    currentScreen = Screen.Access
+                    accessStatusOverrideMessage = getString(R.string.message_shared_link_unsupported)
+                    render()
+                }
+            }
+        }
+    }
+
+    private fun consumePendingSharedUrl() {
+        val url = pendingSharedUrl ?: return
+        if (isSavingLink) {
+            return
+        }
+
+        pendingSharedUrl = null
+        importSharedUrl(url)
+    }
+
+    private fun importSharedUrl(url: String) {
+        addLinkUrlInput.setText(url)
+        addLinkTitleInput.setText("")
+        addLinkReadCheckbox.isChecked = false
+        addLinkStatusMessage = getString(R.string.message_shared_link_received)
+        renderBrowserState()
+        saveLink()
     }
 
     private fun onDestinationSelected(destination: LinkBrowseDestination) {
@@ -491,6 +572,7 @@ class MainActivity : AppCompatActivity() {
         continueButton.isEnabled = !isWorking && isSavedConfigValid() && !hasUnsavedChanges
 
         statusText.text = when {
+            accessStatusOverrideMessage != null -> accessStatusOverrideMessage
             isWorking && validationStatus == ApiValidationStatus.Checking -> getString(R.string.message_validating)
             hasUnsavedChanges -> getString(R.string.message_unsaved_changes)
             !isSavedConfigValid() -> getString(R.string.message_missing_access)
@@ -585,5 +667,8 @@ class MainActivity : AppCompatActivity() {
         const val PAGE_SIZE = 20
         const val KEY_SCREEN = "screen"
         const val KEY_DESTINATION = "destination"
+        const val KEY_PENDING_SHARED_URL = "pending_shared_url"
+        const val KEY_ACCESS_STATUS_OVERRIDE = "access_status_override"
+        const val KEY_LAST_HANDLED_INTENT = "last_handled_intent"
     }
 }

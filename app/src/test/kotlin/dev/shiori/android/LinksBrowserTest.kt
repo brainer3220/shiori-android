@@ -109,6 +109,36 @@ class LinksBrowserTest {
         assertEquals(LinkBrowseDestination.Archive, LinkResponse(id = 1, url = "https://example.com", read = true).toBrowseDestination())
     }
 
+    @Test
+    fun `shared text extraction finds first supported url`() {
+        assertEquals(
+            "https://example.com/article",
+            extractFirstSupportedUrl(
+                listOf(
+                    "not a url",
+                    "Check this out: https://example.com/article)",
+                    "https://ignored.example.com/after",
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `shared text finder ignores unsupported content`() {
+        assertEquals(
+            null,
+            findSupportedUrlInText("shared note without a valid url"),
+        )
+    }
+
+    @Test
+    fun `shared text finder keeps direct supported urls`() {
+        assertEquals(
+            "https://example.com/from-view",
+            findSupportedUrlInText("https://example.com/from-view"),
+        )
+    }
+
     private class FakeShioriApiClient : ShioriApiClient {
         val inboxResult = ShioriApiResult.Success(LinkListResponse())
         val trashResult = ShioriApiResult.Success(LinkListResponse())

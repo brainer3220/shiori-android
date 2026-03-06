@@ -1,5 +1,7 @@
 package dev.shiori.android
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
@@ -252,6 +254,126 @@ class MainActivityTest {
                     Request(LinkBrowseDestination.Archive, 20, 0),
                 ),
                 linksRepository.requests,
+            )
+        }
+    }
+
+    @Test
+    fun sharedSendIntentUsesExistingSaveWorkflowOnColdLaunch() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 30, title = "Shared article", read = false))),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 30, title = "Shared article", read = false))),
+        )
+        linksRepository.saveResult = ShioriApiResult.Success(
+            CreateLinkResponse(
+                duplicate = false,
+                link = link(id = 30, title = "Shared article", read = false),
+            ),
+        )
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://example.com/shared")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "Link saved. Showing it in your inbox.",
+            )
+            waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
+
+            assertEquals(
+                listOf(
+                    CreateLinkRequest(
+                        url = "https://example.com/shared",
+                        title = null,
+                        read = false,
+                    ),
+                ),
+                linksRepository.savedRequests.toList(),
+            )
+            assertLoadedTitles(scenario, "Shared article")
+        }
+    }
+
+    @Test
+    fun invalidSharedContentShowsGracefulFeedback() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+
+        val launchIntent = Intent(Intent.ACTION_SEND).apply {
+            setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "shared note without a url")
+        }
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "This share did not include a supported HTTP or HTTPS URL.",
+            )
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertTrue(linksRepository.savedRequests.isEmpty())
+        }
+    }
+
+    @Test
+    fun viewIntentImportsUrlWhenAppLaunchesFromDeepLink() {
+        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 40, title = "Viewed article", read = false))),
+        )
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = 40, title = "Viewed article", read = false))),
+        )
+        linksRepository.saveResult = ShioriApiResult.Success(
+            CreateLinkResponse(
+                duplicate = true,
+                link = link(id = 40, title = "Viewed article", read = false),
+            ),
+        )
+
+        val launchIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com/viewed"))
+            .setClassName(
+                InstrumentationRegistry.getInstrumentation().targetContext,
+                MainActivity::class.java.name,
+            )
+
+        ActivityScenario.launch<MainActivity>(launchIntent).use { scenario ->
+            waitForText(
+                scenario,
+                R.id.add_link_status_text,
+                "That link already exists. Showing the saved copy in your inbox.",
+            )
+
+            assertEquals(
+                "https://example.com/viewed",
+                linksRepository.savedRequests.single().url,
             )
         }
     }

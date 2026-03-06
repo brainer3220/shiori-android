@@ -40,6 +40,9 @@
     <string name="message_link_saved_archive">Link saved. Showing it in your archive.</string>
     <string name="message_link_duplicate_inbox">That link already exists. Showing the saved copy in your inbox.</string>
     <string name="message_link_duplicate_archive">That link already exists. Showing the saved copy in your archive.</string>
+    <string name="message_shared_link_received">Saving the shared URL to Shiori…</string>
+    <string name="message_shared_link_requires_access">Save valid API access before importing the shared URL.</string>
+    <string name="message_shared_link_unsupported">This share did not include a supported HTTP or HTTPS URL.</string>
     <string name="error_server_url">Enter an HTTPS URL, or use localhost over HTTP for emulator testing.</string>
     <string name="error_api_key">Enter a valid-looking API key with no spaces.</string>
     <string name="error_link_url">Enter a full HTTP or HTTPS URL.</string>
