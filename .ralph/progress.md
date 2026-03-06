@@ -6,6 +6,45 @@ Started: 2026년  3월  6일 금요일 16시 00분 02초 KST
 
 ---
 
+## [2026-03-07 01:20:44 KST] - US-006: Surface documented error and rate-limit states consistently
+Thread: 
+Run: 20260307-001840-72835 (iteration 7)
+Run log: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-7.log
+Run summary: /Users/brainer/Programming/shiori-android/.ralph/runs/run-20260307-001840-72835-iter-7.md
+- Guardrails reviewed: yes
+- No-commit run: false
+- Commit: bf3c897 fix: surface documented Shiori error states
+- Post-commit status: `clean`
+- Verification:
+  - Command: `./gradlew test` -> PASS
+  - Command: `./gradlew lintDebug` -> PASS
+  - Command: `adb devices` -> PASS
+  - Command: `./gradlew connectedDebugAndroidTest` -> PASS
+- Files changed:
+  - `.ralph/activity.log`
+  - `.ralph/progress.md`
+  - `app/src/androidTest/kotlin/dev/shiori/android/MainActivityTest.kt`
+  - `app/src/main/kotlin/dev/shiori/android/LinksBrowser.kt`
+  - `app/src/test/kotlin/dev/shiori/android/DefaultApiConnectionCheckerTest.kt`
+  - `app/src/test/kotlin/dev/shiori/android/LinksBrowserTest.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiClient.kt`
+  - `core-network/src/main/kotlin/dev/shiori/android/corenetwork/ShioriApiModels.kt`
+  - `core-network/src/test/kotlin/dev/shiori/android/corenetwork/ShioriApiClientTest.kt`
+- What was implemented
+  - Reworked link-action error messaging around documented `400`, `401`, `404`, `409`, `429`, and `500` outcomes so browse, save, update, and trash flows each show a distinct recovery hint instead of generic or misleading failures.
+  - Extended `ShioriApiError.RateLimited` to carry documented `Retry-After` and `X-RateLimit-Reset` headers from Retrofit responses, then used those values to build wait-oriented messages for generic requests and link creation without relying on undocumented error text.
+  - Stopped malformed success bodies from being surfaced as server/auth failures by mapping empty or unexpected bodies to `Unknown`, which preserves the negative-case requirement that network and parsing problems are not mislabeled as auth, conflict, or rate-limit issues.
+  - Added unit and instrumentation coverage for distinct status messaging, rate-limit timing, validation failures, and non-mislabeled network/unknown failures across `DefaultApiConnectionCheckerTest`, `LinksBrowserTest`, and `MainActivityTest`.
+  - Reviewed the final changes for security, performance, and regression risk: no new sensitive data is stored or echoed, the new rate-limit handling is header-based string formatting only, list actions still use the same bounded request patterns, and the full unit/lint/emulator suite passes after the messaging updates.
+- **Learnings for future iterations:**
+  - Patterns discovered
+    - Carry documented retry metadata in the domain error model so UI copy can stay action-specific while still reusing one shared rate-limit formatter.
+  - Gotchas encountered
+    - `connectedDebugAndroidTest` on the Wear emulator is sensitive to off-screen visibility assertions; checking retry button text is more stable than asserting `isDisplayed()` for lower-page controls.
+  - Useful context
+    - `lintDebug` still passes in this environment despite noisy AndroidX lint class-version warnings, and rerunning Gradle tasks sequentially avoids the incremental-cache/resource-merger flakiness seen when tasks overlap.
+---
+
 ## [2026-03-07 01:05:28 KST] - US-005: Align trash, restore, and empty-trash flows to documented endpoints
 Thread: 
 Run: 20260307-001840-72835 (iteration 5)
