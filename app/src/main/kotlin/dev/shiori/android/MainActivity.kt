@@ -1,15 +1,28 @@
 package dev.shiori.android
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.net.Uri
 import android.os.Bundle
+import android.transition.AutoTransition
+import android.transition.TransitionManager
+import android.view.Menu
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.CheckBox
+import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.PopupMenu
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.NestedScrollView
@@ -17,8 +30,10 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import dev.shiori.android.corenetwork.CreateLinkRequest
@@ -31,18 +46,19 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var store: ApiAccessStore
-    private lateinit var checker: ApiConnectionChecker
     private lateinit var linksRepository: LinksRepository
 
+    private lateinit var rootContainer: ViewGroup
     private lateinit var accessScreen: View
     private lateinit var browserScreen: View
-    private lateinit var serverUrlLayout: TextInputLayout
-    private lateinit var serverUrlInput: TextInputEditText
+    private lateinit var browserScrollView: NestedScrollView
+    private lateinit var browserContentContainer: ViewGroup
+    private lateinit var accessTitleText: TextView
+    private lateinit var accessSubtitleText: TextView
     private lateinit var apiKeyLayout: TextInputLayout
     private lateinit var apiKeyInput: TextInputEditText
     private lateinit var statusText: TextView
     private lateinit var saveButton: MaterialButton
-    private lateinit var validateButton: MaterialButton
     private lateinit var continueButton: MaterialButton
     private lateinit var clearButton: MaterialButton
     private lateinit var editAccessButton: MaterialButton
@@ -50,16 +66,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var inboxButton: MaterialButton
     private lateinit var archiveButton: MaterialButton
     private lateinit var trashButton: MaterialButton
-    private lateinit var addLinkHeadingText: TextView
-    private lateinit var addLinkSubtitleText: TextView
+    private lateinit var addLinkSection: View
     private lateinit var browserStateText: TextView
+    private lateinit var sectionHeaderText: TextView
     private lateinit var browserProgress: ProgressBar
     private lateinit var addLinkUrlLayout: TextInputLayout
     private lateinit var addLinkUrlInput: TextInputEditText
-    private lateinit var addLinkTitleInput: TextInputEditText
-    private lateinit var addLinkReadCheckbox: CheckBox
     private lateinit var addLinkStatusText: TextView
-    private lateinit var addLinkButton: MaterialButton
+    private lateinit var addLinkButton: ImageButton
+    private lateinit var linkQueryInput: TextInputEditText
+    private lateinit var linkQueryButton: ImageButton
     private lateinit var linksList: RecyclerView
     private lateinit var loadMoreButton: MaterialButton
     private lateinit var trashRetentionText: TextView
@@ -71,16 +87,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clearSelectionButton: MaterialButton
 
     private val linksAdapter = LinkListAdapter(
+        onOpenClicked = ::openLink,
         onSelectionChanged = ::onLinkSelectionChanged,
         onReadToggleClicked = ::toggleLinkReadState,
         onEditClicked = ::showEditLinkDialog,
         onDeleteClicked = ::confirmDeleteLink,
-        onRestoreClicked = ::restoreLink,
+        onRestoreClicked = { restoreLink(it) },
     )
 
     private var savedConfig = ApiAccessConfig()
-    private var validationStatus = ApiValidationStatus.Idle
-    private var isWorking = false
     private var isSavingLink = false
     private var isUpdatingLinks = false
     private var currentScreen = Screen.Access
@@ -91,7 +106,8 @@ class MainActivity : AppCompatActivity() {
     private var pendingBrowserStatusMessage: String? = null
     private var lastHandledIntentKey: String? = null
     private var lastHandledSharedUrl: String? = null
-    private var openBrowserAfterValidation = false
+    private var lastRenderedScreen: Screen? = null
+    private var lastBrowserChromeState: BrowserChromeState? = null
     private val selectedLinkIds = linkedSetOf<String>()
     private val linkStates = LinkBrowseDestination.values().associateWith { LinkListUiState() }.toMutableMap()
 
@@ -107,26 +123,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         store = AppDependencies.apiAccessStore(this)
-        checker = AppDependencies.connectionChecker()
         linksRepository = AppDependencies.linksRepository()
 
         bindViews()
         bindEvents()
         setupLinksList()
+        registerBackNavigation()
 
-        currentScreen = savedInstanceState?.getString(KEY_SCREEN)?.let(Screen::valueOf) ?: Screen.Access
-        val resumeBrowserAfterValidation = currentScreen == Screen.Browser
+        val restoredScreen = savedInstanceState?.getString(KEY_SCREEN)?.let(Screen::valueOf)
+        currentScreen = restoredScreen ?: Screen.Access
         currentDestination = parseSavedDestination(savedInstanceState?.getString(KEY_DESTINATION))
         pendingSharedUrl = savedInstanceState?.getString(KEY_PENDING_SHARED_URL)
         accessStatusOverrideMessage = savedInstanceState?.getString(KEY_ACCESS_STATUS_OVERRIDE)
         pendingBrowserStatusMessage = savedInstanceState?.getString(KEY_PENDING_BROWSER_STATUS)
         lastHandledIntentKey = savedInstanceState?.getString(KEY_LAST_HANDLED_INTENT)
         lastHandledSharedUrl = savedInstanceState?.getString(KEY_LAST_HANDLED_SHARED_URL)
+        linkQueryInput.setText(savedInstanceState?.getString(KEY_LINK_QUERY).orEmpty())
 
-        loadStoredConfig()
+        loadStoredConfig(restoredScreen != null)
         handleIncomingIntent(intent)
-        if (resumeBrowserAfterValidation && isSavedConfigValid() && !hasUnsavedChanges() && currentScreen != Screen.Browser) {
-            startConnectionValidation(openBrowserOnSuccess = true)
+        if (currentScreen == Screen.Browser && isSavedConfigValid() && !hasUnsavedChanges()) {
+            ensureCurrentDestinationLoaded()
+            consumePendingSharedUrl()
         }
     }
 
@@ -145,18 +163,21 @@ class MainActivity : AppCompatActivity() {
         outState.putString(KEY_PENDING_BROWSER_STATUS, pendingBrowserStatusMessage)
         outState.putString(KEY_LAST_HANDLED_INTENT, lastHandledIntentKey)
         outState.putString(KEY_LAST_HANDLED_SHARED_URL, lastHandledSharedUrl)
+        outState.putString(KEY_LINK_QUERY, currentQuery())
     }
 
     private fun bindViews() {
+        rootContainer = findViewById(R.id.root_container)
         accessScreen = findViewById(R.id.access_screen)
         browserScreen = findViewById(R.id.browser_screen)
-        serverUrlLayout = findViewById(R.id.server_url_layout)
-        serverUrlInput = findViewById(R.id.server_url_input)
+        browserScrollView = findViewById(R.id.browser_scroll_view)
+        browserContentContainer = findViewById(R.id.browser_content_container)
+        accessTitleText = findViewById(R.id.title_text)
+        accessSubtitleText = findViewById(R.id.subtitle_text)
         apiKeyLayout = findViewById(R.id.api_key_layout)
         apiKeyInput = findViewById(R.id.api_key_input)
         statusText = findViewById(R.id.status_text)
         saveButton = findViewById(R.id.save_button)
-        validateButton = findViewById(R.id.validate_button)
         continueButton = findViewById(R.id.continue_button)
         clearButton = findViewById(R.id.clear_button)
         editAccessButton = findViewById(R.id.edit_access_button)
@@ -164,16 +185,16 @@ class MainActivity : AppCompatActivity() {
         inboxButton = findViewById(R.id.filter_inbox_button)
         archiveButton = findViewById(R.id.filter_archive_button)
         trashButton = findViewById(R.id.filter_trash_button)
-        addLinkHeadingText = findViewById(R.id.add_link_heading_text)
-        addLinkSubtitleText = findViewById(R.id.add_link_subtitle_text)
+        addLinkSection = findViewById(R.id.add_link_section)
         browserStateText = findViewById(R.id.browser_state_text)
+        sectionHeaderText = findViewById(R.id.section_header_text)
         browserProgress = findViewById(R.id.browser_progress)
         addLinkUrlLayout = findViewById(R.id.add_link_url_layout)
         addLinkUrlInput = findViewById(R.id.add_link_url_input)
-        addLinkTitleInput = findViewById(R.id.add_link_title_input)
-        addLinkReadCheckbox = findViewById(R.id.add_link_read_checkbox)
         addLinkStatusText = findViewById(R.id.add_link_status_text)
         addLinkButton = findViewById(R.id.add_link_button)
+        linkQueryInput = findViewById(R.id.link_query_input)
+        linkQueryButton = findViewById(R.id.link_query_button)
         linksList = findViewById(R.id.links_list)
         loadMoreButton = findViewById(R.id.load_more_button)
         trashRetentionText = findViewById(R.id.trash_retention_text)
@@ -183,20 +204,16 @@ class MainActivity : AppCompatActivity() {
         markSelectedReadButton = findViewById(R.id.mark_selected_read_button)
         markSelectedUnreadButton = findViewById(R.id.mark_selected_unread_button)
         clearSelectionButton = findViewById(R.id.clear_selection_button)
+
+        ViewCompat.setAccessibilityLiveRegion(browserStateText, ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE)
+        ViewCompat.setAccessibilityLiveRegion(addLinkStatusText, ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE)
+        ViewCompat.setAccessibilityLiveRegion(linkSelectionStatusText, ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE)
     }
 
     private fun bindEvents() {
-        serverUrlInput.doAfterTextChanged {
-            if (!isWorking) {
-                accessStatusOverrideMessage = null
-                render()
-            }
-        }
         apiKeyInput.doAfterTextChanged {
-            if (!isWorking) {
-                accessStatusOverrideMessage = null
-                render()
-            }
+            accessStatusOverrideMessage = null
+            render()
         }
         addLinkUrlInput.doAfterTextChanged {
             if (!isSavingLink) {
@@ -204,16 +221,29 @@ class MainActivity : AppCompatActivity() {
                 renderBrowserState()
             }
         }
-        addLinkTitleInput.doAfterTextChanged {
-            if (!isSavingLink) {
-                addLinkStatusMessage = null
-                renderBrowserState()
+        linkQueryInput.doAfterTextChanged {
+            if (selectedLinkIds.isNotEmpty()) {
+                clearSelectedLinks(renderAfterClear = false)
+            }
+            ensureCurrentDestinationLoaded()
+            renderBrowserState()
+        }
+        addLinkUrlInput.setOnEditorActionListener { _, actionId, _ ->
+            if ((actionId == EditorInfo.IME_ACTION_SEND || actionId == EditorInfo.IME_ACTION_DONE) &&
+                addLinkButton.isEnabled
+            ) {
+                saveLink()
+                true
+            } else {
+                false
             }
         }
-        addLinkReadCheckbox.setOnCheckedChangeListener { _, _ ->
-            if (!isSavingLink) {
-                addLinkStatusMessage = null
-                renderBrowserState()
+        linkQueryInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                hideKeyboard(linkQueryInput)
+                true
+            } else {
+                false
             }
         }
 
@@ -221,27 +251,21 @@ class MainActivity : AppCompatActivity() {
             saveAccess()
         }
 
+        continueButton.setOnClickListener {
+            continueToBrowserFromAccess()
+        }
+
         clearButton.setOnClickListener {
             store.clearApiKey()
-            savedConfig = savedConfig.copy(apiKey = "")
+            savedConfig = ApiAccessConfig()
             apiKeyInput.setText("")
-            validationStatus = ApiValidationStatus.Idle
+            resetLinkStates()
             currentScreen = Screen.Access
+            accessStatusOverrideMessage = null
             render()
         }
 
-        validateButton.setOnClickListener {
-            validateConnection()
-        }
-
-        continueButton.setOnClickListener {
-            openBrowser()
-        }
-
-        editAccessButton.setOnClickListener {
-            currentScreen = Screen.Access
-            render()
-        }
+        editAccessButton.setOnClickListener { showBrowserMenu() }
 
         filtersGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) {
@@ -258,6 +282,15 @@ class MainActivity : AppCompatActivity() {
 
         addLinkButton.setOnClickListener {
             saveLink()
+        }
+
+        linkQueryButton.setOnClickListener {
+            if (linkQueryInput.text.isNullOrBlank()) {
+                focusInput(linkQueryInput)
+            } else {
+                linkQueryInput.setText("")
+                focusInput(linkQueryInput)
+            }
         }
 
         markSelectedReadButton.setOnClickListener {
@@ -289,59 +322,246 @@ class MainActivity : AppCompatActivity() {
     private fun setupLinksList() {
         linksList.layoutManager = LinearLayoutManager(this)
         linksList.adapter = linksAdapter
+        linksList.itemAnimator?.apply {
+            addDuration = 120L
+            removeDuration = 120L
+            moveDuration = 120L
+            changeDuration = 120L
+        }
+        (linksList.itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
     }
 
-    private fun loadStoredConfig() {
+    private fun registerBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (currentScreen == Screen.Access && isSavedConfigValid()) {
+                    continueToBrowserFromAccess()
+                    return
+                }
+
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        })
+    }
+
+    private fun continueToBrowserFromAccess() {
+        if (!isSavedConfigValid()) {
+            return
+        }
+
+        hideKeyboard(apiKeyInput)
+        if (hasUnsavedChanges()) {
+            confirmDiscardAccessChanges()
+        } else {
+            openBrowser()
+        }
+    }
+
+    private fun confirmDiscardAccessChanges() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.title_discard_access_changes)
+            .setMessage(R.string.message_confirm_discard_access_changes)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.action_discard_and_continue) { _, _ ->
+                apiKeyInput.setText(savedConfig.apiKey)
+                accessStatusOverrideMessage = null
+                openBrowser()
+            }
+            .show()
+    }
+
+    private fun showBrowserMenu() {
+        PopupMenu(this, editAccessButton).apply {
+            menu.add(Menu.NONE, MENU_EDIT_ACCESS, 0, R.string.action_edit_access)
+
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    MENU_EDIT_ACCESS -> {
+                        currentScreen = Screen.Access
+                        render()
+                        true
+                    }
+
+                    else -> false
+                }
+            }
+            show()
+        }
+    }
+
+    private fun focusInput(input: TextInputEditText) {
+        input.requestFocus()
+        input.post {
+            input.setSelection(input.text?.length ?: 0)
+            val inputMethodManager = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
+            inputMethodManager?.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    private fun hideKeyboard(target: View) {
+        val inputMethodManager = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
+        inputMethodManager?.hideSoftInputFromWindow(target.windowToken, 0)
+        target.clearFocus()
+    }
+
+    private fun currentQuery(): String = linkQueryInput.text?.toString().orEmpty().trim()
+
+    private fun visibleLinkItems(state: LinkListUiState): List<LinkCardModel> {
+        val query = currentQuery()
+        if (query.isBlank()) {
+            return state.items
+        }
+
+        return state.items.filter { item ->
+            listOfNotNull(item.title, item.domain, item.summary, item.url, item.readState, item.status)
+                .any { value -> value.contains(query, ignoreCase = true) }
+        }
+    }
+
+    private fun currentSectionTitle(query: String): String = when {
+        query.isNotBlank() -> getString(R.string.title_search_results)
+        currentDestination == LinkBrowseDestination.Inbox -> getString(R.string.title_today)
+        currentDestination == LinkBrowseDestination.Archive -> getString(R.string.filter_archive)
+        else -> getString(R.string.filter_trash)
+    }
+
+    private fun updateFilterButtonStyles() {
+        when (currentDestination) {
+            LinkBrowseDestination.Inbox -> filtersGroup.check(R.id.filter_inbox_button)
+            LinkBrowseDestination.Archive -> filtersGroup.check(R.id.filter_archive_button)
+            LinkBrowseDestination.Trash -> filtersGroup.check(R.id.filter_trash_button)
+        }
+
+        styleFilterButton(inboxButton, currentDestination == LinkBrowseDestination.Inbox)
+        styleFilterButton(archiveButton, currentDestination == LinkBrowseDestination.Archive)
+        styleFilterButton(trashButton, currentDestination == LinkBrowseDestination.Trash)
+    }
+
+    private fun styleFilterButton(button: MaterialButton, selected: Boolean) {
+        val backgroundColor = ContextCompat.getColor(
+            this,
+            if (selected) R.color.shiori_surface_selected else android.R.color.transparent,
+        )
+        val textColor = ContextCompat.getColor(
+            this,
+            if (selected) R.color.shiori_text_primary else R.color.shiori_text_secondary,
+        )
+        button.backgroundTintList = ColorStateList.valueOf(backgroundColor)
+        button.setTextColor(textColor)
+    }
+
+    private fun updateSearchButtonState(query: String) {
+        if (query.isBlank()) {
+            linkQueryButton.setImageResource(android.R.drawable.ic_menu_search)
+            linkQueryButton.contentDescription = getString(R.string.label_search_links)
+        } else {
+            linkQueryButton.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            linkQueryButton.contentDescription = getString(R.string.label_clear_search)
+        }
+    }
+
+    private fun styleContinueButton(primary: Boolean) {
+        val backgroundColor = ContextCompat.getColor(
+            this,
+            if (primary) R.color.shiori_accent_dark else R.color.shiori_white,
+        )
+        val textColor = ContextCompat.getColor(
+            this,
+            if (primary) R.color.shiori_white else R.color.shiori_text_primary,
+        )
+        continueButton.backgroundTintList = ColorStateList.valueOf(backgroundColor)
+        continueButton.setTextColor(textColor)
+        continueButton.strokeWidth = if (primary) 0 else resources.displayMetrics.density.toInt().coerceAtLeast(1)
+        continueButton.strokeColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.shiori_line))
+    }
+
+    private fun maybeAnimateBrowserContent(state: BrowserChromeState) {
+        if (browserContentContainer.isLaidOut && lastBrowserChromeState != null && lastBrowserChromeState != state) {
+            TransitionManager.beginDelayedTransition(
+                browserContentContainer,
+                AutoTransition().apply { duration = 180L },
+            )
+        }
+        lastBrowserChromeState = state
+    }
+
+    private fun showTransientFeedback(
+        message: String,
+        actionLabelRes: Int? = null,
+        action: (() -> Unit)? = null,
+    ) {
+        announceFeedback(message)
+        val snackbar = Snackbar.make(rootContainer, message, Snackbar.LENGTH_LONG)
+        snackbar.animationMode = Snackbar.ANIMATION_MODE_FADE
+        snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.shiori_text_primary))
+        snackbar.setTextColor(ContextCompat.getColor(this, R.color.shiori_white))
+        snackbar.setActionTextColor(ContextCompat.getColor(this, R.color.shiori_surface_selected))
+        if (actionLabelRes != null && action != null) {
+            snackbar.setAction(actionLabelRes) { action() }
+        }
+        snackbar.show()
+    }
+
+    private fun announceFeedback(message: String) {
+        rootContainer.post { rootContainer.announceForAccessibility(message) }
+    }
+
+    private fun openLink(item: LinkCardModel) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(item.url)))
+        } catch (_: ActivityNotFoundException) {
+            showTransientFeedback(getString(R.string.message_link_open_failed))
+        }
+    }
+
+    private fun loadStoredConfig(restoredScreen: Boolean) {
         savedConfig = store.readConfig()
-        serverUrlInput.setText(savedConfig.serverUrl)
         apiKeyInput.setText(savedConfig.apiKey)
-        validationStatus = ApiValidationStatus.Idle
-        currentScreen = Screen.Access
+
+        currentScreen = when {
+            !isSavedConfigValid() -> Screen.Access
+            restoredScreen -> currentScreen
+            else -> Screen.Browser
+        }
 
         render()
     }
 
     private fun currentDraft(): ApiAccessConfig = ApiAccessConfig(
-        serverUrl = serverUrlInput.text?.toString().orEmpty(),
         apiKey = apiKeyInput.text?.toString().orEmpty(),
     )
 
     private fun saveAccess() {
         val draft = currentDraft()
-        if (!ApiAccessInputValidator.isServerUrlValid(draft.serverUrl) ||
-            !ApiAccessInputValidator.isApiKeyValidLooking(draft.apiKey)
-        ) {
+        if (!ApiAccessInputValidator.isApiKeyValidLooking(draft.apiKey)) {
             render()
             return
         }
 
         val normalizedConfig = ApiAccessConfig(
-            serverUrl = ApiAccessInputValidator.normalizeServerUrl(draft.serverUrl),
             apiKey = ApiAccessInputValidator.normalizeApiKey(draft.apiKey),
         )
         val configChanged = normalizedConfig != savedConfig
 
         store.saveConfig(normalizedConfig)
         savedConfig = normalizedConfig
-        validationStatus = ApiValidationStatus.Idle
-        serverUrlInput.setText(savedConfig.serverUrl)
         apiKeyInput.setText(savedConfig.apiKey)
 
         if (configChanged) {
             resetLinkStates()
         }
 
+        accessStatusOverrideMessage = null
         render()
-
-        if (pendingSharedUrl != null && isSavedConfigValid()) {
-            startConnectionValidation(openBrowserOnSuccess = true)
-        }
+        openBrowser()
     }
 
     private fun currentLinkDraft(): CreateLinkRequest = CreateLinkRequest(
         url = addLinkUrlInput.text?.toString().orEmpty(),
-        title = addLinkTitleInput.text?.toString(),
-        read = addLinkReadCheckbox.isChecked,
+        title = null,
+        read = null,
     )
 
     private fun saveLink() {
@@ -383,19 +603,20 @@ class MainActivity : AppCompatActivity() {
     private fun handleLinkSaved(response: CreateLinkResponse, request: CreateLinkRequest) {
         val destination = response.toBrowseDestination(request)
         addLinkUrlInput.setText("")
-        addLinkTitleInput.setText("")
-        addLinkReadCheckbox.isChecked = false
-        addLinkStatusMessage = when {
+        linkQueryInput.setText("")
+        val message = when {
             response.duplicate -> getString(R.string.message_link_duplicate_inbox)
             destination == LinkBrowseDestination.Archive -> getString(R.string.message_link_saved_archive)
             else -> getString(R.string.message_link_saved_inbox)
         }
+        addLinkStatusMessage = null
         isSavingLink = false
 
         if (currentDestination != destination) {
             currentDestination = destination
         }
 
+        showTransientFeedback(message)
         fetchLinks(destination, reset = true)
     }
 
@@ -423,8 +644,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun pruneSelectedLinks() {
-        val visibleIds = currentLinkState().items.mapTo(mutableSetOf()) { it.id }
+    private fun pruneSelectedLinks(visibleItems: List<LinkCardModel> = visibleLinkItems(currentLinkState())) {
+        val visibleIds = visibleItems.mapTo(mutableSetOf()) { it.id }
         selectedLinkIds.retainAll(visibleIds)
     }
 
@@ -455,8 +676,11 @@ class MainActivity : AppCompatActivity() {
                     }
                     clearSelectedLinks(renderAfterClear = false)
                     isUpdatingLinks = false
-                    addLinkStatusMessage = getString(
+                    addLinkStatusMessage = null
+                    showTransientFeedback(
+                        getString(
                         if (read) R.string.message_links_marked_read else R.string.message_links_marked_unread,
+                        ),
                     )
                     renderBrowserState()
                 }
@@ -490,8 +714,11 @@ class MainActivity : AppCompatActivity() {
             ) {
                 is ShioriApiResult.Success -> {
                     isUpdatingLinks = false
-                    addLinkStatusMessage = getString(
+                    addLinkStatusMessage = null
+                    showTransientFeedback(
+                        getString(
                         if (targetRead) R.string.message_link_read_updated else R.string.message_link_unread_updated,
+                        ),
                     )
                     fetchLinks(currentDestination, reset = true)
                 }
@@ -532,7 +759,13 @@ class MainActivity : AppCompatActivity() {
                     resetLinkState(LinkBrowseDestination.Trash)
                     clearSelectedLinks(renderAfterClear = false)
                     isUpdatingLinks = false
-                    addLinkStatusMessage = getString(R.string.message_link_moved_to_trash)
+                    addLinkStatusMessage = null
+                    showTransientFeedback(
+                        message = getString(R.string.message_link_moved_to_trash),
+                        actionLabelRes = R.string.action_undo,
+                    ) {
+                        restoreLink(item, switchToRestoredDestination = false)
+                    }
                     renderBrowserState()
                 }
 
@@ -546,7 +779,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun restoreLink(item: LinkCardModel) {
-        if (currentDestination != LinkBrowseDestination.Trash || isUpdatingLinks) {
+        restoreLink(item, switchToRestoredDestination = currentDestination == LinkBrowseDestination.Trash)
+    }
+
+    private fun restoreLink(item: LinkCardModel, switchToRestoredDestination: Boolean) {
+        if (isUpdatingLinks) {
             return
         }
 
@@ -562,15 +799,19 @@ class MainActivity : AppCompatActivity() {
                     resetLinkState(restoredDestination)
                     clearSelectedLinks(renderAfterClear = false)
                     isUpdatingLinks = false
-                    addLinkStatusMessage = getString(
+                    addLinkStatusMessage = null
+                    val message = getString(
                         if (restoredDestination == LinkBrowseDestination.Archive) {
                             R.string.message_link_restored_archive
                         } else {
                             R.string.message_link_restored_inbox
                         },
                     )
-                    currentDestination = restoredDestination
-                    renderBrowserState()
+                    showTransientFeedback(message)
+                    if (switchToRestoredDestination) {
+                        currentDestination = restoredDestination
+                        renderBrowserState()
+                    }
                     fetchLinks(restoredDestination, reset = true)
                     fetchLinks(LinkBrowseDestination.Trash, reset = true)
                 }
@@ -622,7 +863,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     clearSelectedLinks(renderAfterClear = false)
                     isUpdatingLinks = false
-                    addLinkStatusMessage = getString(R.string.message_trash_emptied, removedCount)
+                    addLinkStatusMessage = null
+                    showTransientFeedback(getString(R.string.message_trash_emptied, removedCount))
                     renderBrowserState()
                 }
 
@@ -700,7 +942,8 @@ class MainActivity : AppCompatActivity() {
             when (val result = linksRepository.updateLink(savedConfig, itemId, request)) {
                 is ShioriApiResult.Success -> {
                     isUpdatingLinks = false
-                    addLinkStatusMessage = getString(R.string.message_link_metadata_updated)
+                    addLinkStatusMessage = null
+                    showTransientFeedback(getString(R.string.message_link_metadata_updated))
                     fetchLinks(currentDestination, reset = true)
                 }
 
@@ -817,63 +1060,13 @@ class MainActivity : AppCompatActivity() {
         LinkBrowseDestination.Trash -> false
     }
 
-    private fun validateConnection() {
-        startConnectionValidation(openBrowserOnSuccess = false)
-    }
-
-    private fun startConnectionValidation(openBrowserOnSuccess: Boolean) {
-        if (!isSavedConfigValid() || hasUnsavedChanges()) {
-            render()
-            return
-        }
-
-        if (openBrowserOnSuccess) {
-            openBrowserAfterValidation = true
-        }
-
-        if (isWorking) {
-            return
-        }
-
-        accessStatusOverrideMessage = null
-        currentScreen = Screen.Access
-        isWorking = true
-        validationStatus = ApiValidationStatus.Checking
-        render()
-
-        lifecycleScope.launch {
-            validationStatus = checker.validate(
-                serverUrl = savedConfig.serverUrl,
-                apiKey = savedConfig.apiKey,
-            )
-            isWorking = false
-            if (validationStatus == ApiValidationStatus.Success && openBrowserAfterValidation) {
-                openBrowserAfterValidation = false
-                openBrowserValidated()
-            } else {
-                if (validationStatus != ApiValidationStatus.Success) {
-                    openBrowserAfterValidation = false
-                }
-                render()
-            }
-        }
-    }
-
     private fun openBrowser() {
         if (!isSavedConfigValid() || hasUnsavedChanges()) {
+            currentScreen = Screen.Access
             render()
             return
         }
 
-        if (validationStatus != ApiValidationStatus.Success) {
-            startConnectionValidation(openBrowserOnSuccess = true)
-            return
-        }
-
-        openBrowserValidated()
-    }
-
-    private fun openBrowserValidated() {
         accessStatusOverrideMessage = null
         currentScreen = Screen.Browser
         pendingBrowserStatusMessage?.let {
@@ -897,8 +1090,9 @@ class MainActivity : AppCompatActivity() {
         when (val incomingLinkIntent = resolveIncomingLinkIntent(intent)) {
             IncomingLinkIntent.None -> {
                 pendingBrowserStatusMessage = null
-                if (isSavedConfigValid() && !hasUnsavedChanges() && currentScreen != Screen.Browser) {
-                    startConnectionValidation(openBrowserOnSuccess = true)
+                if (isSavedConfigValid() && !hasUnsavedChanges() && currentScreen == Screen.Browser) {
+                    ensureCurrentDestinationLoaded()
+                    consumePendingSharedUrl()
                 }
             }
 
@@ -910,7 +1104,7 @@ class MainActivity : AppCompatActivity() {
                 lastHandledSharedUrl = incomingLinkIntent.url
                 pendingSharedUrl = incomingLinkIntent.url
                 if (isSavedConfigValid() && !hasUnsavedChanges()) {
-                    startConnectionValidation(openBrowserOnSuccess = true)
+                    openBrowser()
                 } else {
                     currentScreen = Screen.Access
                     accessStatusOverrideMessage = getString(R.string.message_shared_link_requires_access)
@@ -922,7 +1116,7 @@ class MainActivity : AppCompatActivity() {
                 pendingSharedUrl = null
                 if (isSavedConfigValid() && !hasUnsavedChanges()) {
                     pendingBrowserStatusMessage = getString(R.string.message_shared_link_unsupported)
-                    startConnectionValidation(openBrowserOnSuccess = true)
+                    openBrowser()
                 } else {
                     currentScreen = Screen.Access
                     accessStatusOverrideMessage = getString(R.string.message_shared_link_unsupported)
@@ -944,8 +1138,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun importSharedUrl(url: String) {
         addLinkUrlInput.setText(url)
-        addLinkTitleInput.setText("")
-        addLinkReadCheckbox.isChecked = false
         addLinkStatusMessage = getString(R.string.message_shared_link_received)
         renderBrowserState()
         saveLink()
@@ -959,6 +1151,7 @@ class MainActivity : AppCompatActivity() {
 
         clearSelectedLinks(renderAfterClear = false)
         currentDestination = destination
+        browserScrollView.post { browserScrollView.smoothScrollTo(0, 0) }
         renderBrowserState()
         ensureCurrentDestinationLoaded()
     }
@@ -1067,36 +1260,63 @@ class MainActivity : AppCompatActivity() {
     private fun render() {
         val draft = currentDraft()
         val hasUnsavedChanges = hasUnsavedChanges(draft)
-        val isDraftServerValid = ApiAccessInputValidator.isServerUrlValid(draft.serverUrl)
         val isDraftApiKeyValid = ApiAccessInputValidator.isApiKeyValidLooking(draft.apiKey)
-
-        serverUrlLayout.error = when {
-            draft.serverUrl.isBlank() || isDraftServerValid -> null
-            else -> getString(R.string.error_server_url)
+        val canContinueToLinks = isSavedConfigValid()
+        val showSaveAction = !canContinueToLinks || hasUnsavedChanges
+        val visibleScreen = if (currentScreen == Screen.Browser && isSavedConfigValid() && !hasUnsavedChanges) {
+            Screen.Browser
+        } else {
+            Screen.Access
         }
+
         apiKeyLayout.error = when {
             draft.apiKey.isBlank() || isDraftApiKeyValid -> null
             else -> getString(R.string.error_api_key)
         }
 
-        saveButton.isEnabled = !isWorking && isDraftServerValid && isDraftApiKeyValid && hasUnsavedChanges
-        clearButton.isEnabled = !isWorking && savedConfig.apiKey.isNotEmpty()
-        validateButton.isEnabled = !isWorking && isSavedConfigValid() && !hasUnsavedChanges
-        continueButton.isEnabled = !isWorking && isSavedConfigValid() && !hasUnsavedChanges
+        accessTitleText.setText(
+            if (canContinueToLinks && !hasUnsavedChanges) {
+                R.string.title_api_access_ready
+            } else {
+                R.string.title_api_access
+            },
+        )
+        accessSubtitleText.setText(
+            if (canContinueToLinks && !hasUnsavedChanges) {
+                R.string.subtitle_api_access_ready
+            } else {
+                R.string.subtitle_api_access
+            },
+        )
+
+        saveButton.visibility = if (showSaveAction) View.VISIBLE else View.GONE
+        saveButton.isEnabled = isDraftApiKeyValid && hasUnsavedChanges
+        continueButton.visibility = if (canContinueToLinks) View.VISIBLE else View.GONE
+        continueButton.isEnabled = canContinueToLinks
+        continueButton.text = getString(
+            if (hasUnsavedChanges) R.string.action_discard_and_continue else R.string.action_continue_links,
+        )
+        styleContinueButton(primary = canContinueToLinks && !showSaveAction)
+        clearButton.isEnabled = savedConfig.apiKey.isNotEmpty()
 
         statusText.text = when {
             accessStatusOverrideMessage != null -> accessStatusOverrideMessage
-            isWorking && validationStatus == ApiValidationStatus.Checking -> getString(R.string.message_validating)
+            !isSavedConfigValid() && !isDraftApiKeyValid -> getString(R.string.message_missing_access)
             hasUnsavedChanges -> getString(R.string.message_unsaved_changes)
             !isSavedConfigValid() -> getString(R.string.message_missing_access)
-            validationStatus == ApiValidationStatus.Success -> getString(R.string.message_validation_success)
-            validationStatus == ApiValidationStatus.Unauthorized -> getString(R.string.message_validation_unauthorized)
-            validationStatus == ApiValidationStatus.Failure -> getString(R.string.message_validation_failure)
             else -> getString(R.string.message_saved_access)
         }
 
-        accessScreen.visibility = if (currentScreen == Screen.Access) View.VISIBLE else View.GONE
-        browserScreen.visibility = if (currentScreen == Screen.Browser && isSavedConfigValid() && !hasUnsavedChanges) View.VISIBLE else View.GONE
+        if (lastRenderedScreen != null && lastRenderedScreen != visibleScreen && rootContainer.isLaidOut) {
+            TransitionManager.beginDelayedTransition(rootContainer, AutoTransition().apply { duration = 180L })
+        }
+
+        accessScreen.visibility = if (visibleScreen == Screen.Access) View.VISIBLE else View.GONE
+        browserScreen.visibility = if (visibleScreen == Screen.Browser) View.VISIBLE else View.GONE
+        if (visibleScreen != Screen.Browser) {
+            lastBrowserChromeState = null
+        }
+        lastRenderedScreen = visibleScreen
 
         if (browserScreen.visibility == View.VISIBLE) {
             renderBrowserState()
@@ -1108,41 +1328,40 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        when (currentDestination) {
-            LinkBrowseDestination.Inbox -> inboxButton.isChecked = true
-            LinkBrowseDestination.Archive -> archiveButton.isChecked = true
-            LinkBrowseDestination.Trash -> trashButton.isChecked = true
-        }
-
         val state = currentLinkState()
-        pruneSelectedLinks()
+        val query = currentQuery()
+        val visibleItems = visibleLinkItems(state)
+        val isTrashDestination = currentDestination == LinkBrowseDestination.Trash
+
+        pruneSelectedLinks(visibleItems)
+        val hasSelection = selectedLinkIds.isNotEmpty()
+        val showSelectionStatus = !isTrashDestination && (hasSelection || visibleItems.isNotEmpty())
+        maybeAnimateBrowserContent(
+            BrowserChromeState(
+                destination = currentDestination,
+                showSelectionStatus = showSelectionStatus,
+                showTrashActions = isTrashDestination,
+            ),
+        )
+        updateFilterButtonStyles()
+        updateSearchButtonState(query)
         val rawLinkUrl = addLinkUrlInput.text?.toString().orEmpty()
         val isLinkUrlValid = isLinkUrlValid(rawLinkUrl)
         val linkActionsAvailable = isLinkActionAvailable()
-        val isTrashDestination = currentDestination == LinkBrowseDestination.Trash
 
-        val addLinkVisibility = if (isTrashDestination) View.GONE else View.VISIBLE
-        addLinkHeadingText.visibility = addLinkVisibility
-        addLinkSubtitleText.visibility = addLinkVisibility
-        addLinkUrlLayout.visibility = addLinkVisibility
-        addLinkUrlInput.visibility = addLinkVisibility
-        findViewById<View>(R.id.add_link_title_layout).visibility = addLinkVisibility
-        addLinkTitleInput.visibility = addLinkVisibility
-        addLinkReadCheckbox.visibility = addLinkVisibility
-        addLinkButton.visibility = addLinkVisibility
+        addLinkSection.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
+        sectionHeaderText.text = currentSectionTitle(query)
 
-        linkSelectionStatusText.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
-        linkSelectionActionsRow.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
-        clearSelectionButton.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
+        linkSelectionStatusText.visibility = if (showSelectionStatus) View.VISIBLE else View.GONE
+        linkSelectionActionsRow.visibility = if (!isTrashDestination && hasSelection) View.VISIBLE else View.GONE
+        clearSelectionButton.visibility = if (!isTrashDestination && hasSelection) View.VISIBLE else View.GONE
 
         addLinkUrlLayout.error = when {
             rawLinkUrl.isBlank() || isLinkUrlValid -> null
             else -> getString(R.string.error_link_url)
         }
         addLinkButton.isEnabled = !isSavingLink && isLinkUrlValid
-        addLinkReadCheckbox.isEnabled = !isSavingLink
         addLinkUrlInput.isEnabled = !isSavingLink
-        addLinkTitleInput.isEnabled = !isSavingLink
         addLinkStatusText.visibility = if (addLinkStatusMessage.isNullOrBlank()) View.GONE else View.VISIBLE
         addLinkStatusText.text = addLinkStatusMessage
 
@@ -1151,22 +1370,20 @@ class MainActivity : AppCompatActivity() {
             selectedLinkIds.isNotEmpty() -> getString(R.string.message_selection_count, selectedLinkIds.size)
             else -> getString(R.string.message_selection_idle)
         }
-        trashRetentionText.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.INVISIBLE
-        emptyTrashButton.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.INVISIBLE
+        trashRetentionText.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.GONE
+        emptyTrashButton.visibility = if (currentDestination == LinkBrowseDestination.Trash) View.VISIBLE else View.GONE
         emptyTrashButton.isEnabled = currentDestination == LinkBrowseDestination.Trash &&
             !isUpdatingLinks &&
             state.items.isNotEmpty()
         if (isTrashDestination) {
-            (browserScreen as? NestedScrollView)?.post {
-                (browserScreen as? NestedScrollView)?.smoothScrollTo(0, emptyTrashButton.top)
-            }
+            scrollBrowserToViewIfNeeded(emptyTrashButton)
         }
         markSelectedReadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
         markSelectedUnreadButton.isEnabled = linkActionsAvailable && !isUpdatingLinks && selectedLinkIds.isNotEmpty()
         clearSelectionButton.isEnabled = selectedLinkIds.isNotEmpty()
 
         linksAdapter.submitItems(
-            newItems = state.items,
+            newItems = visibleItems,
             selectedIds = selectedLinkIds,
             itemActionsEnabled = !isUpdatingLinks,
             selectionEnabled = linkActionsAvailable,
@@ -1174,10 +1391,12 @@ class MainActivity : AppCompatActivity() {
         )
 
         browserProgress.visibility = if (state.isInitialLoading) View.VISIBLE else View.GONE
-        linksList.visibility = if (state.items.isEmpty() && state.isInitialLoading) View.INVISIBLE else View.VISIBLE
+        linksList.visibility = if (visibleItems.isEmpty() && state.isInitialLoading) View.INVISIBLE else View.VISIBLE
 
         browserStateText.text = when {
             state.isInitialLoading -> getString(R.string.message_links_loading)
+            query.isNotBlank() && visibleItems.isEmpty() && state.items.isNotEmpty() -> getString(R.string.message_links_search_empty)
+            query.isNotBlank() && state.items.isNotEmpty() -> getString(R.string.message_links_search_count, visibleItems.size, state.items.size)
             state.items.isEmpty() && state.message != null -> state.message
             state.items.isNotEmpty() && state.message != null -> state.message
             state.items.isEmpty() -> getString(R.string.message_links_empty)
@@ -1204,20 +1423,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun scrollBrowserToViewIfNeeded(target: View) {
+        browserScrollView.post {
+            val viewportTop = browserScrollView.scrollY
+            val viewportBottom = viewportTop + browserScrollView.height
+            val targetTop = target.top
+            val targetBottom = target.bottom
+            if (targetTop < viewportTop || targetBottom > viewportBottom) {
+                browserScrollView.smoothScrollTo(0, targetTop.coerceAtLeast(0))
+            }
+        }
+    }
+
     private fun currentLinkState(): LinkListUiState = linkStates.getValue(currentDestination)
 
     private fun hasUnsavedChanges(draft: ApiAccessConfig = currentDraft()): Boolean =
-        ApiAccessInputValidator.normalizeServerUrl(draft.serverUrl) != savedConfig.serverUrl ||
-            ApiAccessInputValidator.normalizeApiKey(draft.apiKey) != savedConfig.apiKey
+        ApiAccessInputValidator.normalizeApiKey(draft.apiKey) != savedConfig.apiKey
 
     private fun isSavedConfigValid(): Boolean =
-        ApiAccessInputValidator.isServerUrlValid(savedConfig.serverUrl) &&
-            ApiAccessInputValidator.isApiKeyValidLooking(savedConfig.apiKey)
+        ApiAccessInputValidator.isApiKeyValidLooking(savedConfig.apiKey)
 
     private enum class Screen {
         Access,
         Browser,
     }
+
+    private data class BrowserChromeState(
+        val destination: LinkBrowseDestination,
+        val showSelectionStatus: Boolean,
+        val showTrashActions: Boolean,
+    )
 
     private companion object {
         const val PAGE_SIZE = 20
@@ -1228,5 +1463,7 @@ class MainActivity : AppCompatActivity() {
         const val KEY_PENDING_BROWSER_STATUS = "pending_browser_status"
         const val KEY_LAST_HANDLED_INTENT = "last_handled_intent"
         const val KEY_LAST_HANDLED_SHARED_URL = "last_handled_shared_url"
+        const val KEY_LINK_QUERY = "link_query"
+        const val MENU_EDIT_ACCESS = 1
     }
 }

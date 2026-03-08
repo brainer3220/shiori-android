@@ -5,14 +5,13 @@ import android.net.Uri
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isEnabled
+import androidx.test.espresso.matcher.ViewMatchers.withHint
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -42,16 +41,13 @@ import org.junit.runner.RunWith
 class MainActivityTest {
     private lateinit var store: FakeApiAccessStore
     private lateinit var linksRepository: FakeLinksRepository
-    private lateinit var checker: RecordingApiConnectionChecker
 
     @Before
     fun setUp() {
         store = FakeApiAccessStore()
         linksRepository = FakeLinksRepository()
-        checker = RecordingApiConnectionChecker(ApiValidationStatus.Success)
         AppDependencies.resetForTests()
         AppDependencies.overrideStoreForTests(store)
-        AppDependencies.overrideCheckerForTests(checker)
         AppDependencies.overrideLinksRepositoryForTests(linksRepository)
     }
 
@@ -63,55 +59,28 @@ class MainActivityTest {
     @Test
     fun apiKeyCanBeSavedRestoredAndCleared() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
+            enterAccess(scenario, "test-api-key")
             onView(withId(R.id.save_button)).perform(scrollTo(), click())
-            onView(withId(R.id.status_text)).check(matches(withText(R.string.message_saved_access)))
-            onView(withId(R.id.continue_button)).check(matches(isEnabled()))
-
-            clickButton(scenario, R.id.continue_button)
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
 
             scenario.recreate()
 
             onView(withId(R.id.browser_screen)).check(matches(isDisplayed()))
+            onView(withId(R.id.add_link_url_input)).check(matches(withHint("Paste a link to save")))
             clickButton(scenario, R.id.edit_access_button)
-            onView(withId(R.id.server_url_input)).check(matches(withText("https://shiori.example.com")))
+            onView(withText(R.string.action_edit_access)).perform(click())
             onView(withId(R.id.api_key_input)).check(matches(withText("test-api-key")))
 
             onView(withId(R.id.clear_button)).perform(scrollTo(), click())
             onView(withId(R.id.api_key_input)).check(matches(withText("")))
-            onView(withId(R.id.continue_button)).check(matches(not(isEnabled())))
+            onView(withId(R.id.save_button)).check(matches(not(isEnabled())))
             onView(withId(R.id.status_text)).check(matches(withText(R.string.message_missing_access)))
         }
     }
 
     @Test
-    fun validationSurfacesUnauthorizedResponses() {
-        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Unauthorized))
-
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
-            onView(withId(R.id.save_button)).perform(scrollTo(), click())
-            clickButton(scenario, R.id.validate_button)
-            waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_unauthorized))
-        }
-    }
-
-    @Test
-    fun validationSurfacesGenericFailures() {
-        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Failure))
-
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
-            onView(withId(R.id.save_button)).perform(scrollTo(), click())
-            clickButton(scenario, R.id.validate_button)
-            waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_failure))
-        }
-    }
-
-    @Test
-    fun savedAccessIsValidatedBeforeBrowserOpensOnLaunch() {
-        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
+    fun savedApiKeyOpensBrowserDirectlyOnLaunch() {
+        store.saveConfig(ApiAccessConfig(apiKey = "test-api-key"))
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
             0,
@@ -120,19 +89,25 @@ class MainActivityTest {
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
-            assertEquals(1, checker.calls.size)
-            assertEquals(ApiAccessConfig("https://shiori.example.com", "test-api-key"), checker.calls.single())
+            onView(withId(R.id.browser_screen)).check(matches(isDisplayed()))
         }
     }
 
     @Test
-    fun savedAccessStaysOnAccessScreenWhenLaunchValidationFails() {
-        store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
-        AppDependencies.overrideCheckerForTests(RecordingApiConnectionChecker(ApiValidationStatus.Unauthorized))
+    fun savedApiKeyCanContinueFromAccessScreenBackToBrowser() {
+        store.saveConfig(ApiAccessConfig(apiKey = "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            waitForText(scenario, R.id.status_text, activityString(R.string.message_validation_unauthorized))
-            onView(withId(R.id.access_screen)).check(matches(isDisplayed()))
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            clickButton(scenario, R.id.edit_access_button)
+            onView(withText(R.string.action_edit_access)).perform(click())
+            onView(withId(R.id.continue_button)).perform(scrollTo(), click())
+            onView(withId(R.id.browser_screen)).check(matches(isDisplayed()))
         }
     }
 
@@ -643,8 +618,6 @@ class MainActivityTest {
             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
 
             setText(scenario, R.id.add_link_url_input, "https://example.com/20")
-            setText(scenario, R.id.add_link_title_input, "Existing article")
-            setChecked(scenario, R.id.add_link_read_checkbox, true)
             clickButton(scenario, R.id.add_link_button)
 
             waitForText(
@@ -657,8 +630,8 @@ class MainActivityTest {
             assertEquals(
                 CreateLinkRequest(
                     url = "https://example.com/20",
-                    title = "Existing article",
-                    read = true,
+                    title = null,
+                    read = null,
                 ),
                 linksRepository.savedRequests.single(),
             )
@@ -673,7 +646,7 @@ class MainActivityTest {
     }
 
     @Test
-    fun saveLinkRefreshesArchiveAfterCreateSuccess() {
+    fun saveLinkRefreshesInboxAfterCreateSuccess() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
             LinkBrowseDestination.Inbox,
@@ -688,38 +661,36 @@ class MainActivityTest {
             ),
         )
         linksRepository.enqueue(
-            LinkBrowseDestination.Archive,
+            LinkBrowseDestination.Inbox,
             0,
-            page(limit = 20, offset = 0, total = 1, links = listOf(link(id = "21", title = "Archived article", read = true))),
+            page(limit = 20, offset = 0, total = 2, links = listOf(link(id = "21", title = "Saved article", read = false))),
         )
 
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
 
             setText(scenario, R.id.add_link_url_input, "https://example.com/21")
-            setText(scenario, R.id.add_link_title_input, "Archived article")
-            setChecked(scenario, R.id.add_link_read_checkbox, true)
             clickButton(scenario, R.id.add_link_button)
 
             waitForText(
                 scenario,
                 R.id.add_link_status_text,
-                "Link saved. Showing it in your archive.",
+                "Link saved. Showing it in your inbox.",
             )
             waitForRecyclerCount(scenario, 1)
-            assertLoadedTitles(scenario, "Archived article")
+            assertLoadedTitles(scenario, "Saved article")
             assertEquals(
                 CreateLinkRequest(
                     url = "https://example.com/21",
-                    title = "Archived article",
-                    read = true,
+                    title = null,
+                    read = null,
                 ),
                 linksRepository.savedRequests.single(),
             )
             assertEquals(
                 listOf(
                     Request(LinkBrowseDestination.Inbox, 20, 0),
-                    Request(LinkBrowseDestination.Archive, 20, 0),
+                    Request(LinkBrowseDestination.Inbox, 20, 0),
                 ),
                 linksRepository.requests,
             )
@@ -742,7 +713,6 @@ class MainActivityTest {
             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
 
             setText(scenario, R.id.add_link_url_input, "https://example.com/22")
-            setText(scenario, R.id.add_link_title_input, "Fresh article")
             clickButton(scenario, R.id.add_link_button)
 
             waitForText(
@@ -754,7 +724,7 @@ class MainActivityTest {
             assertEquals(
                 CreateLinkRequest(
                     url = "https://example.com/22",
-                    title = "Fresh article",
+                    title = null,
                     read = null,
                 ),
                 linksRepository.savedRequests.single(),
@@ -777,7 +747,6 @@ class MainActivityTest {
             waitForText(scenario, R.id.browser_state_text, "Loaded 1 of 1 links.")
 
             setText(scenario, R.id.add_link_url_input, "https://example.com/invalid")
-            setText(scenario, R.id.add_link_title_input, "Bad request")
             clickButton(scenario, R.id.add_link_button)
 
             waitForText(
@@ -789,7 +758,7 @@ class MainActivityTest {
             assertEquals(
                 CreateLinkRequest(
                     url = "https://example.com/invalid",
-                    title = "Bad request",
+                    title = null,
                     read = null,
                 ),
                 linksRepository.savedRequests.single(),
@@ -811,7 +780,6 @@ class MainActivityTest {
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
 
             setText(scenario, R.id.add_link_url_input, "not-a-url")
-            setText(scenario, R.id.add_link_title_input, "Broken")
             clickButton(scenario, R.id.add_link_button)
 
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
@@ -1130,11 +1098,11 @@ class MainActivityTest {
             waitForText(
                 scenario,
                 R.id.status_text,
-                "Save valid API access before importing the shared URL.",
+                "Save a valid API key before importing the shared URL.",
             )
             assertTrue(linksRepository.savedRequests.isEmpty())
 
-            enterAccess(scenario, "https://shiori.example.com", "test-api-key")
+            enterAccess(scenario, "test-api-key")
             onView(withId(R.id.save_button)).perform(scrollTo(), click())
 
             waitForText(
@@ -1226,10 +1194,8 @@ class MainActivityTest {
 
     private fun enterAccess(
         scenario: ActivityScenario<MainActivity>,
-        serverUrl: String,
         apiKey: String,
     ) {
-        setText(scenario, R.id.server_url_input, serverUrl)
         setText(scenario, R.id.api_key_input, apiKey)
     }
 
@@ -1275,16 +1241,6 @@ class MainActivityTest {
     ) {
         scenario.onActivity { activity ->
             activity.findViewById<com.google.android.material.textfield.TextInputEditText>(viewId).setText(value)
-        }
-    }
-
-    private fun setChecked(
-        scenario: ActivityScenario<MainActivity>,
-        viewId: Int,
-        checked: Boolean,
-    ) {
-        scenario.onActivity { activity ->
-            activity.findViewById<android.widget.CheckBox>(viewId).isChecked = checked
         }
     }
 
@@ -1417,17 +1373,6 @@ class MainActivityTest {
         updatedAt = "2026-03-06T11:00:00Z",
         readAt = if (read) "2026-03-06T12:00:00Z" else null,
     )
-
-    private class RecordingApiConnectionChecker(
-        private val result: ApiValidationStatus,
-    ) : ApiConnectionChecker {
-        val calls = CopyOnWriteArrayList<ApiAccessConfig>()
-
-        override suspend fun validate(serverUrl: String, apiKey: String): ApiValidationStatus {
-            calls += ApiAccessConfig(serverUrl, apiKey)
-            return result
-        }
-    }
 
     private class FakeApiAccessStore(
         private var config: ApiAccessConfig = ApiAccessConfig(),

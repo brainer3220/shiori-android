@@ -48,19 +48,19 @@ class LinksBrowserTest {
     @Test
     fun `mergeLinkCards keeps first position while refreshing duplicates`() {
         val existing = listOf(
-            LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
-            LinkCardModel("2", "https://example.com/2", "Two", "Two", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, null, false, null, "Unread", null, null),
+            LinkCardModel("2", "https://example.com/2", "Two", "Two", "example.com", null, null, false, null, "Unread", null, null),
         )
         val incoming = listOf(
-            LinkCardModel("2", "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
-            LinkCardModel("3", "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel("2", "https://example.com/2", "Two updated", "Two updated", "example.com", null, null, true, null, "Read", null, null),
+            LinkCardModel("3", "https://example.com/3", "Three", "Three", "example.com", null, null, false, null, "Unread", null, null),
         )
 
         assertEquals(
             listOf(
-                LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
-                LinkCardModel("2", "https://example.com/2", "Two updated", "Two updated", "example.com", null, true, null, "Read", null, null),
-                LinkCardModel("3", "https://example.com/3", "Three", "Three", "example.com", null, false, null, "Unread", null, null),
+                LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, null, false, null, "Unread", null, null),
+                LinkCardModel("2", "https://example.com/2", "Two updated", "Two updated", "example.com", null, null, true, null, "Read", null, null),
+                LinkCardModel("3", "https://example.com/3", "Three", "Three", "example.com", null, null, false, null, "Unread", null, null),
             ),
             mergeLinkCards(existing, incoming),
         )
@@ -70,7 +70,7 @@ class LinksBrowserTest {
     fun `repository uses trash endpoint only for trash destination`() = runTest {
         val client = FakeShioriApiClient()
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
-        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+        val config = ApiAccessConfig(apiKey = "test-api-key")
 
         val inboxResult = repository.loadLinks(config, LinkBrowseDestination.Inbox, limit = 20, offset = 0)
         val trashResult = repository.loadLinks(config, LinkBrowseDestination.Trash, limit = 20, offset = 40)
@@ -84,19 +84,39 @@ class LinksBrowserTest {
     @Test
     fun `mergeLinkCards removes duplicate incoming entries while keeping refreshed values`() {
         val existing = listOf(
-            LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
+            LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, null, false, null, "Unread", null, null),
         )
         val incoming = listOf(
-            LinkCardModel("2", "https://example.com/2", "Two", "Two", "example.com", null, false, null, "Unread", null, null),
-            LinkCardModel("2", "https://example.com/2", "Two refreshed", "Two refreshed", "example.com", null, true, null, "Read", null, null),
+            LinkCardModel("2", "https://example.com/2", "Two", "Two", "example.com", null, null, false, null, "Unread", null, null),
+            LinkCardModel("2", "https://example.com/2", "Two refreshed", "Two refreshed", "example.com", null, null, true, null, "Read", null, null),
         )
 
         assertEquals(
             listOf(
-                LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, false, null, "Unread", null, null),
-                LinkCardModel("2", "https://example.com/2", "Two refreshed", "Two refreshed", "example.com", null, true, null, "Read", null, null),
+                LinkCardModel("1", "https://example.com/1", "One", "One", "example.com", null, null, false, null, "Unread", null, null),
+                LinkCardModel("2", "https://example.com/2", "Two refreshed", "Two refreshed", "example.com", null, null, true, null, "Read", null, null),
             ),
             mergeLinkCards(existing, incoming),
+        )
+    }
+
+    @Test
+    fun `card mapping keeps valid favicon urls and drops invalid ones`() {
+        assertEquals(
+            "https://example.com/favicon.ico",
+            LinkResponse(
+                id = "1",
+                url = "https://example.com/article",
+                faviconUrl = "https://example.com/favicon.ico",
+            ).toCardModel().faviconUrl,
+        )
+        assertEquals(
+            null,
+            LinkResponse(
+                id = "2",
+                url = "https://example.com/article",
+                faviconUrl = "javascript:alert(1)",
+            ).toCardModel().faviconUrl,
         )
     }
 
@@ -104,7 +124,7 @@ class LinksBrowserTest {
     fun `repository forwards create link requests to api client`() = runTest {
         val client = FakeShioriApiClient()
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
-        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+        val config = ApiAccessConfig(apiKey = "test-api-key")
         val request = CreateLinkRequest(
             url = "https://example.com/article",
             title = "Article",
@@ -140,7 +160,7 @@ class LinksBrowserTest {
     fun `repository forwards bulk read updates to api client`() = runTest {
         val client = FakeShioriApiClient()
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
-        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+        val config = ApiAccessConfig(apiKey = "test-api-key")
 
         val result = repository.updateReadState(config, ids = listOf("2", "3"), read = true)
 
@@ -152,7 +172,7 @@ class LinksBrowserTest {
     fun `repository forwards single link updates to api client`() = runTest {
         val client = FakeShioriApiClient()
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
-        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+        val config = ApiAccessConfig(apiKey = "test-api-key")
         val request = UpdateLinkRequest(title = "Updated title", summary = null, read = true)
 
         val result = repository.updateLink(config, id = "8", request = request)
@@ -166,7 +186,7 @@ class LinksBrowserTest {
     fun `repository forwards trash actions to api client`() = runTest {
         val client = FakeShioriApiClient()
         val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
-        val config = ApiAccessConfig("https://shiori.example.com", "test-api-key")
+        val config = ApiAccessConfig(apiKey = "test-api-key")
 
         val restoreResult = repository.restoreLink(config, id = "12")
         val deleteResult = repository.deleteLink(config, id = "13")

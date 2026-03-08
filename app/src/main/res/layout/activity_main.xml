@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_container"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/shiori_canvas">
 
     <ScrollView
         android:id="@+id/access_screen"
@@ -18,334 +20,498 @@
             android:paddingStart="24dp"
             android:paddingTop="24dp"
             android:paddingEnd="24dp"
-            android:paddingBottom="56dp">
+            android:paddingBottom="32dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:background="@drawable/bg_brand_orb" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/label_brand_name"
+                    android:textColor="@color/shiori_text_secondary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/title_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
                 android:text="@string/title_api_access"
-                android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
+                android:textColor="@color/shiori_text_primary" />
 
             <TextView
                 android:id="@+id/subtitle_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
                 android:text="@string/subtitle_api_access"
-                android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="@color/shiori_text_secondary" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/server_url_layout"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:hint="@string/hint_server_url">
+                android:layout_marginTop="28dp"
+                app:cardBackgroundColor="@color/shiori_surface"
+                app:cardCornerRadius="30dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/shiori_line"
+                app:strokeWidth="1dp">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/server_url_input"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:autofillHints="url"
-                    android:inputType="textUri"
-                    android:maxLines="1" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical"
+                    android:padding="22dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/api_key_layout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="@string/hint_api_key"
-                app:endIconMode="password_toggle">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/api_key_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_api_key"
+                        app:boxBackgroundColor="@color/shiori_white"
+                        app:boxBackgroundMode="filled"
+                        app:boxCornerRadiusBottomEnd="24dp"
+                        app:boxCornerRadiusBottomStart="24dp"
+                        app:boxCornerRadiusTopEnd="24dp"
+                        app:boxCornerRadiusTopStart="24dp"
+                        app:endIconMode="password_toggle">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/api_key_input"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:autofillHints="password"
-                    android:inputType="textPassword"
-                    android:maxLines="1" />
-            </com.google.android.material.textfield.TextInputLayout>
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/api_key_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints="password"
+                            android:inputType="textPassword"
+                            android:maxLines="1"
+                            android:textColor="@color/shiori_text_primary"
+                            android:textColorHint="@color/shiori_text_muted" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-            <TextView
-                android:id="@+id/status_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    <TextView
+                        android:id="@+id/status_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="@color/shiori_text_secondary" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/save_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="@string/action_save_access" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/save_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:text="@string/action_save_access"
+                        android:textAllCaps="false"
+                        android:textColor="@color/shiori_white"
+                        app:backgroundTint="@color/shiori_accent_dark"
+                        app:cornerRadius="26dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/validate_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/action_validate_access" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/continue_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/action_continue_links"
+                        android:textAllCaps="false"
+                        android:textColor="@color/shiori_text_primary"
+                        android:visibility="gone"
+                        app:backgroundTint="@color/shiori_white"
+                        app:cornerRadius="26dp"
+                        app:strokeColor="@color/shiori_line"
+                        app:strokeWidth="1dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/continue_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:enabled="false"
-                android:text="@string/action_open_links" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/clear_button"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/action_clear_key" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/clear_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/action_clear_key"
+                        android:textAllCaps="false"
+                        android:textColor="@color/shiori_text_secondary"
+                        app:backgroundTint="@android:color/transparent" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
-
     </ScrollView>
 
-    <androidx.core.widget.NestedScrollView
+    <FrameLayout
         android:id="@+id/browser_screen"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
         android:visibility="gone">
 
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/browser_scroll_view"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingTop="20dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="20dp">
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true">
 
             <LinearLayout
+                android:id="@+id/browser_content_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:paddingStart="22dp"
+                android:paddingTop="18dp"
+                android:paddingEnd="22dp"
+                android:paddingBottom="36dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:background="@drawable/bg_brand_orb" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_marginEnd="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_segment_shell"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="6dp">
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/links_filter_group"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/filter_inbox_button"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:text="@string/filter_inbox"
+                                android:textAllCaps="false"
+                                android:textColor="@color/shiori_text_primary"
+                                app:backgroundTint="@color/shiori_surface_selected"
+                                app:cornerRadius="24dp"
+                                app:strokeWidth="0dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/filter_archive_button"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:text="@string/filter_archive"
+                                android:textAllCaps="false"
+                                android:textColor="@color/shiori_text_secondary"
+                                app:backgroundTint="@android:color/transparent"
+                                app:cornerRadius="24dp"
+                                app:strokeWidth="0dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/filter_trash_button"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_weight="1"
+                                android:text="@string/filter_trash"
+                                android:textAllCaps="false"
+                                android:textColor="@color/shiori_text_secondary"
+                                app:backgroundTint="@android:color/transparent"
+                                app:cornerRadius="24dp"
+                                app:strokeWidth="0dp" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/edit_access_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:contentDescription="@string/label_account_menu"
+                        android:text="@string/label_brand_avatar"
+                        android:textAllCaps="false"
+                        android:textColor="@color/shiori_accent_dark"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="@color/shiori_white"
+                        app:cornerRadius="24dp"
+                        app:strokeColor="@color/shiori_line"
+                        app:strokeWidth="1dp" />
+                </LinearLayout>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/link_query_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    app:cardBackgroundColor="@color/shiori_white"
+                    app:cardCornerRadius="30dp"
+                    app:cardElevation="1dp"
+                    app:strokeColor="@color/shiori_line"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingTop="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="10dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:boxBackgroundMode="none"
+                            app:hintEnabled="false">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/link_query_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:background="@android:color/transparent"
+                                android:hint="@string/hint_link_query"
+                                android:imeOptions="actionSearch"
+                                android:inputType="text"
+                                android:maxLines="1"
+                                android:paddingStart="0dp"
+                                android:paddingTop="0dp"
+                                android:paddingEnd="12dp"
+                                android:paddingBottom="0dp"
+                                android:textColor="@color/shiori_text_primary"
+                                android:textColorHint="@color/shiori_text_muted"
+                                android:textSize="17sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <ImageButton
+                            android:id="@+id/link_query_button"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="@drawable/bg_accent_circle"
+                            android:contentDescription="@string/label_search_links"
+                            android:padding="12dp"
+                            android:src="@android:drawable/ic_menu_search"
+                            app:tint="@color/shiori_white" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/add_link_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    app:cardBackgroundColor="@color/shiori_surface"
+                    app:cardCornerRadius="30dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/shiori_line"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingTop="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="12dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/add_link_url_layout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:boxBackgroundMode="none"
+                            app:hintEnabled="false">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/add_link_url_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:autofillHints="url"
+                                android:background="@android:color/transparent"
+                                android:hint="@string/hint_link_url"
+                                android:imeOptions="actionSend"
+                                android:inputType="textUri"
+                                android:maxLines="1"
+                                android:paddingStart="0dp"
+                                android:paddingTop="0dp"
+                                android:paddingEnd="12dp"
+                                android:paddingBottom="0dp"
+                                android:textColor="@color/shiori_text_primary"
+                                android:textColorHint="@color/shiori_text_muted"
+                                android:textSize="18sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <ImageButton
+                            android:id="@+id/add_link_button"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:background="@drawable/bg_muted_circle"
+                            android:contentDescription="@string/action_save_link"
+                            android:padding="12dp"
+                            android:src="@android:drawable/ic_input_add"
+                            app:tint="@color/shiori_white" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:id="@+id/add_link_status_text"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/title_links_browser"
-                    android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+                    android:layout_marginTop="10dp"
+                    android:lineSpacingExtra="1dp"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/shiori_text_secondary"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/section_header_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:text="@string/title_today"
+                    android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
+                    android:textSize="28sp"
+                    android:textColor="@color/shiori_text_primary" />
+
+                <TextView
+                    android:id="@+id/browser_state_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:lineSpacingExtra="2dp"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="@color/shiori_text_secondary" />
+
+                <TextView
+                    android:id="@+id/trash_retention_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/message_trash_retention"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/shiori_text_secondary"
+                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/edit_access_button"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    android:id="@+id/empty_trash_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/action_edit_access" />
-            </LinearLayout>
+                    android:layout_marginTop="8dp"
+                    android:text="@string/action_empty_trash"
+                    android:textAllCaps="false"
+                    android:textColor="@color/shiori_text_primary"
+                    android:visibility="gone"
+                    app:backgroundTint="@color/shiori_surface"
+                    app:cornerRadius="22dp"
+                    app:strokeColor="@color/shiori_line"
+                    app:strokeWidth="1dp" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/subtitle_links_browser"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <TextView
-                android:id="@+id/add_link_heading_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:text="@string/title_add_link"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
-            <TextView
-                android:id="@+id/add_link_subtitle_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/subtitle_add_link"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/add_link_url_layout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="@string/hint_link_url">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/add_link_url_input"
+                <TextView
+                    android:id="@+id/link_selection_status_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:autofillHints="url"
-                    android:inputType="textUri"
-                    android:maxLines="1" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="10dp"
+                    android:lineSpacingExtra="1dp"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/shiori_text_secondary"
+                    android:visibility="gone" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/add_link_title_layout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="@string/hint_link_title">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/add_link_title_input"
+                <LinearLayout
+                    android:id="@+id/link_selection_actions_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapSentences"
-                    android:maxLines="1" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
-            <CheckBox
-                android:id="@+id/add_link_read_checkbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/label_mark_link_read" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mark_selected_read_button"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/action_mark_selected_read"
+                        android:textAllCaps="false"
+                        android:textColor="@color/shiori_text_primary"
+                        app:backgroundTint="@color/shiori_surface"
+                        app:cornerRadius="22dp"
+                        app:strokeColor="@color/shiori_line"
+                        app:strokeWidth="1dp" />
 
-            <TextView
-                android:id="@+id/add_link_status_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/add_link_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/action_save_link" />
-
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/links_filter_group"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                app:selectionRequired="true"
-                app:singleSelection="true">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mark_selected_unread_button"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/action_mark_selected_unread"
+                        android:textAllCaps="false"
+                        android:textColor="@color/shiori_text_primary"
+                        app:backgroundTint="@color/shiori_surface"
+                        app:cornerRadius="22dp"
+                        app:strokeColor="@color/shiori_line"
+                        app:strokeWidth="1dp" />
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/filter_inbox_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                    android:id="@+id/clear_selection_button"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/filter_inbox" />
+                    android:layout_marginTop="4dp"
+                    android:text="@string/action_clear_selection"
+                    android:textAllCaps="false"
+                    android:textColor="@color/shiori_text_secondary"
+                    android:visibility="gone"
+                    app:backgroundTint="@android:color/transparent" />
+
+                <ProgressBar
+                    android:id="@+id/browser_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="20dp"
+                    android:visibility="gone" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/links_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
+                    android:paddingBottom="8dp" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/filter_archive_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                    android:id="@+id/load_more_button"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/filter_archive" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/filter_trash_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/filter_trash" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-            <TextView
-                android:id="@+id/trash_retention_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/message_trash_retention"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                android:visibility="invisible" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/empty_trash_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/action_empty_trash"
-                android:visibility="invisible" />
-
-            <TextView
-                android:id="@+id/link_selection_status_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <LinearLayout
-                android:id="@+id/link_selection_actions_row"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mark_selected_read_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/action_mark_selected_read" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mark_selected_unread_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:text="@string/action_mark_selected_unread" />
+                    android:layout_marginTop="8dp"
+                    android:text="@string/action_load_more"
+                    android:textAllCaps="false"
+                    android:textColor="@color/shiori_text_secondary"
+                    android:visibility="gone"
+                    app:backgroundTint="@android:color/transparent" />
             </LinearLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/clear_selection_button"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/action_clear_selection" />
-
-            <TextView
-                android:id="@+id/browser_state_text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-            <ProgressBar
-                android:id="@+id/browser_progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
-                android:visibility="gone" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/links_list"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:clipToPadding="false"
-                android:nestedScrollingEnabled="false"
-                android:paddingBottom="8dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/load_more_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/action_load_more"
-                android:visibility="gone" />
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 
 </FrameLayout>

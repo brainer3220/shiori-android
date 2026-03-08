@@ -33,6 +33,7 @@ data class LinkCardModel(
     val title: String,
     val rawTitle: String?,
     val domain: String,
+    val faviconUrl: String?,
     val summary: String?,
     val read: Boolean?,
     val status: String?,
@@ -66,7 +67,7 @@ private enum class LinkActionMessageContext(
     Browse(
         validationMessage = "Shiori rejected this list request. Check your current filter and try again.",
         unauthorizedMessage = "Your API key is no longer authorized. Update it in API access.",
-        notFoundMessage = "Shiori could not find this list endpoint. Check the server URL.",
+        notFoundMessage = "Shiori could not find this list endpoint. Try again in a moment.",
         conflictMessage = "Shiori is still processing one of these links. Wait for processing to finish, then reload.",
         serverMessage = "Shiori hit a server error while loading links. Wait a moment and try again.",
         networkMessage = "Could not reach your Shiori server. Check the connection and try again.",
@@ -77,7 +78,7 @@ private enum class LinkActionMessageContext(
     Save(
         validationMessage = "Shiori rejected this link. Check the URL and try again.",
         unauthorizedMessage = "Your API key is no longer authorized. Update it in API access.",
-        notFoundMessage = "Shiori could not find the save endpoint. Check the server URL.",
+        notFoundMessage = "Shiori could not find the save endpoint. Try again in a moment.",
         conflictMessage = "Shiori is still processing this link. Wait for that work to finish, then try saving it again.",
         serverMessage = "Shiori hit a server error while saving this link. Wait a moment and try again.",
         networkMessage = "Could not reach your Shiori server. Check the connection and try again.",
@@ -123,7 +124,7 @@ fun interface ShioriApiClientFactory {
 
 class DefaultShioriApiClientFactory : ShioriApiClientFactory {
     override fun create(config: ApiAccessConfig): ShioriApiClient = createShioriApiClient(
-        baseUrl = ApiAccessInputValidator.normalizeServerUrl(config.serverUrl),
+        baseUrl = SHIORI_BASE_URL,
         apiKeyProvider = ApiKeyProvider { ApiAccessInputValidator.normalizeApiKey(config.apiKey) },
     )
 }
@@ -262,6 +263,7 @@ internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
     title = title?.takeIf { it.isNotBlank() } ?: url,
     rawTitle = title?.takeIf { it.isNotBlank() },
     domain = domain?.takeIf { it.isNotBlank() } ?: url.toDomainFallback(),
+    faviconUrl = faviconUrl.toLoadableFaviconUrl(),
     summary = summary?.takeIf { it.isNotBlank() },
     read = read,
     status = status?.replaceFirstChar { char ->
@@ -275,6 +277,21 @@ internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
     createdAt = createdAt.toTimestampLabel("Saved"),
     updatedAt = updatedAt.toTimestampLabel("Updated"),
 )
+
+internal fun String?.toLoadableFaviconUrl(): String? {
+    val value = this?.trim().orEmpty()
+    if (value.isEmpty()) {
+        return null
+    }
+
+    val uri = runCatching { URI(value) }.getOrNull() ?: return null
+    val scheme = uri.scheme?.lowercase(Locale.ROOT) ?: return null
+    val host = uri.host ?: return null
+
+    return value.takeIf {
+        (scheme == "http" || scheme == "https") && host.isNotBlank()
+    }
+}
 
 internal fun ShioriApiError.toBrowseMessage(): String = toUserMessage(LinkActionMessageContext.Browse)
 

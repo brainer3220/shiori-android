@@ -5,26 +5,13 @@ import android.content.SharedPreferences
 import androidx.annotation.VisibleForTesting
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import dev.shiori.android.corenetwork.ApiKeyProvider
-import dev.shiori.android.corenetwork.LinksQuery
-import dev.shiori.android.corenetwork.ShioriApiError
-import dev.shiori.android.corenetwork.ShioriApiResult
-import dev.shiori.android.corenetwork.createShioriApiClient
-import java.net.URI
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+
+internal const val SHIORI_BASE_URL = "https://www.shiori.sh"
 
 data class ApiAccessConfig(
-    val serverUrl: String = "",
     val apiKey: String = "",
-)
-
-enum class ApiValidationStatus {
-    Idle,
-    Checking,
-    Success,
-    Unauthorized,
-    Failure,
+) {
+    constructor(@Suppress("UNUSED_PARAMETER") serverUrl: String, apiKey: String) : this(apiKey = apiKey)
 }
 
 interface ApiAccessStore {
@@ -34,52 +21,8 @@ interface ApiAccessStore {
     fun clearAll()
 }
 
-interface ApiConnectionChecker {
-    suspend fun validate(serverUrl: String, apiKey: String): ApiValidationStatus
-}
-
 object ApiAccessInputValidator {
-    fun normalizeServerUrl(rawValue: String): String = rawValue.trim().removeSuffix("/")
-
     fun normalizeApiKey(rawValue: String): String = rawValue.trim()
-
-    fun isServerUrlValid(rawValue: String): Boolean {
-        val value = normalizeServerUrl(rawValue)
-        if (value.isEmpty()) {
-            return false
-        }
-
-        val uri = runCatching { URI(value) }.getOrNull() ?: return false
-        val scheme = uri.scheme?.lowercase() ?: return false
-        val host = uri.host?.lowercase() ?: return false
-
-        return when (scheme) {
-            "https" -> true
-            "http" -> isLocalDevelopmentHost(host)
-            else -> false
-        }
-    }
-
-    private fun isLocalDevelopmentHost(host: String): Boolean {
-        if (host == "localhost" || host == "127.0.0.1" || host == "10.0.2.2" || host == "10.0.3.2") {
-            return true
-        }
-
-        if (host.endsWith(".local")) {
-            return true
-        }
-
-        val octets = host.split('.')
-        if (octets.size != 4 || octets.any { part -> part.toIntOrNull() == null }) {
-            return false
-        }
-
-        val first = octets[0].toInt()
-        val second = octets[1].toInt()
-        return first == 10 ||
-            (first == 172 && second in 16..31) ||
-            (first == 192 && second == 168)
-    }
 
     fun isApiKeyValidLooking(rawValue: String): Boolean {
         val value = normalizeApiKey(rawValue)
@@ -99,13 +42,11 @@ class EncryptedApiAccessStore(context: Context) : ApiAccessStore {
     )
 
     override fun readConfig(): ApiAccessConfig = ApiAccessConfig(
-        serverUrl = preferences.getString(KEY_SERVER_URL, "").orEmpty(),
         apiKey = preferences.getString(KEY_API_KEY, "").orEmpty(),
     )
 
     override fun saveConfig(config: ApiAccessConfig) {
         preferences.edit()
-            .putString(KEY_SERVER_URL, ApiAccessInputValidator.normalizeServerUrl(config.serverUrl))
             .putString(KEY_API_KEY, ApiAccessInputValidator.normalizeApiKey(config.apiKey))
             .apply()
     }
@@ -122,27 +63,7 @@ class EncryptedApiAccessStore(context: Context) : ApiAccessStore {
 
     private companion object {
         const val PREFERENCES_NAME = "secure_api_access"
-        const val KEY_SERVER_URL = "server_url"
         const val KEY_API_KEY = "api_key"
-    }
-}
-
-class DefaultApiConnectionChecker : ApiConnectionChecker {
-    override suspend fun validate(serverUrl: String, apiKey: String): ApiValidationStatus {
-        return withContext(Dispatchers.IO) {
-            val client = createShioriApiClient(
-                baseUrl = ApiAccessInputValidator.normalizeServerUrl(serverUrl),
-                apiKeyProvider = ApiKeyProvider { ApiAccessInputValidator.normalizeApiKey(apiKey) },
-            )
-
-            when (val result = client.getLinks(LinksQuery(limit = 1))) {
-                is ShioriApiResult.Success -> ApiValidationStatus.Success
-                is ShioriApiResult.Failure -> when (result.error) {
-                    ShioriApiError.Unauthorized -> ApiValidationStatus.Unauthorized
-                    else -> ApiValidationStatus.Failure
-                }
-            }
-        }
     }
 }
 
@@ -151,26 +72,16 @@ object AppDependencies {
     private var storeOverride: ApiAccessStore? = null
 
     @Volatile
-    private var checkerOverride: ApiConnectionChecker? = null
-
-    @Volatile
     private var linksRepositoryOverride: LinksRepository? = null
 
     fun apiAccessStore(context: Context): ApiAccessStore =
         storeOverride ?: EncryptedApiAccessStore(context.applicationContext)
-
-    fun connectionChecker(): ApiConnectionChecker = checkerOverride ?: DefaultApiConnectionChecker()
 
     fun linksRepository(): LinksRepository = linksRepositoryOverride ?: DefaultLinksRepository()
 
     @VisibleForTesting
     fun overrideStoreForTests(store: ApiAccessStore?) {
         storeOverride = store
-    }
-
-    @VisibleForTesting
-    fun overrideCheckerForTests(checker: ApiConnectionChecker?) {
-        checkerOverride = checker
     }
 
     @VisibleForTesting
@@ -181,7 +92,6 @@ object AppDependencies {
     @VisibleForTesting
     fun resetForTests() {
         storeOverride = null
-        checkerOverride = null
         linksRepositoryOverride = null
     }
 }
