@@ -23,8 +23,11 @@ import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkMutationResponse
 import dev.shiori.android.corenetwork.LinkResponse
+import dev.shiori.android.corenetwork.SetLinkTagsResponse
 import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiResult
+import dev.shiori.android.corenetwork.TagListResponse
+import dev.shiori.android.corenetwork.TagResponse
 import dev.shiori.android.corenetwork.UpdateLinkRequest
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
@@ -68,7 +71,7 @@ class MainActivityTest {
             onView(withId(R.id.browser_screen)).check(matches(isDisplayed()))
             onView(withId(R.id.add_link_url_input)).check(matches(withHint("Save a link...")))
             clickButton(scenario, R.id.edit_access_button)
-            onView(withText(R.string.action_edit_access)).perform(click())
+            onView(withText(R.string.action_settings)).perform(click())
             onView(withId(R.id.api_key_input)).check(matches(withText("test-api-key")))
 
             onView(withId(R.id.clear_button)).perform(scrollTo(), click())
@@ -105,7 +108,7 @@ class MainActivityTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
             clickButton(scenario, R.id.edit_access_button)
-            onView(withText(R.string.action_edit_access)).perform(click())
+            onView(withText(R.string.action_settings)).perform(click())
             onView(withId(R.id.continue_button)).perform(scrollTo(), click())
             onView(withId(R.id.browser_screen)).check(matches(isDisplayed()))
         }
@@ -1399,6 +1402,7 @@ class MainActivityTest {
         val updateRequests = CopyOnWriteArrayList<Pair<String, UpdateLinkRequest>>()
         val restoreRequests = CopyOnWriteArrayList<String>()
         val deleteRequests = CopyOnWriteArrayList<String>()
+        val setTagRequests = CopyOnWriteArrayList<Pair<String, List<String>>>()
         private val responses = mutableMapOf<Request, ArrayDeque<ShioriApiResult<LinkListResponse>>>()
         var saveResult: ShioriApiResult<CreateLinkResponse> = ShioriApiResult.Success(
             CreateLinkResponse(success = true, linkId = "99"),
@@ -1416,14 +1420,26 @@ class MainActivityTest {
         var emptyTrashResult: ShioriApiResult<EmptyTrashResponse> = ShioriApiResult.Success(
             EmptyTrashResponse(deleted = 0, message = "Trash emptied"),
         )
+        var tagsResult: ShioriApiResult<TagListResponse> = ShioriApiResult.Success(
+            TagListResponse(
+                tags = listOf(
+                    TagResponse(id = "tag-ai", name = "ai"),
+                    TagResponse(id = "tag-finance", name = "finance"),
+                ),
+            ),
+        )
+        var setTagsResult: ShioriApiResult<SetLinkTagsResponse> = ShioriApiResult.Success(
+            SetLinkTagsResponse(success = true),
+        )
         var emptyTrashCalls: Int = 0
 
         fun enqueue(
             destination: LinkBrowseDestination,
             offset: Int,
             response: ShioriApiResult<LinkListResponse>,
+            tag: String? = null,
         ) {
-            val request = Request(destination, 20, offset)
+            val request = Request(destination, 20, offset, tag)
             val queue = responses.getOrPut(request) { ArrayDeque() }
             queue.addLast(response)
         }
@@ -1433,8 +1449,9 @@ class MainActivityTest {
             destination: LinkBrowseDestination,
             limit: Int,
             offset: Int,
+            tag: String?,
         ): ShioriApiResult<LinkListResponse> {
-            val request = Request(destination, limit, offset)
+            val request = Request(destination, limit, offset, tag)
             requests += request
             val queue = responses[request]
             return when {
@@ -1493,6 +1510,18 @@ class MainActivityTest {
             return deleteLinkResult
         }
 
+        override suspend fun loadTags(config: ApiAccessConfig): ShioriApiResult<TagListResponse> =
+            tagsResult
+
+        override suspend fun setLinkTags(
+            config: ApiAccessConfig,
+            id: String,
+            tagIds: List<String>,
+        ): ShioriApiResult<SetLinkTagsResponse> {
+            setTagRequests += id to tagIds
+            return setTagsResult
+        }
+
         override suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse> {
             emptyTrashCalls += 1
             return emptyTrashResult
@@ -1503,6 +1532,7 @@ class MainActivityTest {
         val destination: LinkBrowseDestination,
         val limit: Int,
         val offset: Int,
+        val tag: String? = null,
     )
 
     private data class BulkUpdateRequest(

@@ -1,6 +1,8 @@
 package dev.shiori.android
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
@@ -54,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var browserScrollView: NestedScrollView
     private lateinit var browserContentContainer: ViewGroup
     private lateinit var browserTitleText: TextView
+    private lateinit var browserTopDivider: View
     private lateinit var accessTitleText: TextView
     private lateinit var accessSubtitleText: TextView
     private lateinit var apiKeyLayout: TextInputLayout
@@ -96,6 +99,10 @@ class MainActivity : AppCompatActivity() {
         onEditClicked = ::showEditLinkDialog,
         onDeleteClicked = ::confirmDeleteLink,
         onRestoreClicked = { restoreLink(it) },
+        onTagsClicked = ::showLinkTagsDialog,
+        onAskClicked = ::askShiori,
+        onCopyLinkClicked = ::copyLink,
+        onCopyIdClicked = ::copyLinkId,
     )
 
     private var savedConfig = ApiAccessConfig()
@@ -110,6 +117,8 @@ class MainActivity : AppCompatActivity() {
     private var lastHandledIntentKey: String? = null
     private var lastHandledSharedUrl: String? = null
     private var isSearchVisible = false
+    private var selectedTag: TagChipModel? = null
+    private var tagState = TagListUiState()
     private var lastRenderedScreen: Screen? = null
     private var lastBrowserChromeState: BrowserChromeState? = null
     private val selectedLinkIds = linkedSetOf<String>()
@@ -144,6 +153,12 @@ class MainActivity : AppCompatActivity() {
         lastHandledSharedUrl = savedInstanceState?.getString(KEY_LAST_HANDLED_SHARED_URL)
         linkQueryInput.setText(savedInstanceState?.getString(KEY_LINK_QUERY).orEmpty())
         isSearchVisible = savedInstanceState?.getBoolean(KEY_SEARCH_VISIBLE) ?: currentQuery().isNotBlank()
+        selectedTag = savedInstanceState?.getString(KEY_SELECTED_TAG_ID)?.let { tagId ->
+            TagChipModel(
+                id = tagId,
+                name = savedInstanceState.getString(KEY_SELECTED_TAG_NAME).orEmpty(),
+            )
+        }
 
         loadStoredConfig(restoredScreen != null)
         handleIncomingIntent(intent)
@@ -170,6 +185,10 @@ class MainActivity : AppCompatActivity() {
         outState.putString(KEY_LAST_HANDLED_SHARED_URL, lastHandledSharedUrl)
         outState.putString(KEY_LINK_QUERY, currentQuery())
         outState.putBoolean(KEY_SEARCH_VISIBLE, isSearchVisible)
+        selectedTag?.let {
+            outState.putString(KEY_SELECTED_TAG_ID, it.id)
+            outState.putString(KEY_SELECTED_TAG_NAME, it.name)
+        }
     }
 
     private fun bindViews() {
@@ -179,6 +198,7 @@ class MainActivity : AppCompatActivity() {
         browserScrollView = findViewById(R.id.browser_scroll_view)
         browserContentContainer = findViewById(R.id.browser_content_container)
         browserTitleText = findViewById(R.id.browser_title_text)
+        browserTopDivider = findViewById(R.id.browser_top_divider)
         accessTitleText = findViewById(R.id.title_text)
         accessSubtitleText = findViewById(R.id.subtitle_text)
         apiKeyLayout = findViewById(R.id.api_key_layout)
@@ -271,6 +291,8 @@ class MainActivity : AppCompatActivity() {
             store.clearApiKey()
             savedConfig = ApiAccessConfig()
             apiKeyInput.setText("")
+            selectedTag = null
+            tagState = TagListUiState()
             resetLinkStates()
             currentScreen = Screen.Access
             accessStatusOverrideMessage = null
@@ -398,14 +420,63 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showBrowserMenu() {
+        if (!isSavedConfigValid() || hasUnsavedChanges()) {
+            currentScreen = Screen.Access
+            render()
+            return
+        }
+
+        if (!tagState.hasLoadedOnce && !tagState.isLoading) {
+            addLinkStatusMessage = getString(R.string.message_tags_loading)
+            renderBrowserState()
+            loadTags(afterLoad = ::showBrowserMenu)
+            return
+        }
+        if (tagState.isLoading) {
+            showTransientFeedback(getString(R.string.message_tags_loading))
+            return
+        }
+
         PopupMenu(this, editAccessButton).apply {
-            menu.add(Menu.NONE, MENU_EDIT_ACCESS, 0, R.string.action_edit_access)
+            var order = 0
+            if (selectedTag != null) {
+                menu.add(Menu.NONE, MENU_CLEAR_TAG_FILTER, order++, R.string.action_all_links)
+            }
+            tagState.tags.forEachIndexed { index, tag ->
+                menu.add(Menu.NONE, MENU_TAG_BASE + index, order++, getString(R.string.label_tag_item, tag.name))
+            }
+            if (tagState.tags.isEmpty()) {
+                menu.add(Menu.NONE, MENU_TAGS_EMPTY, order++, R.string.message_tags_empty).isEnabled = false
+            }
+            menu.add(Menu.NONE, MENU_EDIT_ACCESS, order++, R.string.action_settings)
+            menu.add(Menu.NONE, MENU_SHARE_FEEDBACK, order++, R.string.action_share_feedback)
+            menu.add(Menu.NONE, MENU_IOS_SHORTCUT, order, R.string.action_ios_shortcut)
 
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
+                    MENU_CLEAR_TAG_FILTER -> {
+                        clearTagFilter()
+                        true
+                    }
+
                     MENU_EDIT_ACCESS -> {
                         currentScreen = Screen.Access
                         render()
+                        true
+                    }
+
+                    MENU_SHARE_FEEDBACK -> {
+                        shareFeedback()
+                        true
+                    }
+
+                    MENU_IOS_SHORTCUT -> {
+                        showTransientFeedback(getString(R.string.message_ios_shortcut_unavailable))
+                        true
+                    }
+
+                    in MENU_TAG_BASE until MENU_TAG_BASE + tagState.tags.size -> {
+                        selectTagFilter(tagState.tags[item.itemId - MENU_TAG_BASE])
                         true
                     }
 
@@ -414,6 +485,61 @@ class MainActivity : AppCompatActivity() {
             }
             show()
         }
+    }
+
+    private fun loadTags(afterLoad: (() -> Unit)? = null) {
+        if (!isSavedConfigValid() || hasUnsavedChanges()) {
+            return
+        }
+        if (tagState.isLoading) {
+            return
+        }
+
+        tagState = tagState.copy(isLoading = true, message = null)
+        lifecycleScope.launch {
+            tagState = when (val result = linksRepository.loadTags(savedConfig)) {
+                is ShioriApiResult.Success -> TagListUiState(
+                    tags = result.value.tags.map { it.toChipModel() },
+                    hasLoadedOnce = true,
+                )
+
+                is ShioriApiResult.Failure -> {
+                    val message = result.error.toBrowseMessage()
+                    showTransientFeedback(message)
+                    TagListUiState(hasLoadedOnce = true, message = message)
+                }
+            }
+            addLinkStatusMessage = null
+            renderBrowserState()
+            afterLoad?.invoke()
+        }
+    }
+
+    private fun selectTagFilter(tag: TagChipModel) {
+        if (selectedTag?.id == tag.id) {
+            clearTagFilter()
+            return
+        }
+
+        selectedTag = tag
+        clearSelectedLinks(renderAfterClear = false)
+        resetLinkStates()
+        currentDestination = LinkBrowseDestination.Inbox
+        showTransientFeedback(getString(R.string.message_tag_filter, tag.name))
+        renderBrowserState()
+        fetchLinks(currentDestination, reset = true)
+    }
+
+    private fun clearTagFilter() {
+        if (selectedTag == null) {
+            return
+        }
+
+        selectedTag = null
+        clearSelectedLinks(renderAfterClear = false)
+        resetLinkStates()
+        renderBrowserState()
+        fetchLinks(currentDestination, reset = true)
     }
 
     private fun focusInput(input: TextInputEditText) {
@@ -440,13 +566,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         return state.items.filter { item ->
-            listOfNotNull(item.title, item.domain, item.summary, item.url, item.readState, item.status)
+            (
+                listOfNotNull(item.title, item.domain, item.summary, item.url, item.readState, item.status) +
+                    item.tags.map { tag -> tag.name }
+                )
                 .any { value -> value.contains(query, ignoreCase = true) }
         }
     }
 
     private fun currentSectionTitle(query: String): String = when {
         query.isNotBlank() -> getString(R.string.title_search_results)
+        selectedTag != null -> getString(R.string.title_tagged_links)
         currentDestination == LinkBrowseDestination.Inbox -> getString(R.string.title_today)
         currentDestination == LinkBrowseDestination.Archive -> getString(R.string.filter_archive)
         else -> getString(R.string.filter_trash)
@@ -454,6 +584,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun currentBrowserTitle(query: String): String = when {
         query.isNotBlank() -> getString(R.string.title_search_results)
+        selectedTag != null -> getString(R.string.label_tag_item, selectedTag?.name.orEmpty())
         currentDestination == LinkBrowseDestination.Archive -> getString(R.string.filter_archive)
         currentDestination == LinkBrowseDestination.Trash -> getString(R.string.filter_trash)
         else -> getString(R.string.filter_inbox)
@@ -498,6 +629,15 @@ class MainActivity : AppCompatActivity() {
             linkQueryButton.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
             linkQueryButton.contentDescription = getString(R.string.label_clear_search)
         }
+    }
+
+    private fun updateMenuButtonState() {
+        val menuColor = ContextCompat.getColor(
+            this,
+            if (selectedTag != null) R.color.shiori_text_primary else R.color.shiori_text_secondary,
+        )
+        editAccessButton.setTextColor(menuColor)
+        editAccessButton.iconTint = ColorStateList.valueOf(menuColor)
     }
 
     private fun styleContinueButton(primary: Boolean) {
@@ -554,6 +694,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun askShiori(item: LinkCardModel) {
+        showTransientFeedback(getString(R.string.message_ask_shiori_unavailable, item.title))
+    }
+
+    private fun copyLink(item: LinkCardModel) {
+        copyText(
+            label = getString(R.string.label_link_url_clip),
+            value = item.url,
+        )
+        showTransientFeedback(getString(R.string.message_link_copied))
+    }
+
+    private fun copyLinkId(item: LinkCardModel) {
+        copyText(
+            label = getString(R.string.label_link_id_clip),
+            value = item.id,
+        )
+        showTransientFeedback(getString(R.string.message_link_id_copied))
+    }
+
+    private fun copyText(label: String, value: String) {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
+    }
+
+    private fun shareFeedback() {
+        val intent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("mailto:")
+            putExtra(Intent.EXTRA_SUBJECT, getString(R.string.feedback_email_subject))
+        }
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            showTransientFeedback(getString(R.string.message_feedback_unavailable))
+        }
+    }
+
     private fun loadStoredConfig(restoredScreen: Boolean) {
         savedConfig = store.readConfig()
         apiKeyInput.setText(savedConfig.apiKey)
@@ -588,6 +765,8 @@ class MainActivity : AppCompatActivity() {
         apiKeyInput.setText(savedConfig.apiKey)
 
         if (configChanged) {
+            selectedTag = null
+            tagState = TagListUiState()
             resetLinkStates()
         }
 
@@ -915,6 +1094,86 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showLinkTagsDialog(item: LinkCardModel) {
+        if (!isLinkActionAvailable() || isUpdatingLinks) {
+            showTransientFeedback(getString(R.string.message_selection_disabled_in_trash))
+            return
+        }
+
+        if (!tagState.hasLoadedOnce && !tagState.isLoading) {
+            addLinkStatusMessage = getString(R.string.message_tags_loading)
+            renderBrowserState()
+            loadTags(afterLoad = { showLinkTagsDialog(item) })
+            return
+        }
+
+        if (tagState.isLoading) {
+            showTransientFeedback(getString(R.string.message_tags_loading))
+            return
+        }
+
+        val tags = tagState.tags
+        if (tags.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.title_edit_tags)
+                .setMessage(R.string.message_tags_empty)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+
+        val selectedIds = item.tags.mapTo(linkedSetOf()) { it.id }
+        val workingIds = selectedIds.toMutableSet()
+        val labels = tags.map { getString(R.string.label_tag_item, it.name) }.toTypedArray()
+        val checked = BooleanArray(tags.size) { index -> selectedIds.contains(tags[index].id) }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.title_edit_tags_for_link, item.title))
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                val tagId = tags[which].id
+                if (isChecked) {
+                    workingIds.add(tagId)
+                } else {
+                    workingIds.remove(tagId)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.action_save_changes) { _, _ ->
+                submitLinkTags(item = item, tagIds = workingIds.toList())
+            }
+            .show()
+    }
+
+    private fun submitLinkTags(item: LinkCardModel, tagIds: List<String>) {
+        isUpdatingLinks = true
+        addLinkStatusMessage = getString(R.string.message_link_updating)
+        renderBrowserState()
+
+        lifecycleScope.launch {
+            when (val result = linksRepository.setLinkTags(savedConfig, item.id, tagIds)) {
+                is ShioriApiResult.Success -> {
+                    val responseTags = result.value.tags.map { it.toChipModel() }
+                    val localTags = if (responseTags.isNotEmpty() || tagIds.isEmpty()) {
+                        responseTags
+                    } else {
+                        tagState.tags.filter { tagIds.contains(it.id) }
+                    }
+                    applyLocalTags(item.id, localTags)
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = null
+                    showTransientFeedback(getString(R.string.message_tags_updated))
+                    renderBrowserState()
+                }
+
+                is ShioriApiResult.Failure -> {
+                    isUpdatingLinks = false
+                    addLinkStatusMessage = result.error.toUpdateMessage()
+                    renderBrowserState()
+                }
+            }
+        }
+    }
+
     private fun showEditLinkDialog(item: LinkCardModel) {
         if (!isLinkActionAvailable() || isUpdatingLinks) {
             return
@@ -1084,6 +1343,41 @@ class MainActivity : AppCompatActivity() {
         pruneSelectedLinks()
     }
 
+    private fun applyLocalTags(id: String, tags: List<TagChipModel>) {
+        val activeTagId = selectedTag?.id
+        LinkBrowseDestination.values().forEach { destination ->
+            val state = linkStates.getValue(destination)
+            val updatedItems = state.items.mapNotNull { item ->
+                if (item.id != id) {
+                    item
+                } else {
+                    val updatedItem = item.copy(tags = tags)
+                    if (activeTagId == null || tags.any { it.id == activeTagId }) {
+                        updatedItem
+                    } else {
+                        null
+                    }
+                }
+            }
+
+            if (updatedItems != state.items) {
+                linkStates[destination] = state.copy(
+                    items = updatedItems,
+                    message = if (updatedItems.isEmpty() && state.hasLoadedOnce) getString(R.string.message_links_empty) else null,
+                    total = state.total?.let { total ->
+                        if (activeTagId != null && state.items.any { it.id == id } && updatedItems.none { it.id == id }) {
+                            (total - 1).coerceAtLeast(0)
+                        } else {
+                            total
+                        }
+                    },
+                )
+            }
+        }
+
+        pruneSelectedLinks()
+    }
+
     private fun isLinkActionAvailable(): Boolean = currentDestination != LinkBrowseDestination.Trash
 
     private fun matchesDestination(link: LinkResponse, destination: LinkBrowseDestination): Boolean = when (destination) {
@@ -1235,6 +1529,7 @@ class MainActivity : AppCompatActivity() {
                     destination = destination,
                     limit = PAGE_SIZE,
                     offset = requestOffset,
+                    tag = selectedTag?.id,
                 )
             ) {
                 is ShioriApiResult.Success -> {
@@ -1370,6 +1665,7 @@ class MainActivity : AppCompatActivity() {
         val query = currentQuery()
         val visibleItems = visibleLinkItems(state)
         val isTrashDestination = currentDestination == LinkBrowseDestination.Trash
+        val searchMode = isSearchVisible || query.isNotBlank()
 
         pruneSelectedLinks(visibleItems)
         val hasSelection = selectedLinkIds.isNotEmpty()
@@ -1379,18 +1675,24 @@ class MainActivity : AppCompatActivity() {
                 destination = currentDestination,
                 showSelectionStatus = showSelectionStatus,
                 showTrashActions = isTrashDestination,
+                searchMode = searchMode,
+                selectedTagId = selectedTag?.id,
             ),
         )
         updateFilterButtonStyles()
         updateSearchButtonState(query)
+        updateMenuButtonState()
         val rawLinkUrl = addLinkUrlInput.text?.toString().orEmpty()
         val isLinkUrlValid = isLinkUrlValid(rawLinkUrl)
         val linkActionsAvailable = isLinkActionAvailable()
 
-        addLinkSection.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
-        linkQueryCard.visibility = if (isSearchVisible || query.isNotBlank()) View.VISIBLE else View.GONE
+        browserTitleText.visibility = if (searchMode) View.GONE else View.VISIBLE
+        browserTopDivider.visibility = if (searchMode) View.GONE else View.VISIBLE
+        addLinkSection.visibility = if (isTrashDestination || searchMode) View.GONE else View.VISIBLE
+        linkQueryCard.visibility = if (searchMode) View.VISIBLE else View.GONE
         browserTitleText.text = currentBrowserTitle(query)
         sectionHeaderText.text = currentSectionTitle(query)
+        sectionHeaderText.visibility = if (searchMode) View.GONE else View.VISIBLE
 
         linkSelectionStatusText.visibility = if (showSelectionStatus) View.VISIBLE else View.GONE
         linkSelectionActionsRow.visibility = if (!isTrashDestination && hasSelection) View.VISIBLE else View.GONE
@@ -1502,6 +1804,15 @@ class MainActivity : AppCompatActivity() {
         val destination: LinkBrowseDestination,
         val showSelectionStatus: Boolean,
         val showTrashActions: Boolean,
+        val searchMode: Boolean,
+        val selectedTagId: String?,
+    )
+
+    private data class TagListUiState(
+        val tags: List<TagChipModel> = emptyList(),
+        val isLoading: Boolean = false,
+        val hasLoadedOnce: Boolean = false,
+        val message: String? = null,
     )
 
     private companion object {
@@ -1515,6 +1826,13 @@ class MainActivity : AppCompatActivity() {
         const val KEY_LAST_HANDLED_SHARED_URL = "last_handled_shared_url"
         const val KEY_LINK_QUERY = "link_query"
         const val KEY_SEARCH_VISIBLE = "search_visible"
+        const val KEY_SELECTED_TAG_ID = "selected_tag_id"
+        const val KEY_SELECTED_TAG_NAME = "selected_tag_name"
         const val MENU_EDIT_ACCESS = 1
+        const val MENU_CLEAR_TAG_FILTER = 2
+        const val MENU_SHARE_FEEDBACK = 3
+        const val MENU_IOS_SHORTCUT = 4
+        const val MENU_TAGS_EMPTY = 5
+        const val MENU_TAG_BASE = 100
     }
 }

@@ -2,7 +2,9 @@ package dev.shiori.android
 
 import dev.shiori.android.corenetwork.CreateLinkRequest
 import dev.shiori.android.corenetwork.CreateLinkResponse
+import dev.shiori.android.corenetwork.CreateTagRequest
 import dev.shiori.android.corenetwork.DeleteLinkResponse
+import dev.shiori.android.corenetwork.DeleteTagResponse
 import dev.shiori.android.corenetwork.EmptyTrashResponse
 import dev.shiori.android.corenetwork.LinkListResponse
 import dev.shiori.android.corenetwork.LinkMutationResponse
@@ -10,10 +12,16 @@ import dev.shiori.android.corenetwork.LinkReadFilter
 import dev.shiori.android.corenetwork.LinkResponse
 import dev.shiori.android.corenetwork.LinkSortOrder
 import dev.shiori.android.corenetwork.LinksQuery
+import dev.shiori.android.corenetwork.SetLinkTagsRequest
+import dev.shiori.android.corenetwork.SetLinkTagsResponse
 import dev.shiori.android.corenetwork.ShioriApiError
 import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.ShioriApiResult
+import dev.shiori.android.corenetwork.TagListResponse
+import dev.shiori.android.corenetwork.TagMutationResponse
+import dev.shiori.android.corenetwork.TagResponse
 import dev.shiori.android.corenetwork.UpdateLinkRequest
+import dev.shiori.android.corenetwork.UpdateTagRequest
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -35,6 +43,14 @@ class LinksBrowserTest {
         assertEquals(
             LinksQuery(limit = 20, offset = 40, trash = true),
             LinkBrowseDestination.Trash.toLinksQuery(limit = 20, offset = 40),
+        )
+    }
+
+    @Test
+    fun `browse destinations include tag filters when selected`() {
+        assertEquals(
+            LinksQuery(limit = 20, offset = 0, read = LinkReadFilter.Unread, sort = LinkSortOrder.Newest, tag = "tag-1"),
+            LinkBrowseDestination.Inbox.toLinksQuery(limit = 20, offset = 0, tag = "tag-1"),
         )
     }
 
@@ -79,6 +95,32 @@ class LinksBrowserTest {
         assertSame(client.trashResult, trashResult)
         assertEquals(LinksQuery(limit = 20, offset = 0, read = LinkReadFilter.Unread, sort = LinkSortOrder.Newest), client.lastInboxQuery)
         assertEquals(LinksQuery(limit = 20, offset = 40, trash = true), client.lastTrashQuery)
+    }
+
+    @Test
+    fun `repository forwards tag loading and link tag updates`() = runTest {
+        val client = FakeShioriApiClient()
+        val repository = DefaultLinksRepository(clientFactory = ShioriApiClientFactory { client })
+        val config = ApiAccessConfig(apiKey = "test-api-key")
+
+        val tagsResult = repository.loadTags(config)
+        val setTagsResult = repository.setLinkTags(config, id = "link-2", tagIds = listOf("tag-1", "tag-2"))
+
+        assertSame(client.tagsResult, tagsResult)
+        assertSame(client.setTagsResult, setTagsResult)
+        assertEquals("link-2", client.lastTaggedLinkId)
+        assertEquals(SetLinkTagsRequest(tagIds = listOf("tag-1", "tag-2")), client.lastSetTagsRequest)
+    }
+
+    @Test
+    fun `card mapping keeps tag chips`() {
+        val card = LinkResponse(
+            id = "1",
+            url = "https://example.com/article",
+            tags = listOf(TagResponse(id = "tag-1", name = "ai")),
+        ).toCardModel()
+
+        assertEquals(listOf(TagChipModel(id = "tag-1", name = "ai")), card.tags)
     }
 
     @Test
@@ -317,6 +359,11 @@ class LinksBrowserTest {
         val restoreResult = ShioriApiResult.Success(LinkMutationResponse(success = true, message = "Link restored", linkId = "12"))
         val deleteResult = ShioriApiResult.Success(DeleteLinkResponse(linkId = "13", message = "Link deleted"))
         val emptyTrashResult = ShioriApiResult.Success(EmptyTrashResponse(deleted = 3, message = "Trash emptied"))
+        val tagsResult = ShioriApiResult.Success(TagListResponse(tags = listOf(TagResponse(id = "tag-1", name = "ai"))))
+        val createTagResult = ShioriApiResult.Success(TagMutationResponse(tag = TagResponse(id = "tag-3", name = "news")))
+        val updateTagResult = ShioriApiResult.Success(TagMutationResponse(tag = TagResponse(id = "tag-3", name = "llm")))
+        val deleteTagResult = ShioriApiResult.Success(DeleteTagResponse(deleted = true, tagId = "tag-3"))
+        val setTagsResult = ShioriApiResult.Success(SetLinkTagsResponse(linkId = "link-2", tags = listOf(TagResponse(id = "tag-1", name = "ai"))))
         var lastInboxQuery: LinksQuery? = null
         var lastTrashQuery: LinksQuery? = null
         var lastCreateRequest: CreateLinkRequest? = null
@@ -325,6 +372,12 @@ class LinksBrowserTest {
         var lastUpdateRequest: UpdateLinkRequest? = null
         var lastRestoredId: String? = null
         var lastDeletedId: String? = null
+        var lastCreatedTagRequest: CreateTagRequest? = null
+        var lastUpdatedTagId: String? = null
+        var lastUpdatedTagRequest: UpdateTagRequest? = null
+        var lastDeletedTagId: String? = null
+        var lastTaggedLinkId: String? = null
+        var lastSetTagsRequest: SetLinkTagsRequest? = null
         var emptyTrashCalled: Boolean = false
 
         override suspend fun getLinks(query: LinksQuery): ShioriApiResult<LinkListResponse> {
@@ -366,6 +419,30 @@ class LinksBrowserTest {
         override suspend fun deleteLink(id: String): ShioriApiResult<DeleteLinkResponse> {
             lastDeletedId = id
             return deleteResult
+        }
+
+        override suspend fun getTags(): ShioriApiResult<TagListResponse> = tagsResult
+
+        override suspend fun createTag(request: CreateTagRequest): ShioriApiResult<TagMutationResponse> {
+            lastCreatedTagRequest = request
+            return createTagResult
+        }
+
+        override suspend fun updateTag(id: String, request: UpdateTagRequest): ShioriApiResult<TagMutationResponse> {
+            lastUpdatedTagId = id
+            lastUpdatedTagRequest = request
+            return updateTagResult
+        }
+
+        override suspend fun deleteTag(id: String): ShioriApiResult<DeleteTagResponse> {
+            lastDeletedTagId = id
+            return deleteTagResult
+        }
+
+        override suspend fun setLinkTags(id: String, request: SetLinkTagsRequest): ShioriApiResult<SetLinkTagsResponse> {
+            lastTaggedLinkId = id
+            lastSetTagsRequest = request
+            return setTagsResult
         }
     }
 }

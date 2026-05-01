@@ -74,6 +74,7 @@ Fetch a paginated list of your saved links.
 | offset | integer | 0 | Number of links to skip |
 | read | string | all | Filter by read status: `all`, `read`, or `unread` |
 | sort | string | newest | Sort order: `newest` or `oldest` |
+| tag | string | none | Filter links by tag ID or tag name |
 
 ```
 curl "https://www.shiori.sh/api/links?limit=10&read=unread" \\
@@ -282,6 +283,75 @@ Response:
 }
 ```
 
+## Tags
+
+Shiori exposes tags through dedicated endpoints and lets clients attach tags to a link.
+
+### GET /api/tags
+
+Fetch all tags for the authenticated account.
+
+```
+curl https://www.shiori.sh/api/tags \\
+  -H "Authorization: Bearer shk_your_api_key_here"
+```
+
+Response:
+
+```
+{
+  "success": true,
+  "tags": [
+    {
+      "id": "tag-1",
+      "name": "ai"
+    }
+  ]
+}
+```
+
+### POST /api/tags
+
+Create a tag.
+
+```
+curl -X POST https://www.shiori.sh/api/tags \\
+  -H "Authorization: Bearer shk_your_api_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{"name": "ai"}'
+```
+
+### PATCH /api/tags/:id
+
+Rename a tag.
+
+```
+curl -X PATCH https://www.shiori.sh/api/tags/tag-1 \\
+  -H "Authorization: Bearer shk_your_api_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{"name": "llm"}'
+```
+
+### DELETE /api/tags/:id
+
+Delete a tag.
+
+```
+curl -X DELETE https://www.shiori.sh/api/tags/tag-1 \\
+  -H "Authorization: Bearer shk_your_api_key_here"
+```
+
+### PUT /api/links/:id/tags
+
+Replace the tags attached to a link.
+
+```
+curl -X PUT https://www.shiori.sh/api/links/550e8400-e29b-41d4-a716-446655440000/tags \\
+  -H "Authorization: Bearer shk_your_api_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{"tagIds": ["tag-1"]}'
+```
+
 ## Error Codes
 
 | Status | Description |
@@ -292,5 +362,4 @@ Response:
 | 409 | Conflict — link is still being processed |
 | 429 | Rate limited — too many requests |
 | 500 | Server error |
-
 

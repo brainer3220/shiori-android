@@ -23,6 +23,10 @@ class LinkListAdapter(
     private val onEditClicked: (LinkCardModel) -> Unit = {},
     private val onDeleteClicked: (LinkCardModel) -> Unit = {},
     private val onRestoreClicked: (LinkCardModel) -> Unit = {},
+    private val onTagsClicked: (LinkCardModel) -> Unit = {},
+    private val onAskClicked: (LinkCardModel) -> Unit = {},
+    private val onCopyLinkClicked: (LinkCardModel) -> Unit = {},
+    private val onCopyIdClicked: (LinkCardModel) -> Unit = {},
 ) : RecyclerView.Adapter<LinkListAdapter.LinkViewHolder>() {
     private val items = mutableListOf<LinkCardModel>()
     private var selectedIds: Set<String> = emptySet()
@@ -69,6 +73,10 @@ class LinkListAdapter(
             onEditClicked = onEditClicked,
             onDeleteClicked = onDeleteClicked,
             onRestoreClicked = onRestoreClicked,
+            onTagsClicked = onTagsClicked,
+            onAskClicked = onAskClicked,
+            onCopyLinkClicked = onCopyLinkClicked,
+            onCopyIdClicked = onCopyIdClicked,
         )
     }
 
@@ -103,6 +111,10 @@ class LinkListAdapter(
             onEditClicked: (LinkCardModel) -> Unit,
             onDeleteClicked: (LinkCardModel) -> Unit,
             onRestoreClicked: (LinkCardModel) -> Unit,
+            onTagsClicked: (LinkCardModel) -> Unit,
+            onAskClicked: (LinkCardModel) -> Unit,
+            onCopyLinkClicked: (LinkCardModel) -> Unit,
+            onCopyIdClicked: (LinkCardModel) -> Unit,
         ) {
             titleText.text = item.title
             val displayDomain = item.domain.removePrefix("www.")
@@ -161,6 +173,10 @@ class LinkListAdapter(
                     onEditClicked = onEditClicked,
                     onDeleteClicked = onDeleteClicked,
                     onRestoreClicked = onRestoreClicked,
+                    onTagsClicked = onTagsClicked,
+                    onAskClicked = onAskClicked,
+                    onCopyLinkClicked = onCopyLinkClicked,
+                    onCopyIdClicked = onCopyIdClicked,
                 )
             }
 
@@ -307,36 +323,64 @@ class LinkListAdapter(
             onEditClicked: (LinkCardModel) -> Unit,
             onDeleteClicked: (LinkCardModel) -> Unit,
             onRestoreClicked: (LinkCardModel) -> Unit,
+            onTagsClicked: (LinkCardModel) -> Unit,
+            onAskClicked: (LinkCardModel) -> Unit,
+            onCopyLinkClicked: (LinkCardModel) -> Unit,
+            onCopyIdClicked: (LinkCardModel) -> Unit,
         ) {
             PopupMenu(itemView.context, overflowButton).apply {
-                menu.add(0, MENU_OPEN, 0, R.string.action_open_link)
+                menu.add(0, MENU_TAGS, 0, R.string.action_tags)
+                menu.add(0, MENU_ASK_SHIORI, 1, R.string.action_ask_shiori)
+                menu.add(0, MENU_OPEN, 2, R.string.action_open_new_tab)
+                menu.add(0, MENU_COPY_LINK, 3, R.string.action_copy_link)
+                menu.add(0, MENU_COPY_ID, 4, R.string.action_copy_id)
 
                 if (selectionEnabled) {
                     menu.add(
                         0,
                         MENU_SELECT,
-                        1,
+                        5,
                         if (selected) R.string.action_deselect_link else R.string.action_select_link,
                     )
                 }
 
                 if (destination == LinkBrowseDestination.Trash) {
-                    menu.add(0, MENU_RESTORE, 2, R.string.action_restore_link)
+                    menu.add(0, MENU_RESTORE, 6, R.string.action_restore_link)
                 } else {
                     menu.add(
                         0,
                         MENU_TOGGLE_READ,
-                        2,
-                        if (item.read == true) R.string.action_mark_unread else R.string.action_mark_read,
+                        6,
+                        if (item.read == true) R.string.action_mark_unread else R.string.action_archive,
                     )
-                    menu.add(0, MENU_EDIT, 3, R.string.action_edit_link)
-                    menu.add(0, MENU_DELETE, 4, R.string.action_move_to_trash)
+                    menu.add(0, MENU_EDIT, 7, R.string.action_edit_link)
+                    menu.add(0, MENU_DELETE, 8, R.string.action_move_to_trash)
                 }
 
                 setOnMenuItemClickListener { menuItem ->
                     when (menuItem.itemId) {
+                        MENU_TAGS -> {
+                            onTagsClicked(item)
+                            true
+                        }
+
+                        MENU_ASK_SHIORI -> {
+                            onAskClicked(item)
+                            true
+                        }
+
                         MENU_OPEN -> {
                             onOpenClicked(item)
+                            true
+                        }
+
+                        MENU_COPY_LINK -> {
+                            onCopyLinkClicked(item)
+                            true
+                        }
+
+                        MENU_COPY_ID -> {
+                            onCopyIdClicked(item)
                             true
                         }
 
@@ -450,6 +494,10 @@ class LinkListAdapter(
             const val MENU_EDIT = 4
             const val MENU_DELETE = 5
             const val MENU_RESTORE = 6
+            const val MENU_TAGS = 7
+            const val MENU_ASK_SHIORI = 8
+            const val MENU_COPY_LINK = 9
+            const val MENU_COPY_ID = 10
         }
     }
 }

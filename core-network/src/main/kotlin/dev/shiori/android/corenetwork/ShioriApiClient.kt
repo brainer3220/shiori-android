@@ -43,6 +43,11 @@ interface ShioriApiClient {
     suspend fun restoreLink(id: String): ShioriApiResult<LinkMutationResponse>
     suspend fun emptyTrash(): ShioriApiResult<EmptyTrashResponse>
     suspend fun deleteLink(id: String): ShioriApiResult<DeleteLinkResponse>
+    suspend fun getTags(): ShioriApiResult<TagListResponse>
+    suspend fun createTag(request: CreateTagRequest): ShioriApiResult<TagMutationResponse>
+    suspend fun updateTag(id: String, request: UpdateTagRequest): ShioriApiResult<TagMutationResponse>
+    suspend fun deleteTag(id: String): ShioriApiResult<DeleteTagResponse>
+    suspend fun setLinkTags(id: String, request: SetLinkTagsRequest): ShioriApiResult<SetLinkTagsResponse>
 }
 
 class DefaultShioriApiClient internal constructor(
@@ -56,6 +61,9 @@ class DefaultShioriApiClient internal constructor(
             read = query.read?.value,
             sort = query.sort?.value,
             trash = query.trash.takeIf { it },
+            search = query.search?.takeIf { it.isNotBlank() },
+            tag = query.tag?.takeIf { it.isNotBlank() },
+            includeContent = query.includeContent.takeIf { it },
         )
     }
 
@@ -88,6 +96,30 @@ class DefaultShioriApiClient internal constructor(
         fallback = DeleteLinkResponse(message = "Link deleted"),
     ) {
         service.deleteLink(id)
+    }
+
+    override suspend fun getTags(): ShioriApiResult<TagListResponse> = execute {
+        service.getTags()
+    }
+
+    override suspend fun createTag(request: CreateTagRequest): ShioriApiResult<TagMutationResponse> = execute {
+        service.createTag(request)
+    }
+
+    override suspend fun updateTag(id: String, request: UpdateTagRequest): ShioriApiResult<TagMutationResponse> = execute {
+        service.updateTag(id, request)
+    }
+
+    override suspend fun deleteTag(id: String): ShioriApiResult<DeleteTagResponse> = executeWithFallback(
+        fallback = DeleteTagResponse(deleted = true, tagId = id),
+    ) {
+        service.deleteTag(id)
+    }
+
+    override suspend fun setLinkTags(id: String, request: SetLinkTagsRequest): ShioriApiResult<SetLinkTagsResponse> = executeWithFallback(
+        fallback = SetLinkTagsResponse(linkId = id),
+    ) {
+        service.setLinkTags(id, request)
     }
 
     private suspend fun <T : Any> execute(

@@ -10,6 +10,7 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.PUT
 
 internal interface ShioriApiService {
     @GET("api/links")
@@ -19,6 +20,9 @@ internal interface ShioriApiService {
         @Query("read") read: String? = null,
         @Query("sort") sort: String? = null,
         @Query("trash") trash: Boolean? = null,
+        @Query("search") search: String? = null,
+        @Query("tag") tag: String? = null,
+        @Query("include_content") includeContent: Boolean? = null,
     ): Response<LinkListResponse>
 
     @POST("api/links")
@@ -50,4 +54,29 @@ internal interface ShioriApiService {
     suspend fun deleteLink(
         @Path("id") id: String,
     ): Response<DeleteLinkResponse>
+
+    @GET("api/tags")
+    suspend fun getTags(): Response<TagListResponse>
+
+    @POST("api/tags")
+    suspend fun createTag(
+        @Body request: CreateTagRequest,
+    ): Response<TagMutationResponse>
+
+    @PATCH("api/tags/{id}")
+    suspend fun updateTag(
+        @Path("id") id: String,
+        @Body request: UpdateTagRequest,
+    ): Response<TagMutationResponse>
+
+    @DELETE("api/tags/{id}")
+    suspend fun deleteTag(
+        @Path("id") id: String,
+    ): Response<DeleteTagResponse>
+
+    @PUT("api/links/{id}/tags")
+    suspend fun setLinkTags(
+        @Path("id") id: String,
+        @Body request: SetLinkTagsRequest,
+    ): Response<SetLinkTagsResponse>
 }

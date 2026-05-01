@@ -59,7 +59,14 @@ class ShioriApiClientTest {
                       "file_storage_path": null,
                       "file_type": null,
                       "file_mime_type": null,
-                      "notion_page_id": null
+                      "notion_page_id": null,
+                      "tags": [
+                        {
+                          "id": "tag-1",
+                          "name": "ai",
+                          "position": 1
+                        }
+                      ]
                     }
                   ],
                   "total": 142
@@ -87,6 +94,19 @@ class ShioriApiClientTest {
         assertEquals("550e8400-e29b-41d4-a716-446655440000", response.links.single().id)
         assertEquals(null, response.links.single().faviconUrl)
         assertEquals(null, response.links.single().readAt)
+        assertEquals("ai", response.links.single().tags.single().name)
+    }
+
+    @Test
+    fun `getLinks forwards documented tag filter query`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{\"success\":true,\"links\":[],\"total\":0}"))
+
+        val result = client.getLinks(LinksQuery(limit = 10, tag = "tag-1"))
+
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/links?limit=10&tag=tag-1", request.path)
+        assertTrue(result is ShioriApiResult.Success)
     }
 
     @Test
@@ -289,6 +309,59 @@ class ShioriApiClientTest {
         assertTrue(deleteLinkResult is ShioriApiResult.Success)
         assertEquals(12, (emptyTrashResult as ShioriApiResult.Success).value.deleted)
         assertEquals("link-9", (deleteLinkResult as ShioriApiResult.Success).value.linkId)
+    }
+
+    @Test
+    fun `tag endpoints send documented paths and bodies`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """
+                {
+                  "success": true,
+                  "tags": [
+                    { "id": "tag-1", "name": "ai", "position": 1 }
+                  ]
+                }
+                """.trimIndent(),
+            ),
+        )
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{\"success\":true,\"tag\":{\"id\":\"tag-2\",\"name\":\"finance\"}}"))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{\"success\":true,\"tag\":{\"id\":\"tag-2\",\"name\":\"quant\"}}"))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{\"success\":true,\"linkId\":\"link-7\",\"tags\":[{\"id\":\"tag-1\",\"name\":\"ai\"}]}"))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("{\"success\":true,\"deleted\":true,\"tagId\":\"tag-2\"}"))
+
+        val listResult = client.getTags()
+        val createResult = client.createTag(CreateTagRequest(name = "finance"))
+        val updateResult = client.updateTag("tag-2", UpdateTagRequest(name = "quant"))
+        val setTagsResult = client.setLinkTags("link-7", SetLinkTagsRequest(tagIds = listOf("tag-1")))
+        val deleteResult = client.deleteTag("tag-2")
+
+        val listRequest = server.takeRequest()
+        val createRequest = server.takeRequest()
+        val updateRequest = server.takeRequest()
+        val setTagsRequest = server.takeRequest()
+        val deleteRequest = server.takeRequest()
+
+        assertEquals("GET", listRequest.method)
+        assertEquals("/api/tags", listRequest.path)
+        assertEquals("POST", createRequest.method)
+        assertEquals("/api/tags", createRequest.path)
+        assertTrue(createRequest.body.readUtf8().contains("\"name\":\"finance\""))
+        assertEquals("PATCH", updateRequest.method)
+        assertEquals("/api/tags/tag-2", updateRequest.path)
+        assertTrue(updateRequest.body.readUtf8().contains("\"name\":\"quant\""))
+        assertEquals("PUT", setTagsRequest.method)
+        assertEquals("/api/links/link-7/tags", setTagsRequest.path)
+        assertTrue(setTagsRequest.body.readUtf8().contains("\"tagIds\":[\"tag-1\"]"))
+        assertEquals("DELETE", deleteRequest.method)
+        assertEquals("/api/tags/tag-2", deleteRequest.path)
+        assertTrue(listResult is ShioriApiResult.Success)
+        assertEquals("ai", (listResult as ShioriApiResult.Success).value.tags.single().name)
+        assertTrue(createResult is ShioriApiResult.Success)
+        assertTrue(updateResult is ShioriApiResult.Success)
+        assertTrue(setTagsResult is ShioriApiResult.Success)
+        assertEquals("tag-1", (setTagsResult as ShioriApiResult.Success).value.tags.single().id)
+        assertTrue(deleteResult is ShioriApiResult.Success)
     }
 
     @Test

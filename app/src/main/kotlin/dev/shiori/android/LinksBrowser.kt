@@ -15,8 +15,12 @@ import dev.shiori.android.corenetwork.ShioriApiClient
 import dev.shiori.android.corenetwork.ShioriApiResult
 import dev.shiori.android.corenetwork.LinkSortOrder
 import dev.shiori.android.corenetwork.LinksQuery
+import dev.shiori.android.corenetwork.SetLinkTagsRequest
+import dev.shiori.android.corenetwork.SetLinkTagsResponse
 import dev.shiori.android.corenetwork.createShioriApiClient
 import dev.shiori.android.corenetwork.read
+import dev.shiori.android.corenetwork.TagListResponse
+import dev.shiori.android.corenetwork.TagResponse
 import java.net.URI
 import java.util.Locale
 import kotlin.math.ceil
@@ -40,6 +44,12 @@ data class LinkCardModel(
     val readState: String?,
     val createdAt: String?,
     val updatedAt: String?,
+    val tags: List<TagChipModel> = emptyList(),
+)
+
+data class TagChipModel(
+    val id: String,
+    val name: String,
 )
 
 data class LinkListUiState(
@@ -135,7 +145,12 @@ interface LinksRepository {
         destination: LinkBrowseDestination,
         limit: Int,
         offset: Int,
+        tag: String? = null,
     ): ShioriApiResult<LinkListResponse>
+
+    suspend fun loadTags(
+        config: ApiAccessConfig,
+    ): ShioriApiResult<TagListResponse>
 
     suspend fun saveLink(
         config: ApiAccessConfig,
@@ -164,6 +179,12 @@ interface LinksRepository {
         id: String,
     ): ShioriApiResult<DeleteLinkResponse>
 
+    suspend fun setLinkTags(
+        config: ApiAccessConfig,
+        id: String,
+        tagIds: List<String>,
+    ): ShioriApiResult<SetLinkTagsResponse>
+
     suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse>
 }
 
@@ -175,15 +196,19 @@ class DefaultLinksRepository(
         destination: LinkBrowseDestination,
         limit: Int,
         offset: Int,
+        tag: String?,
     ): ShioriApiResult<LinkListResponse> {
         val client = clientFactory.create(config)
-        val query = destination.toLinksQuery(limit = limit, offset = offset)
+        val query = destination.toLinksQuery(limit = limit, offset = offset, tag = tag)
         return if (destination == LinkBrowseDestination.Trash) {
             client.getTrashLinks(query)
         } else {
             client.getLinks(query)
         }
     }
+
+    override suspend fun loadTags(config: ApiAccessConfig): ShioriApiResult<TagListResponse> =
+        clientFactory.create(config).getTags()
 
     override suspend fun saveLink(
         config: ApiAccessConfig,
@@ -218,16 +243,26 @@ class DefaultLinksRepository(
         id: String,
     ): ShioriApiResult<DeleteLinkResponse> = clientFactory.create(config).deleteLink(id)
 
+    override suspend fun setLinkTags(
+        config: ApiAccessConfig,
+        id: String,
+        tagIds: List<String>,
+    ): ShioriApiResult<SetLinkTagsResponse> = clientFactory.create(config).setLinkTags(
+        id = id,
+        request = SetLinkTagsRequest(tagIds = tagIds),
+    )
+
     override suspend fun emptyTrash(config: ApiAccessConfig): ShioriApiResult<EmptyTrashResponse> =
         clientFactory.create(config).emptyTrash()
 }
 
-internal fun LinkBrowseDestination.toLinksQuery(limit: Int, offset: Int): LinksQuery = when (this) {
+internal fun LinkBrowseDestination.toLinksQuery(limit: Int, offset: Int, tag: String? = null): LinksQuery = when (this) {
     LinkBrowseDestination.Inbox -> LinksQuery(
         limit = limit,
         offset = offset,
         read = LinkReadFilter.Unread,
         sort = LinkSortOrder.Newest,
+        tag = tag,
     )
 
     LinkBrowseDestination.Archive -> LinksQuery(
@@ -235,12 +270,14 @@ internal fun LinkBrowseDestination.toLinksQuery(limit: Int, offset: Int): LinksQ
         offset = offset,
         read = LinkReadFilter.Read,
         sort = LinkSortOrder.Newest,
+        tag = tag,
     )
 
     LinkBrowseDestination.Trash -> LinksQuery(
         limit = limit,
         offset = offset,
         trash = true,
+        tag = tag,
     )
 }
 
@@ -276,6 +313,12 @@ internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
     readState = if (read) "Read" else "Unread",
     createdAt = createdAt.toTimestampLabel("Saved"),
     updatedAt = updatedAt.toTimestampLabel("Updated"),
+    tags = tags.map { it.toChipModel() },
+)
+
+internal fun TagResponse.toChipModel(): TagChipModel = TagChipModel(
+    id = id,
+    name = name,
 )
 
 internal fun String?.toLoadableFaviconUrl(): String? {

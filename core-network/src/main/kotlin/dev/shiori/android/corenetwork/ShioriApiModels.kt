@@ -8,6 +8,9 @@ data class LinksQuery(
     val read: LinkReadFilter? = null,
     val sort: LinkSortOrder? = null,
     val trash: Boolean = false,
+    val search: String? = null,
+    val tag: String? = null,
+    val includeContent: Boolean = false,
 )
 
 enum class LinkReadFilter(val value: String) {
@@ -38,6 +41,18 @@ data class UpdateLinkRequest(
     val clearSummary: Boolean = false,
     val read: Boolean? = null,
     val restore: Boolean? = null,
+)
+
+data class CreateTagRequest(
+    val name: String,
+)
+
+data class UpdateTagRequest(
+    val name: String,
+)
+
+data class SetLinkTagsRequest(
+    val tagIds: List<String>,
 )
 
 data class LinkListResponse(
@@ -76,6 +91,45 @@ data class EmptyTrashResponse(
     val message: String? = null,
 )
 
+data class TagListResponse(
+    val success: Boolean = true,
+    val tags: List<TagResponse> = emptyList(),
+)
+
+data class TagMutationResponse(
+    val success: Boolean = true,
+    val tag: TagResponse? = null,
+    @Json(name = "tagId")
+    val tagId: String? = null,
+    val message: String? = null,
+)
+
+data class DeleteTagResponse(
+    val success: Boolean = true,
+    val deleted: Boolean = false,
+    @Json(name = "tagId")
+    val tagId: String? = null,
+    val message: String? = null,
+)
+
+data class SetLinkTagsResponse(
+    val success: Boolean = true,
+    @Json(name = "linkId")
+    val linkId: String? = null,
+    val tags: List<TagResponse> = emptyList(),
+    val message: String? = null,
+)
+
+data class TagResponse(
+    val id: String,
+    val name: String,
+    val position: Int? = null,
+    @Json(name = "created_at")
+    val createdAt: String? = null,
+    @Json(name = "updated_at")
+    val updatedAt: String? = null,
+)
+
 data class LinkResponse(
     val id: String,
     val url: String,
@@ -104,6 +158,7 @@ data class LinkResponse(
     val fileMimeType: String? = null,
     @Json(name = "notion_page_id")
     val notionPageId: String? = null,
+    val tags: List<TagResponse> = emptyList(),
 )
 
 val LinkResponse.read: Boolean
