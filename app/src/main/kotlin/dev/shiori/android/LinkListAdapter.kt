@@ -107,11 +107,11 @@ class LinkListAdapter(
             titleText.text = item.title
             val displayDomain = item.domain.removePrefix("www.")
             domainText.text = displayDomain
-            domainText.visibility = if (displayDomain.isBlank()) View.GONE else View.VISIBLE
+            domainText.visibility = View.GONE
 
             val summary = item.summary?.takeIf { it.isNotBlank() }
             summaryText.text = summary
-            summaryText.visibility = if (summary.isNullOrBlank()) View.GONE else View.VISIBLE
+            summaryText.visibility = View.GONE
 
             val statusLine = buildStatusLine(item, destination)
             statusText.text = statusLine
@@ -125,7 +125,7 @@ class LinkListAdapter(
                     },
                 ),
             )
-            statusText.visibility = if (statusLine.isBlank()) View.GONE else View.VISIBLE
+            statusText.visibility = View.GONE
 
             val timestampLine = item.updatedAt ?: item.createdAt
             timestampsText.text = timestampLine

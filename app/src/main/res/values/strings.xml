@@ -36,7 +36,7 @@
     <string name="title_move_to_trash">Move link to trash?</string>
     <string name="title_empty_trash">Empty trash permanently?</string>
     <string name="title_discard_access_changes">Discard API key changes?</string>
-    <string name="hint_link_url">Paste a link to save</string>
+    <string name="hint_link_url">Save a link...</string>
     <string name="hint_edit_link_title">Edit title</string>
     <string name="hint_edit_link_summary">Edit summary</string>
     <string name="label_select_link">Select</string>

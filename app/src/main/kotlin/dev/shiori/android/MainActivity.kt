@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var browserScreen: View
     private lateinit var browserScrollView: NestedScrollView
     private lateinit var browserContentContainer: ViewGroup
+    private lateinit var browserTitleText: TextView
     private lateinit var accessTitleText: TextView
     private lateinit var accessSubtitleText: TextView
     private lateinit var apiKeyLayout: TextInputLayout
@@ -74,8 +75,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var addLinkUrlInput: TextInputEditText
     private lateinit var addLinkStatusText: TextView
     private lateinit var addLinkButton: ImageButton
+    private lateinit var linkQueryCard: View
     private lateinit var linkQueryInput: TextInputEditText
     private lateinit var linkQueryButton: ImageButton
+    private lateinit var searchNavButton: ImageButton
     private lateinit var linksList: RecyclerView
     private lateinit var loadMoreButton: MaterialButton
     private lateinit var trashRetentionText: TextView
@@ -106,6 +109,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingBrowserStatusMessage: String? = null
     private var lastHandledIntentKey: String? = null
     private var lastHandledSharedUrl: String? = null
+    private var isSearchVisible = false
     private var lastRenderedScreen: Screen? = null
     private var lastBrowserChromeState: BrowserChromeState? = null
     private val selectedLinkIds = linkedSetOf<String>()
@@ -139,6 +143,7 @@ class MainActivity : AppCompatActivity() {
         lastHandledIntentKey = savedInstanceState?.getString(KEY_LAST_HANDLED_INTENT)
         lastHandledSharedUrl = savedInstanceState?.getString(KEY_LAST_HANDLED_SHARED_URL)
         linkQueryInput.setText(savedInstanceState?.getString(KEY_LINK_QUERY).orEmpty())
+        isSearchVisible = savedInstanceState?.getBoolean(KEY_SEARCH_VISIBLE) ?: currentQuery().isNotBlank()
 
         loadStoredConfig(restoredScreen != null)
         handleIncomingIntent(intent)
@@ -164,6 +169,7 @@ class MainActivity : AppCompatActivity() {
         outState.putString(KEY_LAST_HANDLED_INTENT, lastHandledIntentKey)
         outState.putString(KEY_LAST_HANDLED_SHARED_URL, lastHandledSharedUrl)
         outState.putString(KEY_LINK_QUERY, currentQuery())
+        outState.putBoolean(KEY_SEARCH_VISIBLE, isSearchVisible)
     }
 
     private fun bindViews() {
@@ -172,6 +178,7 @@ class MainActivity : AppCompatActivity() {
         browserScreen = findViewById(R.id.browser_screen)
         browserScrollView = findViewById(R.id.browser_scroll_view)
         browserContentContainer = findViewById(R.id.browser_content_container)
+        browserTitleText = findViewById(R.id.browser_title_text)
         accessTitleText = findViewById(R.id.title_text)
         accessSubtitleText = findViewById(R.id.subtitle_text)
         apiKeyLayout = findViewById(R.id.api_key_layout)
@@ -193,8 +200,10 @@ class MainActivity : AppCompatActivity() {
         addLinkUrlInput = findViewById(R.id.add_link_url_input)
         addLinkStatusText = findViewById(R.id.add_link_status_text)
         addLinkButton = findViewById(R.id.add_link_button)
+        linkQueryCard = findViewById(R.id.link_query_card)
         linkQueryInput = findViewById(R.id.link_query_input)
         linkQueryButton = findViewById(R.id.link_query_button)
+        searchNavButton = findViewById(R.id.search_nav_button)
         linksList = findViewById(R.id.links_list)
         loadMoreButton = findViewById(R.id.load_more_button)
         trashRetentionText = findViewById(R.id.trash_retention_text)
@@ -222,6 +231,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
         linkQueryInput.doAfterTextChanged {
+            if (!it.isNullOrBlank()) {
+                isSearchVisible = true
+            }
             if (selectedLinkIds.isNotEmpty()) {
                 clearSelectedLinks(renderAfterClear = false)
             }
@@ -286,11 +298,24 @@ class MainActivity : AppCompatActivity() {
 
         linkQueryButton.setOnClickListener {
             if (linkQueryInput.text.isNullOrBlank()) {
-                focusInput(linkQueryInput)
+                isSearchVisible = false
+                hideKeyboard(linkQueryInput)
+                renderBrowserState()
             } else {
                 linkQueryInput.setText("")
                 focusInput(linkQueryInput)
             }
+        }
+
+        searchNavButton.setOnClickListener {
+            if (isSearchVisible && currentQuery().isBlank()) {
+                isSearchVisible = false
+                hideKeyboard(linkQueryInput)
+            } else {
+                isSearchVisible = true
+                focusInput(linkQueryInput)
+            }
+            renderBrowserState()
         }
 
         markSelectedReadButton.setOnClickListener {
@@ -427,6 +452,13 @@ class MainActivity : AppCompatActivity() {
         else -> getString(R.string.filter_trash)
     }
 
+    private fun currentBrowserTitle(query: String): String = when {
+        query.isNotBlank() -> getString(R.string.title_search_results)
+        currentDestination == LinkBrowseDestination.Archive -> getString(R.string.filter_archive)
+        currentDestination == LinkBrowseDestination.Trash -> getString(R.string.filter_trash)
+        else -> getString(R.string.filter_inbox)
+    }
+
     private fun updateFilterButtonStyles() {
         when (currentDestination) {
             LinkBrowseDestination.Inbox -> filtersGroup.check(R.id.filter_inbox_button)
@@ -450,11 +482,17 @@ class MainActivity : AppCompatActivity() {
         )
         button.backgroundTintList = ColorStateList.valueOf(backgroundColor)
         button.setTextColor(textColor)
+        button.iconTint = ColorStateList.valueOf(textColor)
     }
 
     private fun updateSearchButtonState(query: String) {
+        val searchColor = ContextCompat.getColor(
+            this,
+            if (isSearchVisible || query.isNotBlank()) R.color.shiori_text_primary else R.color.shiori_text_secondary,
+        )
+        searchNavButton.imageTintList = ColorStateList.valueOf(searchColor)
         if (query.isBlank()) {
-            linkQueryButton.setImageResource(android.R.drawable.ic_menu_search)
+            linkQueryButton.setImageResource(R.drawable.ic_nav_search)
             linkQueryButton.contentDescription = getString(R.string.label_search_links)
         } else {
             linkQueryButton.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
@@ -1335,7 +1373,7 @@ class MainActivity : AppCompatActivity() {
 
         pruneSelectedLinks(visibleItems)
         val hasSelection = selectedLinkIds.isNotEmpty()
-        val showSelectionStatus = !isTrashDestination && (hasSelection || visibleItems.isNotEmpty())
+        val showSelectionStatus = !isTrashDestination && hasSelection
         maybeAnimateBrowserContent(
             BrowserChromeState(
                 destination = currentDestination,
@@ -1350,6 +1388,8 @@ class MainActivity : AppCompatActivity() {
         val linkActionsAvailable = isLinkActionAvailable()
 
         addLinkSection.visibility = if (isTrashDestination) View.GONE else View.VISIBLE
+        linkQueryCard.visibility = if (isSearchVisible || query.isNotBlank()) View.VISIBLE else View.GONE
+        browserTitleText.text = currentBrowserTitle(query)
         sectionHeaderText.text = currentSectionTitle(query)
 
         linkSelectionStatusText.visibility = if (showSelectionStatus) View.VISIBLE else View.GONE
@@ -1402,6 +1442,16 @@ class MainActivity : AppCompatActivity() {
             state.items.isEmpty() -> getString(R.string.message_links_empty)
             state.total != null -> getString(R.string.message_links_count_with_total, state.items.size, state.total)
             else -> getString(R.string.message_links_count, state.items.size)
+        }
+        browserStateText.visibility = if (
+            state.isInitialLoading ||
+            query.isNotBlank() ||
+            state.items.isEmpty() ||
+            state.message != null
+        ) {
+            View.VISIBLE
+        } else {
+            View.GONE
         }
 
         val showLoadMore = when {
@@ -1464,6 +1514,7 @@ class MainActivity : AppCompatActivity() {
         const val KEY_LAST_HANDLED_INTENT = "last_handled_intent"
         const val KEY_LAST_HANDLED_SHARED_URL = "last_handled_shared_url"
         const val KEY_LINK_QUERY = "link_query"
+        const val KEY_SEARCH_VISIBLE = "search_visible"
         const val MENU_EDIT_ACCESS = 1
     }
 }

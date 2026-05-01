@@ -66,7 +66,7 @@ class MainActivityTest {
             scenario.recreate()
 
             onView(withId(R.id.browser_screen)).check(matches(isDisplayed()))
-            onView(withId(R.id.add_link_url_input)).check(matches(withHint("Paste a link to save")))
+            onView(withId(R.id.add_link_url_input)).check(matches(withHint("Save a link...")))
             clickButton(scenario, R.id.edit_access_button)
             onView(withText(R.string.action_edit_access)).perform(click())
             onView(withId(R.id.api_key_input)).check(matches(withText("test-api-key")))
