@@ -35,6 +35,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -407,7 +408,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmDiscardAccessChanges() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.title_discard_access_changes)
             .setMessage(R.string.message_confirm_discard_access_changes)
             .setNegativeButton(android.R.string.cancel, null)
@@ -954,7 +955,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.title_move_to_trash)
             .setMessage(getString(R.string.message_confirm_move_to_trash, item.title))
             .setNegativeButton(android.R.string.cancel, null)
@@ -1047,7 +1048,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.title_empty_trash)
             .setMessage(R.string.message_confirm_empty_trash)
             .setNegativeButton(android.R.string.cancel, null)
@@ -1114,7 +1115,7 @@ class MainActivity : AppCompatActivity() {
 
         val tags = tagState.tags
         if (tags.isEmpty()) {
-            AlertDialog.Builder(this)
+            MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.title_edit_tags)
                 .setMessage(R.string.message_tags_empty)
                 .setPositiveButton(android.R.string.ok, null)
@@ -1127,7 +1128,7 @@ class MainActivity : AppCompatActivity() {
         val labels = tags.map { getString(R.string.label_tag_item, it.name) }.toTypedArray()
         val checked = BooleanArray(tags.size) { index -> selectedIds.contains(tags[index].id) }
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.title_edit_tags_for_link, item.title))
             .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
                 val tagId = tags[which].id
@@ -1190,7 +1191,7 @@ class MainActivity : AppCompatActivity() {
             summaryInput.isEnabled = !isChecked
         }
 
-        val dialog = AlertDialog.Builder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.title_edit_link)
             .setView(dialogView)
             .setNegativeButton(android.R.string.cancel, null)

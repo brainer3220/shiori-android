@@ -35,7 +35,7 @@
             android:minLines="3" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <CheckBox
+    <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/edit_link_clear_summary_checkbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
