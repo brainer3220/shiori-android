@@ -115,6 +115,38 @@ class MainActivityTest {
     }
 
     @Test
+    fun backCallbackIsEnabledOnlyWhenAccessScreenCanReturnToBrowser() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            onView(withId(R.id.access_screen)).check(matches(isDisplayed()))
+            assertBackCallbacksEnabled(scenario, false)
+        }
+
+        store.saveConfig(ApiAccessConfig(apiKey = "test-api-key"))
+        linksRepository.enqueue(
+            LinkBrowseDestination.Inbox,
+            0,
+            page(limit = 20, offset = 0, total = 0, links = emptyList()),
+        )
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText(scenario, R.id.browser_state_text, "No links match this filter yet.")
+            assertBackCallbacksEnabled(scenario, false)
+
+            clickButton(scenario, R.id.edit_access_button)
+            onView(withText(R.string.action_settings)).perform(click())
+            onView(withId(R.id.access_screen)).check(matches(isDisplayed()))
+            assertBackCallbacksEnabled(scenario, true)
+
+            scenario.onActivity { activity ->
+                activity.onBackPressedDispatcher.onBackPressed()
+            }
+
+            onView(withId(R.id.browser_screen)).check(matches(isDisplayed()))
+            assertBackCallbacksEnabled(scenario, false)
+        }
+    }
+
+    @Test
     fun browseFiltersAndPaginationWithoutDuplicates() {
         store.saveConfig(ApiAccessConfig("https://shiori.example.com", "test-api-key"))
         linksRepository.enqueue(
@@ -1234,6 +1266,15 @@ class MainActivityTest {
     ) {
         scenario.onActivity { activity ->
             activity.findViewById<android.view.View>(viewId).performClick()
+        }
+    }
+
+    private fun assertBackCallbacksEnabled(
+        scenario: ActivityScenario<MainActivity>,
+        expectedEnabled: Boolean,
+    ) {
+        scenario.onActivity { activity ->
+            assertEquals(expectedEnabled, activity.onBackPressedDispatcher.hasEnabledCallbacks())
         }
     }
 

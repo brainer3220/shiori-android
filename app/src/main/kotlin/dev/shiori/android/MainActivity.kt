@@ -92,6 +92,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var markSelectedReadButton: MaterialButton
     private lateinit var markSelectedUnreadButton: MaterialButton
     private lateinit var clearSelectionButton: MaterialButton
+    private lateinit var backNavigationCallback: OnBackPressedCallback
 
     private val linksAdapter = LinkListAdapter(
         onOpenClicked = ::openLink,
@@ -380,18 +381,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun registerBackNavigation() {
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+        backNavigationCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
-                if (currentScreen == Screen.Access && isSavedConfigValid()) {
-                    continueToBrowserFromAccess()
-                    return
-                }
-
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
-                isEnabled = true
+                continueToBrowserFromAccess()
             }
-        })
+        }
+        onBackPressedDispatcher.addCallback(this, backNavigationCallback)
+    }
+
+    private fun updateBackNavigationCallback(visibleScreen: Screen, canContinueToLinks: Boolean) {
+        if (::backNavigationCallback.isInitialized) {
+            backNavigationCallback.isEnabled = visibleScreen == Screen.Access && canContinueToLinks
+        }
     }
 
     private fun continueToBrowserFromAccess() {
@@ -1602,6 +1603,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             Screen.Access
         }
+        updateBackNavigationCallback(visibleScreen, canContinueToLinks)
 
         apiKeyLayout.error = when {
             draft.apiKey.isBlank() || isDraftApiKeyValid -> null
