@@ -31,7 +31,7 @@ Shiori Android is an unofficial native Android client for Shiori. It lets you sa
 ### Requirements
 
 - Android Studio or command-line Gradle
-- JDK 11
+- JDK 17
 - Android SDK and platform-tools (`ANDROID_HOME` or `ANDROID_SDK_ROOT`, or the default macOS SDK path)
 - A valid Shiori API key from your Shiori settings
 - Android 7.0+ device/emulator for running the app (`minSdk 24`)

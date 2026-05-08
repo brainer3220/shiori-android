@@ -64,7 +64,7 @@ data class LinkListResponse(
 
 data class CreateLinkResponse(
     val success: Boolean = true,
-    @Json(name = "linkId")
+    @param:Json(name = "linkId")
     val linkId: String,
     val duplicate: Boolean = false,
 )
@@ -76,12 +76,12 @@ data class BulkReadStateResponse(
 data class LinkMutationResponse(
     val success: Boolean = true,
     val message: String? = null,
-    @Json(name = "linkId")
+    @param:Json(name = "linkId")
     val linkId: String,
 )
 
 data class DeleteLinkResponse(
-    @Json(name = "linkId")
+    @param:Json(name = "linkId")
     val linkId: String? = null,
     val message: String? = null,
 )
@@ -99,7 +99,7 @@ data class TagListResponse(
 data class TagMutationResponse(
     val success: Boolean = true,
     val tag: TagResponse? = null,
-    @Json(name = "tagId")
+    @param:Json(name = "tagId")
     val tagId: String? = null,
     val message: String? = null,
 )
@@ -107,14 +107,14 @@ data class TagMutationResponse(
 data class DeleteTagResponse(
     val success: Boolean = true,
     val deleted: Boolean = false,
-    @Json(name = "tagId")
+    @param:Json(name = "tagId")
     val tagId: String? = null,
     val message: String? = null,
 )
 
 data class SetLinkTagsResponse(
     val success: Boolean = true,
-    @Json(name = "linkId")
+    @param:Json(name = "linkId")
     val linkId: String? = null,
     val tags: List<TagResponse> = emptyList(),
     val message: String? = null,
@@ -124,9 +124,9 @@ data class TagResponse(
     val id: String,
     val name: String,
     val position: Int? = null,
-    @Json(name = "created_at")
+    @param:Json(name = "created_at")
     val createdAt: String? = null,
-    @Json(name = "updated_at")
+    @param:Json(name = "updated_at")
     val updatedAt: String? = null,
 )
 
@@ -137,26 +137,26 @@ data class LinkResponse(
     val summary: String? = null,
     val domain: String? = null,
     val status: String? = null,
-    @Json(name = "favicon_url")
+    @param:Json(name = "favicon_url")
     val faviconUrl: String? = null,
-    @Json(name = "image_url")
+    @param:Json(name = "image_url")
     val imageUrl: String? = null,
     val source: String? = null,
-    @Json(name = "created_at")
+    @param:Json(name = "created_at")
     val createdAt: String? = null,
-    @Json(name = "updated_at")
+    @param:Json(name = "updated_at")
     val updatedAt: String? = null,
-    @Json(name = "read_at")
+    @param:Json(name = "read_at")
     val readAt: String? = null,
-    @Json(name = "hn_url")
+    @param:Json(name = "hn_url")
     val hnUrl: String? = null,
-    @Json(name = "file_storage_path")
+    @param:Json(name = "file_storage_path")
     val fileStoragePath: String? = null,
-    @Json(name = "file_type")
+    @param:Json(name = "file_type")
     val fileType: String? = null,
-    @Json(name = "file_mime_type")
+    @param:Json(name = "file_mime_type")
     val fileMimeType: String? = null,
-    @Json(name = "notion_page_id")
+    @param:Json(name = "notion_page_id")
     val notionPageId: String? = null,
     val tags: List<TagResponse> = emptyList(),
 )

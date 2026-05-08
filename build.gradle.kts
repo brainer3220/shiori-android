@@ -1,11 +1,9 @@
 import org.gradle.api.GradleException
-import java.io.ByteArrayOutputStream
 import java.io.File
 
 plugins {
-    id("com.android.application") version "7.4.2" apply false
-    id("com.android.library") version "7.4.2" apply false
-    kotlin("android") version "1.8.22" apply false
+    id("com.android.application") version "9.2.0" apply false
+    id("com.android.library") version "9.2.0" apply false
 }
 
 fun adbExecutable(): String {
@@ -17,15 +15,12 @@ fun adbExecutable(): String {
 }
 
 fun org.gradle.api.Project.runCommand(command: List<String>): Pair<Int, String> {
-    val output = ByteArrayOutputStream()
-    val result = exec {
-        workingDir = rootDir
-        commandLine(command)
-        standardOutput = output
-        errorOutput = output
-        isIgnoreExitValue = true
-    }
-    return result.exitValue to output.toString().trim()
+    val process = ProcessBuilder(command)
+        .directory(rootDir)
+        .redirectErrorStream(true)
+        .start()
+    val output = process.inputStream.bufferedReader().use { it.readText() }
+    return process.waitFor() to output.trim()
 }
 
 val verifyPhoneConnectedDevice = tasks.register("verifyPhoneConnectedDevice") {
