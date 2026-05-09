@@ -8,10 +8,15 @@
         <item name="colorSurface">@color/shiori_canvas</item>
         <item name="colorSurfaceVariant">@color/shiori_surface</item>
         <item name="colorOnSurface">@color/shiori_text_primary</item>
+        <item name="dynamicColorThemeOverlay">@style/ThemeOverlay.ShioriAndroid.DynamicColors</item>
         <item name="android:windowBackground">@color/shiori_canvas</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@color/shiori_canvas</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <style
+        name="ThemeOverlay.ShioriAndroid.DynamicColors"
+        parent="ThemeOverlay.Material3.DynamicColors.DayNight" />
 
 </resources>

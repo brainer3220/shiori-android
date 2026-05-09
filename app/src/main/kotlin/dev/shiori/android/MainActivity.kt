@@ -3,6 +3,7 @@ package dev.shiori.android
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
@@ -15,16 +16,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.PopupMenu
 import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.widget.PopupMenu
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import androidx.activity.ComponentActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.NestedScrollView
@@ -47,7 +46,7 @@ import dev.shiori.android.corenetwork.UpdateLinkRequest
 import dev.shiori.android.corenetwork.read
 import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
     private lateinit var store: ApiAccessStore
     private lateinit var linksRepository: LinksRepository
 
@@ -236,9 +235,9 @@ class MainActivity : AppCompatActivity() {
         markSelectedUnreadButton = findViewById(R.id.mark_selected_unread_button)
         clearSelectionButton = findViewById(R.id.clear_selection_button)
 
-        ViewCompat.setAccessibilityLiveRegion(browserStateText, ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE)
-        ViewCompat.setAccessibilityLiveRegion(addLinkStatusText, ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE)
-        ViewCompat.setAccessibilityLiveRegion(linkSelectionStatusText, ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE)
+        browserStateText.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        addLinkStatusText.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        linkSelectionStatusText.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
     }
 
     private fun bindEvents() {
@@ -605,12 +604,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun styleFilterButton(button: MaterialButton, selected: Boolean) {
-        val backgroundColor = ContextCompat.getColor(
-            this,
+        val backgroundColor = getColor(
             if (selected) R.color.shiori_surface_selected else android.R.color.transparent,
         )
-        val textColor = ContextCompat.getColor(
-            this,
+        val textColor = getColor(
             if (selected) R.color.shiori_text_primary else R.color.shiori_text_secondary,
         )
         button.backgroundTintList = ColorStateList.valueOf(backgroundColor)
@@ -619,8 +616,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateSearchButtonState(query: String) {
-        val searchColor = ContextCompat.getColor(
-            this,
+        val searchColor = getColor(
             if (isSearchVisible || query.isNotBlank()) R.color.shiori_text_primary else R.color.shiori_text_secondary,
         )
         searchNavButton.imageTintList = ColorStateList.valueOf(searchColor)
@@ -634,8 +630,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateMenuButtonState() {
-        val menuColor = ContextCompat.getColor(
-            this,
+        val menuColor = getColor(
             if (selectedTag != null) R.color.shiori_text_primary else R.color.shiori_text_secondary,
         )
         editAccessButton.setTextColor(menuColor)
@@ -643,18 +638,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun styleContinueButton(primary: Boolean) {
-        val backgroundColor = ContextCompat.getColor(
-            this,
+        val backgroundColor = getColor(
             if (primary) R.color.shiori_accent_dark else R.color.shiori_white,
         )
-        val textColor = ContextCompat.getColor(
-            this,
+        val textColor = getColor(
             if (primary) R.color.shiori_white else R.color.shiori_text_primary,
         )
         continueButton.backgroundTintList = ColorStateList.valueOf(backgroundColor)
         continueButton.setTextColor(textColor)
         continueButton.strokeWidth = if (primary) 0 else resources.displayMetrics.density.toInt().coerceAtLeast(1)
-        continueButton.strokeColor = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.shiori_line))
+        continueButton.strokeColor = ColorStateList.valueOf(getColor(R.color.shiori_line))
     }
 
     private fun maybeAnimateBrowserContent(state: BrowserChromeState) {
@@ -672,20 +665,15 @@ class MainActivity : AppCompatActivity() {
         actionLabelRes: Int? = null,
         action: (() -> Unit)? = null,
     ) {
-        announceFeedback(message)
         val snackbar = Snackbar.make(rootContainer, message, Snackbar.LENGTH_LONG)
         snackbar.animationMode = Snackbar.ANIMATION_MODE_FADE
-        snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.shiori_text_primary))
-        snackbar.setTextColor(ContextCompat.getColor(this, R.color.shiori_white))
-        snackbar.setActionTextColor(ContextCompat.getColor(this, R.color.shiori_surface_selected))
+        snackbar.setBackgroundTint(getColor(R.color.shiori_text_primary))
+        snackbar.setTextColor(getColor(R.color.shiori_white))
+        snackbar.setActionTextColor(getColor(R.color.shiori_surface_selected))
         if (actionLabelRes != null && action != null) {
             snackbar.setAction(actionLabelRes) { action() }
         }
         snackbar.show()
-    }
-
-    private fun announceFeedback(message: String) {
-        rootContainer.post { rootContainer.announceForAccessibility(message) }
     }
 
     private fun openLink(item: LinkCardModel) {
@@ -1200,7 +1188,7 @@ class MainActivity : AppCompatActivity() {
             .create()
 
         dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val requestedTitle = normalizeLinkTitle(titleInput.text?.toString().orEmpty()).takeIf { value ->
                     value.isNotEmpty()
                 }

@@ -7,9 +7,8 @@ import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
-import androidx.appcompat.widget.PopupMenu
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.google.android.material.button.MaterialButton
@@ -128,8 +127,7 @@ class LinkListAdapter(
             val statusLine = buildStatusLine(item, destination)
             statusText.text = statusLine
             statusText.setTextColor(
-                ContextCompat.getColor(
-                    itemView.context,
+                itemView.context.getColor(
                     when {
                         destination == LinkBrowseDestination.Trash -> R.color.shiori_text_muted
                         item.read == true -> R.color.shiori_text_muted
@@ -230,13 +228,13 @@ class LinkListAdapter(
 
         private fun bindSelectionState(selected: Boolean) {
             val backgroundColor = if (selected) {
-                ContextCompat.getColor(itemView.context, R.color.shiori_selection)
+                itemView.context.getColor(R.color.shiori_selection)
             } else {
                 Color.TRANSPARENT
             }
             cardView.setCardBackgroundColor(backgroundColor)
             cardView.strokeWidth = if (selected) itemView.dp(1) else 0
-            cardView.strokeColor = ContextCompat.getColor(itemView.context, R.color.shiori_line)
+            cardView.strokeColor = itemView.context.getColor(R.color.shiori_line)
         }
 
         private fun bindIcon(item: LinkCardModel) {
@@ -264,9 +262,9 @@ class LinkListAdapter(
         }
 
         private fun bindLoadedFavicon() {
-            iconContainer.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.shiori_white))
+            iconContainer.setCardBackgroundColor(itemView.context.getColor(R.color.shiori_white))
             iconContainer.strokeWidth = itemView.dp(1)
-            iconContainer.strokeColor = ContextCompat.getColor(itemView.context, R.color.shiori_line)
+            iconContainer.strokeColor = itemView.context.getColor(R.color.shiori_line)
             iconText.visibility = View.GONE
             faviconImage.visibility = View.VISIBLE
         }
@@ -279,7 +277,7 @@ class LinkListAdapter(
             iconContainer.setCardBackgroundColor(iconStyle.backgroundColor)
             iconContainer.strokeWidth = if (iconStyle.strokeColor != null) itemView.dp(1) else 0
             iconContainer.strokeColor = iconStyle.strokeColor
-                ?: ContextCompat.getColor(itemView.context, android.R.color.transparent)
+                ?: itemView.context.getColor(android.R.color.transparent)
         }
 
         private fun bindAccessibility(
@@ -429,27 +427,27 @@ class LinkListAdapter(
             return when {
                 domainValue.contains("youtube") || url.contains("youtu", ignoreCase = true) -> IconStyle(
                     label = "YT",
-                    backgroundColor = ContextCompat.getColor(context, R.color.shiori_youtube),
-                    textColor = ContextCompat.getColor(context, R.color.shiori_white),
+                    backgroundColor = context.getColor(R.color.shiori_youtube),
+                    textColor = context.getColor(R.color.shiori_white),
                 )
 
                 domainValue.contains("openai") || title.contains("chatgpt", ignoreCase = true) -> IconStyle(
                     label = "AI",
-                    backgroundColor = ContextCompat.getColor(context, R.color.shiori_openai),
-                    textColor = ContextCompat.getColor(context, R.color.shiori_white),
+                    backgroundColor = context.getColor(R.color.shiori_openai),
+                    textColor = context.getColor(R.color.shiori_white),
                 )
 
                 domainValue.contains("arxiv") -> IconStyle(
                     label = "A",
-                    backgroundColor = ContextCompat.getColor(context, R.color.shiori_arxiv),
+                    backgroundColor = context.getColor(R.color.shiori_arxiv),
                     textColor = Color.parseColor("#BA1731"),
-                    strokeColor = ContextCompat.getColor(context, R.color.shiori_line),
+                    strokeColor = context.getColor(R.color.shiori_line),
                 )
 
                 status?.equals("Trashed", ignoreCase = true) == true -> IconStyle(
                     label = ">",
-                    backgroundColor = ContextCompat.getColor(context, R.color.shiori_gray_icon),
-                    textColor = ContextCompat.getColor(context, R.color.shiori_white),
+                    backgroundColor = context.getColor(R.color.shiori_gray_icon),
+                    textColor = context.getColor(R.color.shiori_white),
                 )
 
                 else -> {
@@ -465,7 +463,7 @@ class LinkListAdapter(
                     IconStyle(
                         label = buildMonogram(title, domainValue),
                         backgroundColor = backgroundColor,
-                        textColor = ContextCompat.getColor(context, R.color.shiori_white),
+                        textColor = context.getColor(R.color.shiori_white),
                     )
                 }
             }
