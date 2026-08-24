@@ -2,8 +2,8 @@ import org.gradle.api.GradleException
 import java.io.File
 
 plugins {
-    id("com.android.application") version "9.2.0" apply false
-    id("com.android.library") version "9.2.0" apply false
+    id("com.android.application") version "9.3.0" apply false
+    id("com.android.library") version "9.3.0" apply false
 }
 
 fun adbExecutable(): String {
