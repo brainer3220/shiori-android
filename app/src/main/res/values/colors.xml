@@ -6,6 +6,7 @@
     <color name="shiori_surface_selected">#FFFDF9</color>
     <color name="shiori_selection">#EDE1D5</color>
     <color name="shiori_line">#DBCEC0</color>
+    <color name="shiori_card">#FFFCF8</color>
     <color name="shiori_white">#FFFCF8</color>
     <color name="shiori_text_primary">#231A15</color>
     <color name="shiori_text_secondary">#75675B</color>

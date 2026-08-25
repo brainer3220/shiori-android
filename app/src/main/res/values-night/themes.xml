@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ShioriAndroid" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.ShioriAndroid" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/shiori_accent</item>
         <item name="colorOnPrimary">@color/shiori_white</item>
         <item name="colorSecondary">@color/shiori_accent_dark</item>
@@ -12,11 +12,7 @@
         <item name="android:windowBackground">@color/shiori_canvas</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@color/shiori_canvas</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
-
-    <style
-        name="ThemeOverlay.ShioriAndroid.DynamicColors"
-        parent="ThemeOverlay.Material3.DynamicColors.DayNight" />
 
 </resources>

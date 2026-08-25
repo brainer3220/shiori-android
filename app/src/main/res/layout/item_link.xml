@@ -28,7 +28,7 @@
             android:id="@+id/link_icon_container"
             android:layout_width="42dp"
             android:layout_height="42dp"
-            app:cardBackgroundColor="@color/shiori_surface"
+            app:cardBackgroundColor="@color/shiori_card"
             app:cardCornerRadius="21dp"
             app:cardElevation="0dp"
             app:strokeColor="@color/shiori_line"

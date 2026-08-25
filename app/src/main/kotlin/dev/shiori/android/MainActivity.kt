@@ -639,7 +639,7 @@ class MainActivity : ComponentActivity() {
 
     private fun styleContinueButton(primary: Boolean) {
         val backgroundColor = getColor(
-            if (primary) R.color.shiori_accent_dark else R.color.shiori_white,
+            if (primary) R.color.shiori_accent_dark else R.color.shiori_card,
         )
         val textColor = getColor(
             if (primary) R.color.shiori_white else R.color.shiori_text_primary,
@@ -669,7 +669,7 @@ class MainActivity : ComponentActivity() {
         snackbar.animationMode = Snackbar.ANIMATION_MODE_FADE
         snackbar.setBackgroundTint(getColor(R.color.shiori_text_primary))
         snackbar.setTextColor(getColor(R.color.shiori_white))
-        snackbar.setActionTextColor(getColor(R.color.shiori_surface_selected))
+        snackbar.setActionTextColor(getColor(R.color.shiori_accent))
         if (actionLabelRes != null && action != null) {
             snackbar.setAction(actionLabelRes) { action() }
         }

@@ -262,7 +262,7 @@ class LinkListAdapter(
         }
 
         private fun bindLoadedFavicon() {
-            iconContainer.setCardBackgroundColor(itemView.context.getColor(R.color.shiori_white))
+            iconContainer.setCardBackgroundColor(itemView.context.getColor(R.color.shiori_card))
             iconContainer.strokeWidth = itemView.dp(1)
             iconContainer.strokeColor = itemView.context.getColor(R.color.shiori_line)
             iconText.visibility = View.GONE

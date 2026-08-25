@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="shiori_canvas">#171310</color>
+    <color name="shiori_surface">#211A16</color>
+    <color name="shiori_surface_strong">#3A2E26</color>
+    <color name="shiori_surface_selected">#322822</color>
+    <color name="shiori_selection">#2A211B</color>
+    <color name="shiori_line">#3B2F27</color>
+    <color name="shiori_card">#2A211B</color>
+    <color name="shiori_text_primary">#F0E7DE</color>
+    <color name="shiori_text_secondary">#B3A294</color>
+    <color name="shiori_text_muted">#8A7A6D</color>
+    <color name="shiori_accent">#C9A183</color>
+    <color name="shiori_accent_dark">#8A6D58</color>
+    <color name="shiori_arxiv">#2E241E</color>
+    <color name="shiori_gray_icon">#4A4038</color>
+</resources>
