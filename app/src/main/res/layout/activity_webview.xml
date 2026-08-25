@@ -100,36 +100,46 @@
             android:textColor="@color/shiori_text_muted" />
     </FrameLayout>
 
-    <com.google.android.material.button.MaterialButtonToggleGroup
-        android:id="@+id/webview_view_toggle"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/webview_floating_toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="20dp"
-        android:orientation="horizontal"
-        app:checkedButton="@+id/webview_tab_web"
-        app:selectionRequired="true"
-        app:singleSelection="true">
+        app:cardBackgroundColor="@color/shiori_surface"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="6dp">
 
-        <Button
-            android:id="@+id/webview_tab_web"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:text="@string/webview_tab_web" />
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/webview_view_toggle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="6dp"
+            app:checkedButton="@+id/webview_tab_web"
+            app:selectionRequired="true"
+            app:singleSelection="true">
 
-        <Button
-            android:id="@+id/webview_tab_notion"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:text="@string/webview_tab_notion" />
-    </com.google.android.material.button.MaterialButtonToggleGroup>
+            <Button
+                android:id="@+id/webview_tab_web"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/webview_tab_web" />
+
+            <Button
+                android:id="@+id/webview_tab_notion"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/webview_tab_notion" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+    </com.google.android.material.card.MaterialCardView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

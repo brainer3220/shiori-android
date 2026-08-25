@@ -31,11 +31,13 @@ class WebViewActivity : Activity() {
         webView = findViewById(R.id.webview_content)
         webView.settings.javaScriptEnabled = true
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.webview_root)) { view, insets ->
+        val root = findViewById<View>(R.id.webview_root)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(bars.left, bars.top, bars.right, 0)
             insets
         }
+        root.requestApplyInsets()
         webView.webViewClient = object : WebViewClient() {
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
                 updateNavButtons()
