@@ -143,21 +143,19 @@ class LinksBrowserTest {
     }
 
     @Test
-    fun `card mapping keeps valid favicon urls and drops invalid ones`() {
+    fun `card mapping builds favicon url from link url and drops invalid urls`() {
         assertEquals(
-            "https://example.com/favicon.ico",
+            "https://www.google.com/s2/favicons?domain=example.com&sz=64",
             LinkResponse(
                 id = "1",
                 url = "https://example.com/article",
-                faviconUrl = "https://example.com/favicon.ico",
             ).toCardModel().faviconUrl,
         )
         assertEquals(
             null,
             LinkResponse(
                 id = "2",
-                url = "https://example.com/article",
-                faviconUrl = "javascript:alert(1)",
+                url = "javascript:alert(1)",
             ).toCardModel().faviconUrl,
         )
     }

@@ -300,9 +300,7 @@ internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
     title = title?.takeIf { it.isNotBlank() } ?: url,
     rawTitle = title?.takeIf { it.isNotBlank() },
     domain = domain?.takeIf { it.isNotBlank() } ?: url.toDomainFallback(),
-    faviconUrl = faviconUrl.toLoadableFaviconUrl()
-        ?: (domain?.takeIf { it.isNotBlank() } ?: url.toDomainFallback())
-            .toGoogleFaviconUrl(),
+    faviconUrl = url.toLoadableFaviconUrl()?.toGoogleFaviconUrl(),
     summary = summary?.takeIf { it.isNotBlank() },
     read = read,
     status = status?.replaceFirstChar { char ->
