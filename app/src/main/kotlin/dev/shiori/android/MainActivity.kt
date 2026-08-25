@@ -677,11 +677,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openLink(item: LinkCardModel) {
-        try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(item.url)))
-        } catch (_: ActivityNotFoundException) {
-            showTransientFeedback(getString(R.string.message_link_open_failed))
-        }
+        WebViewActivity.start(this, item.url)
     }
 
     private fun askShiori(item: LinkCardModel) {
