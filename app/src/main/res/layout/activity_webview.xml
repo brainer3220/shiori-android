@@ -107,38 +107,54 @@
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="20dp"
-        app:cardBackgroundColor="@color/shiori_surface"
-        app:cardCornerRadius="28dp"
-        app:cardElevation="6dp">
+        app:cardBackgroundColor="@color/shiori_card"
+        app:cardCornerRadius="36dp"
+        app:cardElevation="3dp"
+        app:strokeColor="@color/shiori_line"
+        app:strokeWidth="1dp">
 
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/webview_view_toggle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="6dp"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             app:checkedButton="@+id/webview_tab_web"
             app:selectionRequired="true"
             app:singleSelection="true">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/webview_tab_web"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="44dp"
+                android:layout_height="56dp"
                 android:layout_weight="1"
+                android:gravity="center"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:padding="0dp"
+                android:textColor="@color/shiori_text_primary"
+                app:backgroundTint="@android:color/transparent"
+                app:cornerRadius="28dp"
                 android:text="@string/webview_tab_web" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/webview_tab_notion"
-                style="?attr/materialButtonOutlinedStyle"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="44dp"
+                android:layout_height="56dp"
                 android:layout_weight="1"
+                android:gravity="center"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:padding="0dp"
+                android:textColor="@color/shiori_text_secondary"
+                app:backgroundTint="@android:color/transparent"
+                app:cornerRadius="28dp"
                 android:text="@string/webview_tab_notion" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
     </com.google.android.material.card.MaterialCardView>
