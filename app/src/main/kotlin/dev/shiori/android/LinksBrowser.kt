@@ -300,7 +300,9 @@ internal fun LinkResponse.toCardModel(): LinkCardModel = LinkCardModel(
     title = title?.takeIf { it.isNotBlank() } ?: url,
     rawTitle = title?.takeIf { it.isNotBlank() },
     domain = domain?.takeIf { it.isNotBlank() } ?: url.toDomainFallback(),
-    faviconUrl = faviconUrl.toLoadableFaviconUrl(),
+    faviconUrl = faviconUrl.toLoadableFaviconUrl()
+        ?: (domain?.takeIf { it.isNotBlank() } ?: url.toDomainFallback())
+            .toGoogleFaviconUrl(),
     summary = summary?.takeIf { it.isNotBlank() },
     read = read,
     status = status?.replaceFirstChar { char ->
@@ -334,6 +336,11 @@ internal fun String?.toLoadableFaviconUrl(): String? {
     return value.takeIf {
         (scheme == "http" || scheme == "https") && host.isNotBlank()
     }
+}
+
+internal fun String.toGoogleFaviconUrl(): String? {
+    val host = runCatching { URI(this).host }.getOrNull() ?: return null
+    return "https://www.google.com/s2/favicons?domain=$host&sz=64"
 }
 
 internal fun ShioriApiError.toBrowseMessage(): String = toUserMessage(LinkActionMessageContext.Browse)
