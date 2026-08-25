@@ -6,12 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
+import com.google.android.material.button.MaterialButtonToggleGroup
 
 class WebViewActivity : Activity() {
 
@@ -57,25 +56,14 @@ class WebViewActivity : Activity() {
             // TODO: overflow menu (tags, edit, delete)
         }
 
-        val askInput = findViewById<EditText>(R.id.webview_ask_input)
-        val sendButton = findViewById<ImageButton>(R.id.webview_ask_send)
-        val submitAsk = {
-            val query = askInput.text?.toString()?.trim().orEmpty()
-            if (query.isNotEmpty()) {
-                // TODO: send query to Ask Shiori backend
-                askInput.setText("")
+        val toggle = findViewById<MaterialButtonToggleGroup>(R.id.webview_view_toggle)
+        val notionPlaceholder = findViewById<TextView>(R.id.webview_notion_placeholder)
+        toggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val showNotion = checkedId == R.id.webview_tab_notion
+            webView.visibility = if (showNotion) View.INVISIBLE else View.VISIBLE
+            notionPlaceholder.visibility = if (showNotion) View.VISIBLE else View.GONE
             }
-            Unit
-        }
-        sendButton.setOnClickListener { submitAsk() }
-        askInput.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEND) {
-                submitAsk()
-                true
-            } else {
-                false
-            }
-        }
     }
 
     private fun updateNavButtons() {

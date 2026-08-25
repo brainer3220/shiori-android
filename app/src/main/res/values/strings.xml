@@ -110,6 +110,8 @@
     <string name="cd_webview_more">More</string>
     <string name="cd_webview_ask_send">Send</string>
     <string name="webview_ask_hint">Ask anything about this link…</string>
+    <string name="webview_tab_web">Web</string>
+    <string name="webview_tab_notion">Notion</string>
     <string name="webview_notion_placeholder">Notion view coming soon</string>
     <string name="message_link_copied">Link copied.</string>
     <string name="message_link_id_copied">Link ID copied.</string>
