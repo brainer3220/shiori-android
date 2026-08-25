@@ -22,7 +22,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cd_webview_close"
             app:tint="@color/shiori_text_secondary"
-            app:srcCompat="@drawable/ic_webview_close" />
+            android:src="@drawable/ic_webview_close" />
 
         <ImageButton
             android:id="@+id/webview_back_button"
@@ -33,7 +33,7 @@
             android:enabled="false"
             android:alpha="0.4"
             app:tint="@color/shiori_text_secondary"
-            app:srcCompat="@drawable/ic_chevron_up" />
+            android:src="@drawable/ic_chevron_up" />
 
         <ImageButton
             android:id="@+id/webview_forward_button"
@@ -44,7 +44,7 @@
             android:enabled="false"
             android:alpha="0.4"
             app:tint="@color/shiori_text_secondary"
-            app:srcCompat="@drawable/ic_chevron_down" />
+            android:src="@drawable/ic_chevron_down" />
 
         <Space
             android:layout_width="0dp"
@@ -58,7 +58,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cd_webview_archive"
             app:tint="@color/shiori_text_secondary"
-            app:srcCompat="@drawable/ic_archive" />
+            android:src="@drawable/ic_archive" />
 
         <ImageButton
             android:id="@+id/webview_star_button"
@@ -67,7 +67,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cd_webview_star"
             app:tint="@color/shiori_text_secondary"
-            app:srcCompat="@drawable/ic_star" />
+            android:src="@drawable/ic_star" />
 
         <ImageButton
             android:id="@+id/webview_more_button"
@@ -76,7 +76,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cd_webview_more"
             app:tint="@color/shiori_text_secondary"
-            app:srcCompat="@drawable/ic_more_horizontal" />
+            android:src="@drawable/ic_more_horizontal" />
     </LinearLayout>
 
     <FrameLayout
