@@ -81,7 +81,8 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="56dp">
+        android:paddingTop="56dp"
+        android:paddingBottom="88dp">
 
         <WebView
             android:id="@+id/webview_content"
