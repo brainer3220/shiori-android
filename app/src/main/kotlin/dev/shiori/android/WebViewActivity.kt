@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import android.widget.ImageButton
 import android.widget.TextView
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -28,6 +30,12 @@ class WebViewActivity : Activity() {
 
         webView = findViewById(R.id.webview_content)
         webView.settings.javaScriptEnabled = true
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.webview_root)) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(bars.left, bars.top, bars.right, 0)
+            insets
+        }
         webView.webViewClient = object : WebViewClient() {
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
                 updateNavButtons()
