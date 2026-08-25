@@ -5,9 +5,13 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.ViewGroup
+import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.TextView
 
 class WebViewActivity : Activity() {
 
@@ -21,19 +25,67 @@ class WebViewActivity : Activity() {
             return
         }
 
-        webView = WebView(this)
-        webView.layoutParams = ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-        )
-        setContentView(webView)
+        setContentView(R.layout.activity_webview)
 
+        webView = findViewById(R.id.webview_content)
         webView.settings.javaScriptEnabled = true
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
+                updateNavButtons()
+            }
+        }
         if (savedInstanceState == null) {
             webView.loadUrl(url)
         } else {
             webView.restoreState(savedInstanceState)
+        }
+
+        findViewById<ImageButton>(R.id.webview_close_button).setOnClickListener { finish() }
+        findViewById<ImageButton>(R.id.webview_back_button).setOnClickListener {
+            if (webView.canGoBack()) webView.goBack()
+        }
+        findViewById<ImageButton>(R.id.webview_forward_button).setOnClickListener {
+            if (webView.canGoForward()) webView.goForward()
+        }
+        findViewById<ImageButton>(R.id.webview_archive_button).setOnClickListener {
+            // TODO: wire archive action to API
+        }
+        findViewById<ImageButton>(R.id.webview_star_button).setOnClickListener {
+            // TODO: wire favorite action to API
+        }
+        findViewById<ImageButton>(R.id.webview_more_button).setOnClickListener {
+            // TODO: overflow menu (tags, edit, delete)
+        }
+
+        val askInput = findViewById<EditText>(R.id.webview_ask_input)
+        val sendButton = findViewById<ImageButton>(R.id.webview_ask_send)
+        val submitAsk = {
+            val query = askInput.text?.toString()?.trim().orEmpty()
+            if (query.isNotEmpty()) {
+                // TODO: send query to Ask Shiori backend
+                askInput.setText("")
+            }
+            Unit
+        }
+        sendButton.setOnClickListener { submitAsk() }
+        askInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEND) {
+                submitAsk()
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    private fun updateNavButtons() {
+        findViewById<ImageButton>(R.id.webview_back_button).let {
+            it.isEnabled = webView.canGoBack()
+            it.alpha = if (it.isEnabled) 1f else 0.4f
+        }
+        findViewById<ImageButton>(R.id.webview_forward_button).let {
+            it.isEnabled = webView.canGoForward()
+            it.alpha = if (it.isEnabled) 1f else 0.4f
         }
     }
 

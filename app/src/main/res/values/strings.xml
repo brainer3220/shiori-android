@@ -102,6 +102,15 @@
     <string name="message_tags_updated">Tags updated.</string>
     <string name="message_tag_filter">Filtering #%1$s.</string>
     <string name="message_ask_shiori_unavailable">Ask Shiori is not available in this Android build yet: %1$s</string>
+    <string name="cd_webview_close">Close</string>
+    <string name="cd_webview_back">Back</string>
+    <string name="cd_webview_forward">Forward</string>
+    <string name="cd_webview_archive">Archive</string>
+    <string name="cd_webview_star">Star</string>
+    <string name="cd_webview_more">More</string>
+    <string name="cd_webview_ask_send">Send</string>
+    <string name="webview_ask_hint">Ask anything about this link…</string>
+    <string name="webview_notion_placeholder">Notion view coming soon</string>
     <string name="message_link_copied">Link copied.</string>
     <string name="message_link_id_copied">Link ID copied.</string>
     <string name="message_ios_shortcut_unavailable">iOS Shortcut is not available on Android.</string>
